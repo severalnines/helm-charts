@@ -24,38 +24,54 @@ ingressController:
 
 # this section allows to deploy a single default cmon instance in the k8s cluster
 cmon:
+  license: # YOUR LICENSE HERE
+  sshKeysSecretName: # YOUR SSH keys secret name here
   # REQUIRED, cmon id, if unsure, leave default
   id: "00000000-0000-0000-0000-000000000000"
-  # admin username
-  user: admin
-  # admin password
-  password: SuperS3cr3tVeryL0ngP@ssw0rd
+  # rpc username
+  user: ccrpc
+  # rpc password
+  password: # SuperS3cr3tVeryL0ngP@ssw0rd
   # mysql database used for cmon
-  # REQUIRED, if not provided, default values will be used, default point to oracle operator innodb cluster
+  # if not provided, default values will be used, default point to oracle operator innodb cluster
   db:
     # overwrite the below if you are using external DB for cmon
-    host: cc
+    host: # defaults to .Release.name
     port: 3306
     name: cmon
     user: cmon
     password: cmon
-  image: severalnines/cmon:latest
+  image: severalnines/cmon:1.9.8-8180
   extra_args: # extra arguments for cmon binary
     - -s
     - --no-log-db
     - -b 0.0.0.0
     - --mysql-connect-retries=5
     - -d
+#  resources:
+#    requests:
+#      cpu: 100m
+#      memory: 1Gi
   sd:
-    image: severalnines/cmon-sd:latest
+    image: severalnines/cmon-sd:build-26
+#    resources:
+#      requests:
+#        cpu: 100m
+#        memory: 1Gi
   exporter:
-    image: severalnines/cmon_exporter-linux-amd64:latest
+    image: severalnines/cmon_exporter-linux-amd64:main
+#    resources:
+#      requests:
+#        cpu: 100m
+#        memory: 1Gi
   ccv2:
-    image: severalnines/cc-frontend:latest
-  license: # YOUR LICENSE HERE
-  sshKeysSecretName: # YOUR SSH keys secret name
+    image: severalnines/cc-frontend:2.2.0
+#    resources:
+#      requests:
+#        cpu: 100m
+#        memory: 1Gi
   ingress:
-  # Although not strictly necessary it's strongly recommended to use ingress for cmon
+  # Although not strictly necessary it's **strongly** recommended to use ingress for cmon
     enabled: true
     # OPTIONAL ingress class name
     ingressClassName: nginx
@@ -115,6 +131,7 @@ monitoring:
           scrape_interval: 1m
           scrape_timeout: 10s
           external_labels:
+            monitor: clustercontrol
             #REQUIRED use_cmon_sd is required DO NOT REMOVE
             use_cmon_sd: true
       extraScrapeConfigs:
@@ -132,8 +149,11 @@ monitoring:
               replacement: true
         ### END CMON SERVICE DISCOVERY
 
-# https://github.com/kubernetes/ingress-nginx/tree/main/charts/ingress-nginx
+# https://artifacthub.io/packages/helm/bitnami/nginx-ingress-controller
 nginx-ingress-controller:
   kind: DaemonSet
   publishService:
     enabled: true
+  config:
+    allow-backend-server-header: "true"
+    allow-snippet-annotations: "true"

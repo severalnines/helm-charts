@@ -33,6 +33,40 @@ spec:
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
+  name: {{ include "cc.name" . }}-ccv2-ingress-lic
+  annotations:
+    kubernetes.io/tls-acme: "true"
+    {{ if .Values.cmon.ingress.ssl.clusterIssuer }}
+    cert-manager.io/cluster-issuer: {{ .Values.cmon.ingress.ssl.clusterIssuer }}
+    {{ end }}
+    nginx.ingress.kubernetes.io/rewrite-target: /service/lic.php
+    nginx.ingress.kubernetes.io/upstream-vhost: severalnines.com
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+    nginx.ingress.kubernetes.io/server-snippet: |
+      proxy_ssl_name severalnines.com;
+      proxy_ssl_server_name on;
+
+spec:
+  ingressClassName: {{ .Values.cmon.ingress.ingressClassName | default "nginx" }}
+  tls:
+    - hosts:
+        - {{ .Values.fqdn }}
+      secretName: {{ .Values.cmon.ingress.ssl.secretName | default "cmon-cert" }}
+  rules:
+    - host: {{ .Values.fqdn }}
+      http:
+        paths:
+          - backend:
+              service:
+                name: severalnines
+                port:
+                  number: 443
+            path: /cc-license
+            pathType: ImplementationSpecific
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
   name: {{ include "cc.name" . }}-cmon-ingress
   annotations:
     kubernetes.io/tls-acme: "true"
@@ -43,6 +77,10 @@ metadata:
     nginx.ingress.kubernetes.io/rewrite-target: /$1
     nginx.ingress.kubernetes.io/ssl-redirect: "true"
     nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      proxy_pass_header Server;
+      add_header Server $upstream_http_server;
+
 spec:
   ingressClassName: {{ .Values.cmon.ingress.ingressClassName | default "nginx" }}
   tls:
