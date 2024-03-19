@@ -1,0 +1,63 @@
+{{ if .Values.cmon.ingress.enabled }}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "cc.name" . }}-ccv2-ingress
+  annotations:
+    kubernetes.io/tls-acme: "true"
+    {{ if .Values.cmon.ingress.ssl.clusterIssuer }}
+    cert-manager.io/cluster-issuer: {{ .Values.cmon.ingress.ssl.clusterIssuer }}
+    {{ end }}
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/rewrite-target: /$1
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+spec:
+  ingressClassName: {{ .Values.cmon.ingress.ingressClassName | default "nginx" }}
+  tls:
+    - hosts:
+        - {{ .Values.fqdn }}
+      secretName: {{ .Values.cmon.ingress.ssl.secretName | default "cmon-cert" }}
+  rules:
+    - host: {{ .Values.fqdn }}
+      http:
+        paths:
+          - backend:
+              service:
+                name: cmon-master
+                port:
+                  number: 3000 #ccv2
+            path: /(.*)
+            pathType: ImplementationSpecific
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "cc.name" . }}-cmon-ingress
+  annotations:
+    kubernetes.io/tls-acme: "true"
+    {{ if .Values.cmon.ingress.ssl.clusterIssuer }}
+    cert-manager.io/cluster-issuer: {{ .Values.cmon.ingress.ssl.clusterIssuer }}
+    {{ end }}
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/rewrite-target: /$1
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+spec:
+  ingressClassName: {{ .Values.cmon.ingress.ingressClassName | default "nginx" }}
+  tls:
+    - hosts:
+        - {{ .Values.fqdn }}
+      secretName: {{ .Values.cmon.ingress.ssl.secretName | default "cmon-cert" }}
+  rules:
+    - host: {{ .Values.fqdn }}
+      http:
+        paths:
+          - backend:
+              service:
+                name: cmon-master #cmon
+                port:
+                  number: 9501
+            path: /cmon/(.*)
+            pathType: ImplementationSpecific
+{{ end }}

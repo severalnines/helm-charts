@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: config-js
+data:
+  config.js: |
+    window.FEAS_ENV = {
+      CMON_API_URL: 'https://{{ .Values.fqdn }}/cmon/v2',
+      GIT_SHA: 'git_sha',
+      GIT_BRANCH: 'git_branch',
+      VERSION: 'version',
+      DEBUG_ENABLED: true,
+      DEBUG_LEVEL: 0,
+    };
