@@ -24,3 +24,16 @@ spec:
     app: cmon-master
     run: cmon-master
   type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: severalnines
+spec:
+  externalName: severalnines.com
+  type: ExternalName
+  ports:
+  - port: 443
+    name: port-443
+  - port: 80
+    name: port-80

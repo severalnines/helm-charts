@@ -60,17 +60,3 @@ Create the name of the service account to use
 {{- default "default" .Values.serviceAccount.name }}
 {{- end }}
 {{- end }}
-
-# retrieve the secret data using lookup function and when not exists, return an empty dictionary / map as result
-# set $cmonPassword to existing secret data or generate a random one when not exists
-{{- define "cmonPassword" -}}
-{{- $secretObj := (lookup "v1" "Secret" .Release.Namespace "cmon-credentials") | default dict }}
-{{- $secretData := (get $secretObj "data") | default dict }}
-{{- or (get $secretData "cmon-password" | b64dec) .Values.cmon.password | default (randAlphaNum 16) }}
-{{- end }}
-
-{{- define "cmonUser" -}}
-{{- $secretObj := (lookup "v1" "Secret" .Release.Namespace "cmon-credentials") | default dict }}
-{{- $secretData := (get $secretObj "data") | default dict }}
-{{- or (get $secretData "cmon-user" | b64dec) .Values.cmon.user | default "cmon-user" }}
-{{- end }}

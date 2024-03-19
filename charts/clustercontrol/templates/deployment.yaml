@@ -25,11 +25,14 @@ spec:
       initContainers:
       - name: init-cmon
         image: {{ .Values.cmon.image | required ".Values.cmon.image is missing" }}
-        command: [ 'sh', '-c', 'cp /tmp/cmon.cnf /etc/cmon.cnf; /usr/bin/check-cmon.sh']
+        command: [ 'sh', '-c', 'cp /tmp/cmon.cnf /etc/cmon.cnf; /usr/bin/init-cmon.sh']
         volumeMounts:
         - mountPath: /tmp/cmon.cnf
           subPath: cmon.cnf
           name: cmon-cnf-cfg
+        - mountPath: /root/.s9s/s9s.conf
+          subPath: s9s.conf
+          name: s9s-cnf-cfg
       - name: check-cmon-configs
         image: {{ .Values.cmon.image | required ".Values.cmon.image is missing" }}
         command: [ 'sh', '-c', '/usr/bin/python3 /usr/bin/update-cmon-configs.py']
@@ -91,8 +94,10 @@ spec:
           initialDelaySeconds: 60
           timeoutSeconds: 10
           periodSeconds: 30
+        {{- with .Values.cmon.resources }}
         resources:
-          {{- toYaml .Values.cmon.resources | nindent 10 }}
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
       - name: cmon-cloud
         image: {{ .Values.cmon.image | required ".Values.cmon.image is missing" }}
         command: ['sh', '-c', '/usr/sbin/cmon-cloud']
@@ -122,8 +127,10 @@ spec:
                 name: cmon-credentials
                 key: cmon-password
                 optional: false
+        {{- with .Values.cmon.sd.resources }}
         resources:
-          {{- toYaml .Values.cmon.sd.resources | nindent 10 }}
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
       - name: cmon-exporter
         image: {{ .Values.cmon.exporter.image | required ".Values.cmon.exporter.image is missing" }}
         ports:
@@ -143,8 +150,10 @@ spec:
                 name: cmon-credentials
                 key: cmon-password
                 optional: false
+        {{- with .Values.cmon.ccv2.resources }}
         resources:
-          {{- toYaml .Values.cmon.exporter.resources | nindent 10 }}
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
       - name: ccv2
         image: {{ .Values.cmon.ccv2.image | required ".Values.cmon.ccv2.image is missing" }}
         ports:
