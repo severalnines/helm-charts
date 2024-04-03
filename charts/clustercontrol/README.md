@@ -1,4 +1,4 @@
-# Cluster Control helm-chart
+# ClusterControl helm-chart
 
 [![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/clustercontrol)](https://artifacthub.io/packages/helm/clustercontrol/clustercontrol)
 ![Helm: v3](https://img.shields.io/static/v1?label=Helm&message=v3&color=informational&logo=helm)
@@ -45,7 +45,7 @@ These should already be configured on target server's `authorized_keys`
 
 ### Create k8s secrets with your SSH keys
 
-`key1` is the filename of your ssh key in cluster control - this will be created under `/root/.ssh-keys-user`
+`key1` is the filename of your ssh key in ClusterControl - this will be created under `/root/.ssh-keys-user`
 
 ```
 kubectl create secret generic my-ssh-keys --from-file=key1=/path/to/my/.ssh/id_rsa
@@ -53,7 +53,7 @@ kubectl create secret generic my-ssh-keys --from-file=key1=/path/to/my/.ssh/id_r
 
 **NOTE**: You can use multiple `--from-file` - be sure to provide unique keynames - `key1`, `key2`, `key3`
 
-### Install or Upgrade Cluster Control
+### Install or Upgrade ClusterControl
 
 Providing cmon.sshKeysSecretName value with our secret name created above
 
@@ -93,7 +93,7 @@ Is is *HIGHLY* recommended to use ingress as ClusterControl V2 requires cmon API
 helm install clustercontrol s9s/clustercontrol --debug --set fqdn=clustercontrol.example.com --set installMysqlOperator=false --set ingressController.enabled=false
 ```
 
-This helm chart has certain dependencies that makes Cluster Control easier to install.
+This helm chart has certain dependencies that makes ClusterControl easier to install.
 None of these is necessary if you provide your own equivalent or you already have it installed.
 
 * oracle-mysql-operator
