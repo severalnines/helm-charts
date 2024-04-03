@@ -107,7 +107,7 @@ installMysqlOperator: false
 An MySQL Innodb cluster required for ClusterControl
 You can disable this by setting
 ```
-installMysqlOperator: false
+createDatabases: false
 ```
 But you will need to provide a different MySQL / MariaDB or compatibile for ClusterControl to use.
 For exact documentation refer to the official helm chart documentation
