@@ -41,7 +41,7 @@ cmon:
     name: cmon
     user: cmon
     password: cmon
-  image: severalnines/cmon:1.9.8-8180
+  image: severalnines/cmon:1.9.8-8364
   extra_args: # extra arguments for cmon binary
     - -s
     - --no-log-db
@@ -65,7 +65,7 @@ cmon:
 #        cpu: 100m
 #        memory: 1Gi
   ccv2:
-    image: severalnines/cc-frontend:2.2.0
+    image: severalnines/cc-frontend:2.1.0
 #    resources:
 #      requests:
 #        cpu: 100m

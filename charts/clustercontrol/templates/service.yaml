@@ -16,10 +16,10 @@ spec:
     protocol: TCP
     targetPort: 9954
     name: 9954-port
-  - port: 3000
+  - port: 80
     protocol: TCP
-    targetPort: 3000
-    name: 3000-port
+    targetPort: 80
+    name: 80-port
   - port: 9511
     protocol: TCP
     targetPort: 9511

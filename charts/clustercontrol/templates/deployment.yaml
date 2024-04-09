@@ -157,11 +157,11 @@ spec:
       - name: ccv2
         image: {{ .Values.cmon.ccv2.image | required ".Values.cmon.ccv2.image is missing" }}
         ports:
-        - containerPort: 3000
+        - containerPort: 80
           protocol: TCP
-          name: 3000-port
+          name: 80-port
         volumeMounts:
-        - mountPath: /usr/src/app/config.js
+        - mountPath: /usr/share/nginx/html/config.js
           subPath: config.js
           name: config-js-cfg
         {{- with .Values.cmon.ccv2.resources }}

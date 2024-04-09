@@ -26,7 +26,7 @@ spec:
               service:
                 name: cmon-master
                 port:
-                  number: 3000 #ccv2
+                  number: 80 #ccv2
             path: /(.*)
             pathType: ImplementationSpecific
 ---
