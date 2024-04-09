@@ -168,6 +168,20 @@ spec:
         resources:
           {{- toYaml . | nindent 10 }}
         {{- end }}
+      - name: cmon-ssh
+        image: {{ .Values.cmon.image | required ".Values.cmon.image is missing" }}
+        command: ['sh', '-c', '/usr/sbin/cmon-ssh']
+        ports:
+        - containerPort: 9511
+          protocol: TCP
+          name: cmon-ssh9511
+        volumeMounts:
+        - mountPath: /etc/cmon.d/
+          name: cmon-master-pv
+        {{ if .Values.cmon.sshKeysSecretName }}
+        - mountPath: /root/.ssh-keys-user
+          name: ssh-keys-user
+        {{ end }}
       volumes:
       - name: cmon-master-pv
         persistentVolumeClaim:
