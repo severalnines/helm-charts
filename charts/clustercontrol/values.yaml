@@ -7,7 +7,7 @@ fqdn: &fqdn localhost
 
 # host of your prometheus/victoria metrics instance, MUST be available on port 9090
 # REQUIRED, if not provided, metrics and dashboards won't be available
-prometheusHostname: cc-monitoring-server
+prometheusHostname: # defaults to .Release.name-monitoring-server
 
 # k8s storage class used for PVs across cc. This is a global variable applied to all PVCs/PVs to simplify things.
 # OPTIONAL, if not provided, default storage class will be used
