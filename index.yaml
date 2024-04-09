@@ -3,6 +3,34 @@ entries:
   clustercontrol:
   - apiVersion: v2
     appVersion: 1.9.8
+    created: "2024-04-09T15:13:43.394393178Z"
+    dependencies:
+    - condition: installMysqlOperator
+      name: mysql-operator
+      repository: https://mysql.github.io/mysql-operator/
+      version: 2.1.2
+    - condition: createDatabases
+      name: mysql-innodbcluster
+      repository: https://mysql.github.io/mysql-operator/
+      version: 2.1.2
+    - alias: monitoring
+      condition: monitoring.enabled
+      name: victoria-metrics-single
+      repository: https://victoriametrics.github.io/helm-charts/
+      version: 0.9.16
+    - condition: ingressController.enabled
+      name: nginx-ingress-controller
+      repository: https://charts.bitnami.com/bitnami
+      version: 11.0.0
+    description: A ClusterControl Helm Chart for Kubernetes
+    digest: 66bd71dff13eda20901eb152b115a60dd258a62cfc3f1ddbd61404c0bbf8bb7f
+    name: clustercontrol
+    type: application
+    urls:
+    - https://github.com/severalnines/helm-charts/releases/download/clustercontrol-2024.04.2/clustercontrol-2024.04.2.tgz
+    version: 2024.04.2
+  - apiVersion: v2
+    appVersion: 1.9.8
     created: "2024-04-09T11:11:12.219262074Z"
     dependencies:
     - condition: installMysqlOperator
@@ -57,4 +85,4 @@ entries:
     urls:
     - https://github.com/severalnines/helm-charts/releases/download/clustercontrol-2024.03.1/clustercontrol-2024.03.1.tgz
     version: 2024.03.1
-generated: "2024-04-09T11:11:12.21927594Z"
+generated: "2024-04-09T15:13:43.394411893Z"
