@@ -14,7 +14,7 @@ prometheusHostname: # defaults to .Release.name-monitoring-server
 storageClassName:
 
 # OPTIONAL install oracle mysql operator?
-# You should set this to false if operator is already installed in your cluster or using external DB for cmon
+# You should set this to false if operator is already installed in your cluster or using external DB for ClusterControl
 installMysqlOperator: true
 # OPTIONAL create databases using mysql operator? If false, you must create the databases yourself.
 createDatabases: true
@@ -22,27 +22,27 @@ createDatabases: true
 ingressController:
   enabled: True
 
-# this section allows to deploy a single default cmon instance in the k8s cluster
+# this section allows to deploy a single default ClusterControl instance in the k8s cluster
 cmon:
   license: # YOUR LICENSE HERE
   sshKeysSecretName: # YOUR SSH keys secret name here
-  # REQUIRED, cmon id, if unsure, leave default
+  # REQUIRED, ClusterControl id, if unsure, leave default
   id: "00000000-0000-0000-0000-000000000000"
   # rpc username
   user: ccrpc
   # rpc password
   password: # SuperS3cr3tVeryL0ngP@ssw0rd
-  # mysql database used for cmon
-  # if not provided, default values will be used, default point to oracle operator innodb cluster
+  # mysql database used for ClusterControl
+  # if not provided, default values will be used, default point to mysql operator innodb cluster (included as a chart dependency)
   db:
-    # overwrite the below if you are using external DB for cmon
+    # overwrite the below if you are using external DB for ClusterControl
     host: # defaults to .Release.name
     port: 3306
     name: cmon
     user: cmon
     password: cmon
   image: severalnines/cmon:1.9.8-8364
-  extra_args: # extra arguments for cmon binary
+  extra_args: # extra arguments for ClusterControl binary
     - -s
     - --no-log-db
     - -b 0.0.0.0
@@ -53,7 +53,7 @@ cmon:
 #      cpu: 100m
 #      memory: 1Gi
   sd:
-    image: severalnines/cmon-sd:build-26
+    image: severalnines/cmon-sd:build-38
 #    resources:
 #      requests:
 #        cpu: 100m
