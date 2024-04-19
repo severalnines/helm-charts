@@ -4,7 +4,7 @@ description: A ClusterControl Helm Chart for Kubernetes
 
 type: application
 
-version: 2024.04.3
+version: 2024.04.4
 appVersion: "1.9.8"
 
 dependencies:
@@ -23,5 +23,5 @@ dependencies:
     alias: monitoring
   - name: nginx-ingress-controller
     repository: https://charts.bitnami.com/bitnami
-    version: 11.0.0
+    version: 11.1.0
     condition: ingressController.enabled

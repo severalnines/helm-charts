@@ -134,3 +134,24 @@ prometheusHostname: my-prometheus-server
 monitoring:
   enabled: false
 ```
+
+## Uninstall
+To uninstall ClusterControl from your kubernetes cluster simply run
+```
+helm uninstall clustercontrol
+```
+
+### Persistent resources
+You might need to delete pvc created for the innodb database cluster manually.
+To do so, simply run
+```
+kubectl delete pvc datadir-clustercontrol-0
+```
+
+### Dependent resources
+Although, uninstall **should** remove every dependency created by this helm chart, sometimes the database cluster hang. To clean up, try removing them manualy by running
+```
+kubectl delete innodbclusters.mysql.oracle.com clustercontrol
+```
+
+or editing above resource and removing finalizers.
