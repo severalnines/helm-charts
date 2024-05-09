@@ -1,4 +1,4 @@
-# Severalnines helm-charts for ClusterControl
+# Severalnines helm-charts
 
 [![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/clustercontrol)](https://artifacthub.io/packages/search?org=severalnines)
 ![Helm: v3](https://img.shields.io/static/v1?label=Helm&message=v3&color=informational&logo=helm)
