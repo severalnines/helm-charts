@@ -43,7 +43,7 @@ Enjoy!
 
 ## Add CCX helm chart repo
 
-```helm repo add ccx https://severalnines.github.io/helm-ccx/```
+```helm repo add s9s https://severalnines.github.io/helm-charts/```
 
 ## Install CCX
 
