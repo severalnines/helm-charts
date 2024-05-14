@@ -7,8 +7,8 @@ This guide assumes using dependencies helper repo - https://github.com/severalni
 Add repos
 
 ```
-helm repo add --pass-credentials --username YOUR_GITHUB_NAME --password YOUR_GITHUB_TOKEN ccx https://severalnines.github.io/helm-ccx/
-helm repo add --pass-credentials --username YOUR_GITHUB_NAME --password YOUR_GITHUB_TOKEN ccxdeps https://severalnines.github.io/helm-ccxdeps/
+helm repo add ccxdeps https://severalnines.github.io/helm-ccxdeps/
+helm repo add s9s https://severalnines.github.io/helm-charts/
 helm repo update
 ```
 
@@ -22,7 +22,9 @@ kubectl create secret generic aws --from-literal=AWS_ACCESS_KEY_ID=$(awk 'tolowe
 # Install CCX dependencies
 helm install ccxdeps ccxdeps/ccxdeps --debug
 # Install CCX
-helm install ccx ccx/ccx --values minimal-values.yaml --debug --wait
+helm repo add s9s https://severalnines.github.io/helm-charts/
+helm repo update
+helm install ccx s9s/ccx --values minimal-values.yaml --debug --wait
 ```
 
 Enjoy!
@@ -41,7 +43,7 @@ Enjoy!
 
 ## Add CCX helm chart repo
 
-```helm repo add --pass-credentials --username YOUR_GITHUB_NAME --password YOUR_GITHUB_TOKEN ccx https://severalnines.github.io/helm-ccx/```
+```helm repo add ccx https://severalnines.github.io/helm-ccx/```
 
 ## Install CCX
 
@@ -71,7 +73,7 @@ ccx:
 
 ### Install CCX helm chart
 
-```helm install ccx ccx/ccx --values YOUR_VALUES_FILE-values.yaml --debug```
+```helm install ccx s9s/ccx  --values YOUR_VALUES_FILE-values.yaml --debug```
 
 If your values are divided between multiple files, you can use the `--values` option multiple times.
 
