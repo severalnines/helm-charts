@@ -1,0 +1,17 @@
+{{ if .Values.ccx.services.cmonproxy.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: cmon-proxy-svc
+  labels:
+    app: cmon-proxy
+    run: cmon-proxy
+spec:
+  type: ClusterIP
+  selector:
+    app: cmon-proxy
+  ports:
+    - protocol: TCP
+      port: 19051
+      targetPort: 19051
+{{ end }}

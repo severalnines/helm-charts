@@ -1,0 +1,17 @@
+{{ if .Values.ccx.oldWorld }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: ccx-job-storage-svc
+  labels:
+    app: ccx-job-storage
+    run: ccx-job-storage
+spec:
+  type: ClusterIP
+  selector:
+    app: ccx-job-storage
+  ports:
+    - protocol: TCP
+      port: 19001
+      targetPort: 19001
+{{ end }}

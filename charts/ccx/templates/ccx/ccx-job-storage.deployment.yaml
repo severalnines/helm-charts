@@ -1,0 +1,61 @@
+{{ if .Values.ccx.oldWorld }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ccx-job-storage
+  labels:
+    app: ccx-job-storage
+    run: ccx-job-storage
+spec:
+  replicas: {{ .Values.ccx.services.jobstorage.replicas | default 1 }}
+  selector:
+    matchLabels:
+      app: ccx-job-storage
+      run: ccx-job-storage
+  template:
+    metadata:
+      labels:
+        app: ccx-job-storage
+        run: ccx-job-storage
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
+        checksum: {{ include (print $.Template.BasePath "/ccx/secrets.yaml") . | sha256sum }}
+        checksum/config: {{ include (print $.Template.BasePath "/ccx/config.yaml") . | sha256sum }}
+    spec:
+      containers:
+        - name: ccx-job-storage
+          image: {{ .Values.ccx.services.jobstorage.image | default .Values.ccx.backend.image | required "No image set for jobs" }}
+          command: ["/bin/ccx-job-storage"]
+          env:
+          {{- range $key, $val := .Values.ccx.services.jobstorage.env }}
+            - name: {{ $key }}
+              value: {{ $val | quote }}
+          {{- end }}
+          envFrom:
+            - configMapRef:
+                name: ccx
+            - secretRef:
+                name: db
+          ports:
+            - name: service
+              containerPort: 19001
+              protocol: TCP
+            - name: metrics
+              containerPort: 9090
+              protocol: TCP
+          resources:
+            {{- toYaml .Values.ccx.services.jobstorage.resources | nindent 12 }}
+      {{ with .Values.ccx.services.jobstorage.affinity }}
+      affinity:
+        {{ toYaml . | nindent 8 }}
+      {{ end }}
+      {{ with .Values.ccx.services.jobstorage.nodeSelector }}
+      nodeSelector:
+        {{ toYaml . | nindent 8 }}
+      {{ end }}
+      {{ with .Values.ccx.services.jobstorage.tolerations }}
+      tolerations:
+        {{ toYaml . | nindent 8 }}
+      {{ end }}
+{{ end }}

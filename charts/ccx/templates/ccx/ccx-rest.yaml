@@ -1,0 +1,108 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ccx-rest-service
+  labels:
+    app: ccx-rest-service
+    run: ccx-rest-service
+spec:
+  replicas: {{ .Values.ccx.services.rest_service.replicas | default 1 }}
+  selector:
+    matchLabels:
+      app: ccx-rest-service
+  template:
+    metadata:
+      labels:
+        app: ccx-rest-service
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
+        checksum: {{ include (print $.Template.BasePath "/ccx/secrets.yaml") . | sha256sum }}
+        checksum/config: {{ include (print $.Template.BasePath "/ccx/config.yaml") . | sha256sum }}
+    spec:
+      containers:
+        - name: ccx-rest-service
+          image: {{ .Values.ccx.services.rest_service.image | default .Values.ccx.backend.image | required "No image set for rest" }}
+          command: ["/bin/ccx-rest", "serve"]
+          env:
+            - name: CONFIG_FILE
+              value: "/conf/ccx.yaml"
+            - name: PROMETHEUS_URL
+              value: http://{{ include "ccx.prometheusHostname" . }}:9090
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+          {{- range $key, $val := .Values.ccx.services.rest_service.env }}
+            - name: {{ $key }}
+              value: {{ $val | quote }}
+          {{- end }}
+          {{ if .Values.ccx.newWorld }}
+            # new stores enabled
+            - name: PREFER_NEW_STORES
+              value: "true"
+            - name: INCLUDE_NEW_STORES
+              value: "true"
+            # old stores hidden, so that user will not see duplicates
+            - name: INCLUDE_OLD_STORES
+              value: "false"
+          {{ else }}
+            # new stores disabled
+            - name: PREFER_NEW_STORES
+              value: "false"
+            - name: INCLUDE_NEW_STORES
+              value: "false"
+            - name: INCLUDE_OLD_STORES
+              value: "true"
+          {{ end }}
+          envFrom:
+            - configMapRef:
+                name: ccx
+            - secretRef:
+                name: db
+            - secretRef:
+                name: vault # userdb still needs this for now
+          ports:
+            - name: service
+              containerPort: 20001
+              protocol: TCP
+            - name: metrics
+              containerPort: 9090
+              protocol: TCP
+          volumeMounts:
+            - name: config
+              mountPath: "/conf"
+          resources:
+            {{- toYaml .Values.ccx.services.rest_service.resources | nindent 12 }}
+      volumes:
+        - name: config
+          configMap:
+            name: ccx-config-core
+      {{ with .Values.ccx.services.rest_service.affinity }}
+      affinity:
+        {{ toYaml . | nindent 8 }}
+      {{ end }}
+      {{ with .Values.ccx.services.rest_service.nodeSelector }}
+      nodeSelector:
+        {{ toYaml . | nindent 8 }}
+      {{ end }}
+      {{ with .Values.ccx.services.rest_service.tolerations }}
+      tolerations:
+        {{ toYaml . | nindent 8 }}
+      {{ end }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ccx-rest-svc
+  labels:
+    app: ccx-rest-service
+    run: ccx-rest-service
+spec:
+  type: ClusterIP
+  selector:
+    app: ccx-rest-service
+  ports:
+    - protocol: TCP
+      port: 20001
+      targetPort: 20001

@@ -1,0 +1,83 @@
+{{ if or .Values.ccx.newWorld .Values.ccx.newNotify }}
+---
+# deployment for worker
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ccx-notify-worker
+  labels:
+    app: ccx-notify-worker
+    run: ccx-notify-worker
+spec:
+  replicas: {{ .Values.ccx.services.notify_worker.replicas | default 1 }}
+  selector:
+    matchLabels:
+      app: ccx-notify-worker
+  template:
+    metadata:
+      labels:
+        app: ccx-notify-worker
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
+        checksum: {{ include (print $.Template.BasePath "/ccx/secrets.yaml") . | sha256sum }}
+    spec:
+      containers:
+        - name: ccx-notify-worker
+          image: {{ .Values.ccx.services.notify_worker.image | default .Values.ccx.backend.image | required "No image set for notify" }}
+          command: ["/bin/ccx-notify", "work"]
+          env:
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: EMAIL_FEEDBACK
+              value: {{ .Values.ccx.emailFeedback }}
+            - name: EMAIL_SUPPORT
+              value: {{ .Values.ccx.emailSupport }}
+            - name: FEEDBACK_RECEIVERS
+              value: {{ .Values.ccx.emailFeedback }}
+            - name: SUPPORT_RECEIVERS
+              value: {{ .Values.ccx.emailSupport }}
+          {{- range $key, $val := .Values.ccx.services.notify_worker.env }}
+            - name: {{ $key }}
+              value: {{ $val | quote }}
+          {{- end }}
+          envFrom:
+            - configMapRef:
+                name: ccx
+            - secretRef:
+                name: db
+            - secretRef:
+                name: smtp
+                optional: true
+          ports:
+            - name: metrics
+              containerPort: 9090
+              protocol: TCP
+          volumeMounts:
+            - name: config
+              mountPath: "/conf"
+          resources:
+            {{- toYaml .Values.ccx.services.notify_worker.resources | nindent 12 }}
+      volumes:
+        - name: config
+          configMap:
+            name: ccx-config-core
+      {{ with .Values.ccx.services.notify_worker.affinity }}
+      affinity:
+        {{ toYaml . | nindent 8 }}
+      {{ end }}
+      {{ with .Values.ccx.services.notify_worker.nodeSelector }}
+      nodeSelector:
+        {{ toYaml . | nindent 8 }}
+      {{ end }}
+      {{ with .Values.ccx.services.notify_worker.tolerations }}
+      tolerations:
+        {{ toYaml . | nindent 8 }}
+      {{ end }}
+{{ end }}

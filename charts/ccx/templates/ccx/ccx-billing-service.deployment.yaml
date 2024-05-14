@@ -1,0 +1,86 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ccx-billing-service
+  labels:
+    app: ccx-billing-service
+    run: ccx-billing-service
+spec:
+  replicas: {{ .Values.ccx.services.billing.replicas | default 1 }}
+  selector:
+    matchLabels:
+      app: ccx-billing-service
+      run: ccx-billing-service
+  template:
+    metadata:
+      labels:
+        app: ccx-billing-service
+        run: ccx-billing-service
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
+        checksum: {{ include (print $.Template.BasePath "/ccx/secrets.yaml") . | sha256sum }}
+        checksum/config: {{ include (print $.Template.BasePath "/ccx/config.yaml") . | sha256sum }}
+    spec:
+      containers:
+        - name: ccx-billing-service
+          image: {{ .Values.ccx.services.billing.image | default .Values.ccx.backend.image | required "No image set for billing" }}
+          command: ["/bin/ccx-billing-service"]
+          env:
+          {{- range $key, $val := .Values.ccx.services.billing.env }}
+            - name: {{ $key }}
+              value: {{ $val | quote }}
+          {{- end }}
+          {{ if .Values.ccx.newWorld }}
+            # new stores enabled
+            - name: PREFER_NEW_STORES
+              value: "true"
+          {{ else }}
+            # new stores disabled
+            - name: PREFER_NEW_STORES
+              value: "false"
+          {{ end }}
+          envFrom:
+            - configMapRef:
+                name: ccx
+            - secretRef:
+                name: vault
+            {{ if .Values.ccx.services.billing.enabled }}
+            - secretRef:
+                name: stripe
+            {{ end }}
+            - secretRef:
+                name: db
+          {{ if .Values.ccx.services.billing.enabled }}
+          volumeMounts:
+            - name: prices-volume
+              mountPath: /etc/prices.yaml
+              subPath: prices.yaml
+          {{ end }}
+          ports:
+            - name: service
+              containerPort: 18077
+              protocol: TCP
+            - name: metrics
+              containerPort: 9090
+              protocol: TCP
+          resources:
+            {{- toYaml .Values.ccx.services.billing.resources | nindent 12 }}
+      {{ if .Values.ccx.services.billing.enabled }}
+      volumes:
+        - name: prices-volume
+          configMap:
+            name: prices
+      {{ end }}
+      {{ with .Values.ccx.services.billing.affinity }}
+      affinity:
+        {{ toYaml . | nindent 8 }}
+      {{ end }}
+      {{ with .Values.ccx.services.billing.nodeSelector }}
+      nodeSelector:
+        {{ toYaml . | nindent 8 }}
+      {{ end }}
+      {{ with .Values.ccx.services.billing.tolerations }}
+      tolerations:
+        {{ toYaml . | nindent 8 }}
+      {{ end }}

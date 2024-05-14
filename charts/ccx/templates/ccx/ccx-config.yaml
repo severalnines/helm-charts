@@ -1,0 +1,59 @@
+# old config file, left alone for now
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ccx-config
+data:
+  {{- with .Values.ccx.config }}
+  ccx.yaml: |
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+---
+# new config file, which embeds the old one, so that it can used alone
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ccx-config-core
+data:
+  ccx.yaml: |
+    legacy:
+      {{- with .Values.ccx.config }}
+      {{- toYaml . | nindent 6 }}
+      {{- end }}
+
+    deployer:
+      {{- with .Values.ccx.services.deployer.config }}
+      {{- toYaml . | nindent 6 }}
+      {{- end }}
+      copy_files:
+        - target: "/home/ubuntu/ccx_growfs"
+          source: "/conf/ccx_growfs.sh"
+          perms: "0755"
+      {{- if .Values.fluentbit.enabled }}
+        - target: "/etc/fluent-bit/fluent-bit.conf"
+          source: "/conf/fluent-bit.conf"
+          owner: "root:root"
+          perms: "0644"
+      {{- end }}
+{{- if .Values.fluentbit.enabled }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ccx-config-fluentbit
+data:
+  # fluent bit config
+  {{- $fluentbit_conf := .Values.fluentbit.config | default (printf "%v" (.Files.Get "files/fluent-bit.conf")) }}
+  fluent-bit.conf: |
+{{ $fluentbit_conf | indent 4 }}
+{{- end }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ccx-config-growfs
+data:
+  # lvm script NB don't indent the template, something odd happens re. #!
+  {{- $ccx_growfs_sh := (printf "%v" (.Files.Get "files/ccx_growfs.sh")) }}
+  ccx_growfs.sh: |-
+{{ $ccx_growfs_sh | indent 4 }}
