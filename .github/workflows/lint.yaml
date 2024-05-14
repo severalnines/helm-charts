@@ -20,4 +20,4 @@ jobs:
 
       - name: Lint
         run: |-
-          helm lint
+          helm lint charts/*
