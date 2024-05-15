@@ -45,7 +45,7 @@ Enjoy!
 
 ```helm repo add s9s https://severalnines.github.io/helm-charts/```
 
-## Install CCX
+## Prerequisites for CCX Installation
 
 ### values.yaml
 
