@@ -1,0 +1,352 @@
+{{ if .Values.ccx.newWorld }}
+---
+# deployment for service
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ccx-stores-service
+  labels:
+    app: ccx-stores-service
+    run: ccx-stores-service
+spec:
+  replicas: {{ .Values.ccx.services.stores_service.replicas | default 1 }}
+  selector:
+    matchLabels:
+      app: ccx-stores-service
+  template:
+    metadata:
+      labels:
+        app: ccx-stores-service
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
+        checksum: {{ include (print $.Template.BasePath "/ccx/secrets.yaml") . | sha256sum }}
+        checksum/config: {{ include (print $.Template.BasePath "/ccx/config.yaml") . | sha256sum }}
+    spec:
+      initContainers:
+        - name: ccx-stores-init
+          image: {{ .Values.ccx.services.stores_service.image | default .Values.ccx.backend.image | required "No image set for stores" }}
+          command: ["/bin/ccx-stores", "migrate"]
+          envFrom:
+            - secretRef:
+                name: db-stores
+      containers:
+        - name: ccx-stores-service
+          image: {{ .Values.ccx.services.stores_service.image | default .Values.ccx.backend.image | required "No image set for stores" }}
+          command: ["/bin/ccx-stores", "serve"]
+          env:
+            - name: CONFIG_FILE
+              value: "/conf/ccx.yaml"
+            - name: ADDR
+              value: "0.0.0.0:20002"
+            - name: PROMETHEUS_URL
+              value: http://{{ include "ccx.prometheusHostname" . }}:9090
+            - name: DEPLOYER_DB_DSN
+              valueFrom:
+                secretKeyRef:
+                  name: db-deployer
+                  key: DB_DSN
+            - name: VPC_DB_DSN
+              valueFrom:
+                secretKeyRef:
+                  name: db-vpc
+                  key: DB_DSN
+          {{- with .Values.cmon.id }}
+            - name: DEFAULT_CONTROLLER_ID
+              value: {{ . }}
+          {{- end }}
+          {{- range $key, $val := .Values.ccx.services.stores_service.env }}
+            - name: {{ $key }}
+              value: {{ $val | quote }}
+          {{- end }}
+          envFrom:
+            - configMapRef:
+                name: ccx
+            - secretRef:
+                name: cmon-credentials
+            - secretRef:
+                name: db-stores
+            - secretRef:
+                name: vault
+          {{- range $name := .Values.ccx.cloudSecrets }}
+            - secretRef:
+                name: {{ $name }}
+          {{- end }}
+          ports:
+            - name: service
+              containerPort: 20002
+              protocol: TCP
+            - name: metrics
+              containerPort: 9090
+              protocol: TCP
+          volumeMounts:
+            - name: config
+              mountPath: "/conf"
+          resources:
+            {{- toYaml .Values.ccx.services.stores_service.resources | nindent 12 }}
+      volumes:
+        - name: config
+          configMap:
+            name: ccx-config-core
+      {{ with .Values.ccx.services.stores_service.affinity }}
+      affinity:
+        {{ toYaml . | nindent 8 }}
+      {{ end }}
+      {{ with .Values.ccx.services.stores_service.nodeSelector }}
+      nodeSelector:
+        {{ toYaml . | nindent 8 }}
+      {{ end }}
+      {{ with .Values.ccx.services.stores_service.tolerations }}
+      tolerations:
+        {{ toYaml . | nindent 8 }}
+      {{ end }}
+---
+# service for service
+# this has a load balancer so that it can be accessed from a different host, e.g. for ssh-db-node
+apiVersion: v1
+kind: Service
+metadata:
+  name: ccx-stores-svc
+  labels:
+    app: ccx-stores-service
+    run: ccx-stores-service
+  annotations:
+    {{- range $key, $val := .Values.ccx.services.stores_service.serviceAnnotations }}
+    {{ $key }}: {{ $val | quote }}
+    {{- end }}
+spec:
+  type: {{ .Values.ccx.services.stores_service.serviceType | default "ClusterIP" }}
+  selector:
+    app: ccx-stores-service
+  ports:
+    - protocol: TCP
+      port: 20002
+      targetPort: 20002
+---
+# deployment for worker
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ccx-stores-worker
+  labels:
+    app: ccx-stores-worker
+    run: ccx-stores-worker
+spec:
+  replicas: {{ .Values.ccx.services.stores_worker.replicas | default 1 }}
+  selector:
+    matchLabels:
+      app: ccx-stores-worker
+  template:
+    metadata:
+      labels:
+        app: ccx-stores-worker
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
+        checksum: {{ include (print $.Template.BasePath "/ccx/secrets.yaml") . | sha256sum }}
+        checksum/config: {{ include (print $.Template.BasePath "/ccx/config.yaml") . | sha256sum }}
+    spec:
+      terminationGracePeriodSeconds: 120
+      initContainers:
+        - name: ccx-stores-init
+          image: {{ .Values.ccx.services.stores_worker.image | default .Values.ccx.backend.image | required "No image set for stores" }}
+          command: ["/bin/ccx-stores", "migrate"]
+          envFrom:
+            - secretRef:
+                name: db-stores
+      containers:
+        - name: ccx-stores-worker
+          image: {{ .Values.ccx.services.stores_worker.image | default .Values.ccx.backend.image | required "No image set for stores" }}
+          command: ["/bin/ccx-stores", "work"]
+          env:
+            - name: CONFIG_FILE
+              value: "/conf/ccx.yaml"
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: PROMETHEUS_URL
+              value: http://{{ include "ccx.prometheusHostname" . }}:9090
+            - name: DEPLOYER_DB_DSN
+              valueFrom:
+                secretKeyRef:
+                  name: db-deployer
+                  key: DB_DSN
+            - name: VPC_DB_DSN
+              valueFrom:
+                secretKeyRef:
+                  name: db-vpc
+                  key: DB_DSN
+          {{- with .Values.cmon.id }}
+            - name: DEFAULT_CONTROLLER_ID
+              value: {{ . }}
+          {{- end }}
+          {{- range $key, $val := .Values.ccx.services.stores_worker.env }}
+            - name: {{ $key }}
+              value: {{ $val | quote }}
+          {{- end }}
+          envFrom:
+            - configMapRef:
+                name: ccx
+            - secretRef:
+                name: cmon-credentials
+            - secretRef:
+                name: db-stores
+            - secretRef:
+                name: vault
+          {{- range $name := .Values.ccx.cloudSecrets }}
+            - secretRef:
+                name: {{ $name }}
+          {{- end }}
+          ports:
+            - name: metrics
+              containerPort: 9090
+              protocol: TCP
+          volumeMounts:
+            - name: conf-core
+              mountPath: "/conf/ccx.yaml"
+              subPath: "ccx.yaml"
+            {{- if .Values.fluentbit.enabled }}
+            - name: conf-fluentbit
+              mountPath: "/conf/fluent-bit.conf"
+              subPath: "fluent-bit.conf"
+            {{- end }}
+            - name: conf-growfs
+              mountPath: "/conf/ccx_growfs.sh"
+              subPath: ccx_growfs.sh
+          resources:
+            {{- toYaml .Values.ccx.services.stores_worker.resources | nindent 12 }}
+      volumes:
+        - name: conf-core
+          configMap:
+            name: ccx-config-core
+        {{- if .Values.fluentbit.enabled }}
+        - name: conf-fluentbit
+          configMap:
+            name: ccx-config-fluentbit
+        {{- end }}
+        - name: conf-growfs
+          configMap:
+            name: ccx-config-growfs
+      {{ with .Values.ccx.services.stores_worker.affinity }}
+      affinity:
+        {{ toYaml . | nindent 8 }}
+      {{ end }}
+      {{ with .Values.ccx.services.stores_worker.nodeSelector }}
+      nodeSelector:
+        {{ toYaml . | nindent 8 }}
+      {{ end }}
+      {{ with .Values.ccx.services.stores_worker.tolerations }}
+      tolerations:
+        {{ toYaml . | nindent 8 }}
+      {{ end }}
+---
+# deployment for listener
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ccx-stores-listener
+  labels:
+    app: ccx-stores-listener
+    run: ccx-stores-listener
+spec:
+  replicas: {{ .Values.ccx.services.stores_listener.replicas | default 1 }}
+  selector:
+    matchLabels:
+      app: ccx-stores-listener
+  template:
+    metadata:
+      labels:
+        app: ccx-stores-listener
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
+        checksum/config: {{ include (print $.Template.BasePath "/ccx/config.yaml") . | sha256sum }}
+    spec:
+      containers:
+        - name: ccx-stores-listener
+          image: {{ .Values.ccx.services.stores_listener.image | default .Values.ccx.backend.image | required "No image set for stores" }}
+          command: ["/bin/ccx-stores", "listen"]
+          env:
+            - name: ADDR
+              value: "0.0.0.0:18097"
+          {{- range $key, $val := .Values.ccx.services.stores_listener.env }}
+            - name: {{ $key }}
+              value: {{ $val | quote }}
+          {{- end }}
+          envFrom:
+            - configMapRef:
+                name: ccx
+          ports:
+            - name: service
+              containerPort: 18097
+              protocol: TCP
+            - name: metrics
+              containerPort: 9090
+              protocol: TCP
+          resources:
+            {{- toYaml .Values.ccx.services.stores_listener.resources | nindent 12 }}
+      {{ with .Values.ccx.services.stores_listener.affinity }}
+      affinity:
+        {{ toYaml . | nindent 8 }}
+      {{ end }}
+      {{ with .Values.ccx.services.stores_listener.nodeSelector }}
+      nodeSelector:
+        {{ toYaml . | nindent 8 }}
+      {{ end }}
+      {{ with .Values.ccx.services.stores_listener.tolerations }}
+      tolerations:
+        {{ toYaml . | nindent 8 }}
+      {{ end }}
+---
+# service for listener
+apiVersion: v1
+kind: Service
+metadata:
+  name: ccx-stores-listener-svc
+  labels:
+    app: ccx-stores-listener
+    run: ccx-stores-listener
+spec:
+  type: ClusterIP
+  selector:
+    app: ccx-stores-listener
+  ports:
+    - protocol: TCP
+      port: 18097
+      targetPort: 18097
+{{ if .Values.ccx.services.stores_listener.ingress }}
+---
+# ingress for listener
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: s9s-stores-listener-ingress
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    kubernetes.io/tls-acme: "true"
+    {{ if .Values.ccx.ingress.ssl.clusterIssuer }}
+    cert-manager.io/cluster-issuer: {{ .Values.ccx.ingress.ssl.clusterIssuer }}
+    {{ end }}
+spec:
+  tls:
+    - hosts:
+        - listen.{{ include "ccx.ccxFQDN" . }}
+      secretName: {{ .Values.ccx.ingress.ssl.secretName | default "ccx-stores-listener-cert" }}
+  rules:
+    - host: listen.{{ include "ccx.ccxFQDN" . }}
+      http:
+        paths:
+          - path: /
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: ccx-stores-listener-svc
+                port:
+                  number: 18097
+{{ end }}
+{{ end }}

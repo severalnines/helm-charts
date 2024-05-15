@@ -1,0 +1,15 @@
+{{ if .Values.ccx.services.cmonproxy.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: cmon-proxy-pvc
+spec:
+  {{ with .Values.storageClassName }}
+  storageClassName: {{ . }}
+  {{ end }}
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+{{ end }}

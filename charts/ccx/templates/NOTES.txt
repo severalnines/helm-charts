@@ -1,0 +1,21 @@
+1. Get your '{{ include "ccx.admin.email" . }}' user password by running:
+
+   kubectl get secret admin-users -o jsonpath="{.data.ADMIN_USERS}" | base64 --decode ; echo
+
+
+2. The CCX server can be accessed on https://{{ .Values.ccxFQDN }} 
+
+
+3. ClusterControl V2 can be accessed on https://{{ .Values.ccFQDN }} 
+
+{{ if not .Values.ccx.cloudSecrets }}
+***********************************WARNING*********************************************
+It seems that you DO NOT have any Cloud secrets set!
+.Values.ccx.cloudSecrets is empty!
+Please make sure to create a k8s secret matching your configuration (AWS by default).
+Set it in `ccx.cloudSecrets` value.
+Check `secrets-template.yaml` on how to create one and how it should look like.
+You can still access CCX and CC, however you won't be able to create any datastores!
+***************************************************************************************
+
+{{ end }}

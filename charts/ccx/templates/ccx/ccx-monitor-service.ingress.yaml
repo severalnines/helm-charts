@@ -1,0 +1,28 @@
+{{ if .Values.ccx.oldWorld }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: s9s-monitor-service-ingress
+  annotations:
+    {{ if .Values.ccx.ingress.ssl.clusterIssuer }}
+    kubernetes.io/tls-acme: "true"
+    cert-manager.io/cluster-issuer: {{ .Values.ccx.ingress.ssl.clusterIssuer }}
+    {{ end }}
+spec:
+  ingressClassName: {{ .Values.ccx.ingress.ingressClassName | default "nginx" }}
+  tls:
+    - hosts:
+        - ccx-monitor-service.{{ include "ccx.sessionDomain" . }}
+      secretName: {{ .Values.ccx.ingress.ssl.secretName | default "ccx-monitor-service-cert" }}
+  rules:
+    - host: ccx-monitor-service.{{ include "ccx.sessionDomain" . }}
+      http:
+        paths:
+          - path: /
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: ccx-monitor-service-svc
+                port:
+                  number: 18091
+{{ end }}

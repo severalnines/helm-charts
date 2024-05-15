@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: ccx-rbac-service-svc
+  labels:
+    app: ccx-rbac-service
+    run: ccx-rbac-service
+spec:
+  type: ClusterIP
+  selector:
+    app: ccx-rbac-service
+  ports:
+    - protocol: TCP
+      port: 19795
+      targetPort: 19795

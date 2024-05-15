@@ -1,0 +1,126 @@
+{{ if ( and .Values.cmon .Values.cmon.enabled ) }}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "ccx.name" . }}-cmon-ingress
+  annotations:
+    kubernetes.io/tls-acme: "true"
+    {{ if .Values.ccx.ingress.ssl.clusterIssuer }}
+    cert-manager.io/cluster-issuer: {{ .Values.ccx.ingress.ssl.clusterIssuer }}
+    {{ end }}
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/rewrite-target: /$1
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+spec:
+  ingressClassName: {{ .Values.ccx.ingress.ingressClassName | default "nginx" }}
+  tls:
+    - hosts:
+        - {{ include "ccx.ccFQDN" . }}
+      secretName: {{ include "ccx.ccFQDN" . }}
+  rules:
+    - host: {{ include "ccx.ccFQDN" . }}
+      http:
+        paths:
+          - backend:
+              service:
+                name: cmon-master
+                port:
+                  number: 80 #ccv2
+            path: /(.*)
+            pathType: ImplementationSpecific
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "ccx.name" . }}-cmon-ingress-ssl
+  annotations:
+    kubernetes.io/tls-acme: "true"
+    {{ if .Values.ccx.ingress.ssl.clusterIssuer }}
+    cert-manager.io/cluster-issuer: {{ .Values.ccx.ingress.ssl.clusterIssuer }}
+    {{ end }}
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/rewrite-target: /$1
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      more_set_headers "Set-Cookie: $sent_http_set_cookie; Path=/";
+spec:
+  ingressClassName: {{ .Values.ccx.ingress.ingressClassName | default "nginx" }}
+  tls:
+    - hosts:
+        - {{ include "ccx.ccFQDN" . }}
+      secretName: {{ include "ccx.ccFQDN" . }}
+  rules:
+    - host: {{ include "ccx.ccFQDN" . }}
+      http:
+        paths:
+          - backend:
+              service:
+                name: cmon-master #cmon
+                port:
+                  number: 9501
+            path: /cmon/(.*)
+            pathType: ImplementationSpecific
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "ccx.name" . }}-cmon-ssh-ingress
+  annotations:
+    kubernetes.io/tls-acme: "true"
+    {{ if .Values.ccx.ingress.ssl.clusterIssuer }}
+    cert-manager.io/cluster-issuer: {{ .Values.ccx.ingress.ssl.clusterIssuer }}
+    {{ end }}
+    nginx.ingress.kubernetes.io/force-ssl-redirect: 'true'
+    nginx.ingress.kubernetes.io/rewrite-target: /$1
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+spec:
+  ingressClassName: {{ .Values.ccx.ingress.ingressClassName | default "nginx" }}
+  tls:
+    - hosts:
+        - {{ include "ccx.ccFQDN" . }}
+      secretName: {{ include "ccx.ccFQDN" . }}
+  rules:
+    - host: {{ include "ccx.ccFQDN" . }}
+      http:
+        paths:
+          - path: /cmon-ssh/(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: cmon-master
+                port:
+                  number: 9511
+--- 
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "ccx.name" . }}-websocket-cmon-ssh-ingress
+  annotations:
+    kubernetes.io/tls-acme: "true"
+    {{ if .Values.ccx.ingress.ssl.clusterIssuer }}
+    cert-manager.io/cluster-issuer: {{ .Values.ccx.ingress.ssl.clusterIssuer }}
+    {{ end }}
+    nginx.ingress.kubernetes.io/rewrite-target: /cmon/ws/$1
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: 'true'
+spec:
+  ingressClassName: {{ .Values.ccx.ingress.ingressClassName | default "nginx" }}
+  tls:
+    - hosts:
+        - {{ include "ccx.ccFQDN" . }}
+      secretName: {{ include "ccx.ccFQDN" . }}
+  rules:
+    - host: {{ include "ccx.ccFQDN" . }}
+      http:
+        paths:
+          - path: /cmon-ssh/cmon/ws/(.*)
+            pathType: Prefix
+            backend:
+              service:
+                name: cmon-master
+                port:
+                  number: 9511
+---
+{{ end }}

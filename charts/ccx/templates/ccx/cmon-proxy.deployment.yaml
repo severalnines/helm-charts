@@ -1,0 +1,69 @@
+{{ if .Values.ccx.services.cmonproxy.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cmon-proxy
+  labels:
+    app: cmon-proxy
+    run: cmon-proxy
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: cmon-proxy
+      run: cmon-proxy
+  template:
+    metadata:
+      labels:
+        app: cmon-proxy
+        run: cmon-proxy
+    spec:
+      containers:
+        - name: cmon-proxy
+          image: {{ .Values.ccx.services.cmonproxy.image | required ".Values.ccx.services.cmonproxy.image is missing" }}
+          env:
+          {{- range $key, $val := .Values.ccx.services.cmonproxy.env }}
+            - name: {{ $key }}
+              value: {{ $val | quote }}
+          {{- end }}
+            - name: TLS_CERTIFICATE_FILE
+              value: /certs/tls.crt
+            - name: TLS_KEY_FILE
+              value: /certs/tls.key
+          envFrom:
+            - configMapRef:
+                name: ccx
+          volumeMounts:
+            - mountPath: /data
+              name: cmon-proxy-pv
+            - mountPath: /certs
+              name: certs
+          ports:
+            - name: service
+              containerPort: 19051
+              protocol: TCP
+          resources:
+            {{- toYaml .Values.ccx.services.cmonproxy.resources | nindent 12 }}
+      volumes:
+        - name: cmon-proxy-pv
+          persistentVolumeClaim:
+            claimName: cmon-proxy-pvc
+        - name: certs
+          secret:
+            secretName: {{ .Values.ccx.ingress.ssl.secretName | default "cmon-proxy-cert" }}
+            defaultMode: 256
+      {{ with .Values.ccx.services.cmonproxy.affinity }}
+      affinity:
+        {{ toYaml . | nindent 8 }}
+      {{ end }}
+      {{ with .Values.ccx.services.cmonproxy.nodeSelector }}
+      nodeSelector:
+        {{ toYaml . | nindent 8 }}
+      {{ end }}
+      {{ with .Values.ccx.services.cmonproxy.tolerations }}
+      tolerations:
+        {{ toYaml . | nindent 8 }}
+      {{ end }}
+{{ end }}

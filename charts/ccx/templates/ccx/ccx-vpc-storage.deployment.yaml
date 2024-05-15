@@ -1,0 +1,61 @@
+{{ if not .Values.ccx.newWorld }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ccx-vpc-storage
+  labels:
+    app: ccx-vpc-storage
+    run: ccx-vpc-storage
+spec:
+  replicas: {{ .Values.ccx.services.vpcstorage.replicas | default 1 }}
+  selector:
+    matchLabels:
+      app: ccx-vpc-storage
+      run: ccx-vpc-storage
+  template:
+    metadata:
+      labels:
+        app: ccx-vpc-storage
+        run: ccx-vpc-storage
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
+        checksum: {{ include (print $.Template.BasePath "/ccx/secrets.yaml") . | sha256sum }}
+        checksum/config: {{ include (print $.Template.BasePath "/ccx/config.yaml") . | sha256sum }}
+    spec:
+      containers:
+        - name: ccx-vpc-storage
+          image: {{ .Values.ccx.services.vpcstorage.image | default .Values.ccx.backend.image | required "No image set for vpcs" }}
+          command: ["/bin/ccx-vpc-storage"]
+          env:
+          {{- range $key, $val := .Values.ccx.services.vpcstorage.env }}
+            - name: {{ $key }}
+              value: {{ $val | quote }}
+          {{- end }}
+          envFrom:
+            - configMapRef:
+                name: ccx
+            - secretRef:
+                name: db-vpc
+          ports:
+            - name: service
+              containerPort: 19789
+              protocol: TCP
+            - name: metrics
+              containerPort: 9090
+              protocol: TCP
+          resources:
+            {{- toYaml .Values.ccx.services.vpcstorage.resources | nindent 12 }}
+      {{ with .Values.ccx.services.vpcstorage.affinity }}
+      affinity:
+        {{ toYaml . | nindent 8 }}
+      {{ end }}
+      {{ with .Values.ccx.services.vpcstorage.nodeSelector }}
+      nodeSelector:
+        {{ toYaml . | nindent 8 }}
+      {{ end }}
+      {{ with .Values.ccx.services.vpcstorage.tolerations }}
+      tolerations:
+        {{ toYaml . | nindent 8 }}
+      {{ end }}
+{{ end }}

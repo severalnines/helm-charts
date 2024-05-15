@@ -1,0 +1,65 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ccx-ingress
+  annotations:
+    {{ if .Values.ccx.ingress.ssl.clusterIssuer }}
+    kubernetes.io/tls-acme: "true"
+    cert-manager.io/cluster-issuer: {{ .Values.ccx.ingress.ssl.clusterIssuer }}
+    {{ end }}
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/rewrite-target: /$1
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+spec:
+  ingressClassName: {{ .Values.ccx.ingress.ingressClassName | default "nginx" }}
+  tls:
+    - hosts:
+        - {{ include "ccx.ccxFQDN" . }}
+      secretName: {{ .Values.ccx.ingress.ssl.secretName | default "ccx-ingress-cert" }}
+
+  rules:
+    - host: {{ include "ccx.ccxFQDN" . }}
+      http:
+        paths:
+          - path: /auth/(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: ccx-ui-auth-svc
+                port:
+                  number: 8080
+          - path: /api/(.+)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: ccx-rest-svc
+                port:
+                  number: 20001
+          - path: /(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: ccx-ui-app-svc
+                port:
+                  number: 8080
+          - path: /api/admin/(.+)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: ccx-admin-service-svc
+                port:
+                  number: 19787
+          - path: /api/auth/(.+)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: ccx-auth-service-svc
+                port:
+                  number: 5050
+          - path: /api/billing/(.+)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: ccx-billing-service-svc
+                port:
+                  number: 18077

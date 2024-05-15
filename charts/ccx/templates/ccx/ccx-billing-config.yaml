@@ -1,0 +1,11 @@
+{{ if .Values.ccx.services.billing.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prices
+data:
+  {{- with .Values.ccx.services.billing.prices }}
+  prices.yaml: |
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+{{ end }}

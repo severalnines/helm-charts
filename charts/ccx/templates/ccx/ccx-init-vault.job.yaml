@@ -1,0 +1,33 @@
+# just mounts a space in vault
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: ccx-init-vault
+  annotations:
+    "helm.sh/hook": pre-install,pre-upgrade
+    "helm.sh/hook-weight": "555"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  ttlSecondsAfterFinished: 432000
+  template:
+    spec:
+    {{- with .Values.ccx.services.initVault.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+    {{- with .Values.ccx.services.initVault.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+    {{- with .Values.ccx.services.initVault.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+      containers:
+        - name: ccx-init-vault
+          image: {{ .Values.ccx.services.initVault.image | default .Values.ccx.backend.image | required "No image set for init-vault" }}
+          command: ["/bin/ccx-init-vault"]
+          envFrom:
+            - secretRef:
+                name: vault
+      restartPolicy: Never
