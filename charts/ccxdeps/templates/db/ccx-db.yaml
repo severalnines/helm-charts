@@ -1,0 +1,54 @@
+{{ if .Values.createDatabases }}
+kind: "postgresql"
+apiVersion: "acid.zalan.do/v1"
+
+metadata:
+  name: "acid-ccx"
+
+spec:
+  teamId: "acid"
+  postgresql:
+    version: "14"
+  numberOfInstances: {{ .Values.postgresql.replicas | default 1 }}
+  volume:
+    size: {{ .Values.postgresql.volumeSize | default "10Gi" }}
+  users:
+    ccx:
+      - superuser
+      - createdb
+  databases:
+    ccx: ccx
+    ccx_deployer: ccx
+    ccx_backup: ccx
+    userdb: ccx
+    ccx_notification: ccx
+    ccx_projects: ccx
+    ccx_rbac: ccx
+    ccx_vpc: ccx
+    ccx_stores: ccx
+    ccx_cloud: ccx
+
+  patroni:
+    initdb:
+      encoding: "UTF8"
+      locale: "en_US.UTF-8"
+      data-checksums: "true"
+    pg_hba:
+      - local all all trust
+      - local replication all trust
+      - host  all all all md5
+      - host  replication all all md5
+
+  resources:
+    requests:
+      cpu: 100m
+      memory: 100Mi
+    limits:
+      cpu: 500m
+      memory: 500Mi
+  {{- with .Values.postgresql.clone }}
+  clone:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  enableLogicalBackup: {{ .Values.postgresql.enableLogicalBackup | default false }}
+{{ end }}

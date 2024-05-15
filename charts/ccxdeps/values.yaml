@@ -1,0 +1,69 @@
+# Default values for ccxdeps.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+createDatabases: true
+installOperators: true
+ingressController:
+  enabled: false
+
+nats:
+  enabled: true
+  nameOverride: "ccx-nats"
+  exporter:
+    enabled: true
+  nats:
+    jetstream:
+      enabled:
+        true
+      fileStorage:
+        enabled: true
+    logging:
+      debug: false
+      trace: false
+
+vault:
+  enabled: true
+  #nameOverride: myVault
+  server:
+    dev:
+      enabled: true ## this is NOT RECOMMENDED FOR PRODUCTION USE
+  injector:
+    enabled: false
+
+postgresql:
+  replicas: 1
+
+external-dns:
+  enabled: false
+  watchReleaseNamespace: true
+  domainFilters:
+  - ccx.example.org
+  interval: 10s
+  policy: sync
+  serviceTypeFilter:
+  # ExternalName type is required
+  - ExternalName
+  sources:
+  # Service source is required
+  - service
+  txtPrefix: txt-
+
+oracle-mysql-operator:
+  enabled: true
+  fullnameOverride: mysql-operator
+
+mysql-innodbcluster:
+  enabled: true
+  credentials:
+    root:
+      user: cmon
+      password: Super$3cr3t
+      host: "%"
+  serverInstances: 1
+  tls:
+    useSelfSigned: true
+  datadirVolumeClaimTemplate:
+    resources:
+      requests:
+        storage: 20Gi
