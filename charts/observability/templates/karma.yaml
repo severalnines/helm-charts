@@ -1,0 +1,67 @@
+{{ if .Values.karma.enabled }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: karma
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: karma
+  template:
+    metadata:
+      labels:
+        app: karma
+    spec:
+      containers:
+      - name: karma
+        image: ghcr.io/prymitive/karma:v0.118
+        env:
+        {{- range $key, $val := .Values.karma.env }}
+          - name: {{ $key }}
+            value: {{ $val | quote }}
+        {{- end }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: karma
+spec:
+  type: ClusterIP
+  selector:
+    app: karma
+  ports:
+    - protocol: TCP
+      port: 8080
+      targetPort: 8080
+{{ end }}
+
+{{ if and .Values.karma.enabled .Values.karma.ingress.enabled  }}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "monitoring.name" . }}-karma
+{{- if .Values.karma.ingress.annotations }}
+  annotations:
+{{ toYaml .Values.karma.ingress.annotations | indent 4 }}
+{{- end }}
+spec:
+  ingressClassName: {{ .Values.karma.ingress.ingressClassName | default "nginx" }}
+  rules:
+  - host: {{ .Values.karma.ingress.host | default "example.com" }}
+    http:
+      paths:
+      - backend:
+          service:
+            name: karma
+            port:
+              number: 8080
+        path: /karma/(.*)
+        pathType: ImplementationSpecific
+  tls:
+  - hosts:
+    - {{ .Values.karma.ingress.host | default "example.com" }}
+    secretName: monitoring-ingress-cert
+{{ end }}
