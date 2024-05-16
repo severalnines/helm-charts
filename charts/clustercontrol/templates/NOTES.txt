@@ -1,3 +1,5 @@
+** Please be patient while the chart is being deployed **
+    
 Default ssh keys are available at:
 {{- range $path, $_ := .Files.Glob "files/ssh-keys/*" }}
 /root/.ssh-keys/{{- regexReplaceAll "(.*)/" $path "" }}

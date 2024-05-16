@@ -41,7 +41,7 @@ cmon:
     name: cmon
     user: cmon
     password: cmon
-  image: severalnines/cmon:1.9.8-8364
+  image: severalnines/cmon:2.0.0-8821
   extra_args: # extra arguments for ClusterControl binary
     - -s
     - --no-log-db
@@ -65,7 +65,7 @@ cmon:
 #        cpu: 100m
 #        memory: 1Gi
   ccv2:
-    image: severalnines/cc-frontend:2.1.0
+    image: severalnines/cc-frontend:2.2.3
 #    resources:
 #      requests:
 #        cpu: 100m
@@ -131,6 +131,7 @@ monitoring:
           scrape_interval: 1m
           scrape_timeout: 10s
           external_labels:
+            #REQUIRED monitor: clustercontrol is required DO NOT REMOVE
             monitor: clustercontrol
             #REQUIRED use_cmon_sd is required DO NOT REMOVE
             use_cmon_sd: true
