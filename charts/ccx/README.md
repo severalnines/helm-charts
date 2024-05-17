@@ -2,12 +2,11 @@
 
 # Quickstart
 
-This guide assumes using dependencies helper repo - https://github.com/severalnines/helm-ccxdeps
+This guide assumes using dependencies helper repo - https://github.com/severalnines/helm-charts/tree/main/charts/ccxdeps
 
 Add repos
 
 ```
-helm repo add ccxdeps https://severalnines.github.io/helm-ccxdeps/
 helm repo add s9s https://severalnines.github.io/helm-charts/
 helm repo update
 ```
@@ -20,7 +19,7 @@ Install
 # Create k8s secret from AWS credentials stored in ~/.aws/credentials
 kubectl create secret generic aws --from-literal=AWS_ACCESS_KEY_ID=$(awk 'tolower($0) ~ /aws_access_key_id/ {print $NF; exit}' ~/.aws/credentials) --from-literal=AWS_SECRET_ACCESS_KEY=$(awk 'tolower($0) ~ /aws_secret_access_key/ {print $NF; exit}' ~/.aws/credentials)
 # Install CCX dependencies
-helm install ccxdeps ccxdeps/ccxdeps --debug
+helm install ccxdeps s9s/ccxdeps --debug
 # Install CCX
 helm repo add s9s https://severalnines.github.io/helm-charts/
 helm repo update
