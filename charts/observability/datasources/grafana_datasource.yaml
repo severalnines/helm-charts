@@ -1,0 +1,35 @@
+apiVersion: 1
+datasources:
+  - name: Metrics
+    isDefault: true
+    orgId: 1
+    type: prometheus
+    typeLogoUrl: public/app/plugins/datasource/prometheus/img/prometheus_logo.svg
+    access: proxy
+    url: http://ccx-monitoring-victoria-metrics-single-server:9090
+    basicAuth: false
+    jsonData:
+      keepCookies: []
+      timeInterval: 1m
+    readOnly: false
+  - name: Alertmanager
+    isDefault: false
+    orgId: 1
+    type: alertmanager
+    typeLogoUrl: public/app/plugins/datasource/alertmanager/img/logo.svg
+    access: proxy
+    url: http://ccx-monitoring-alertmanager:9093
+    basicAuth: false
+    jsonData:
+      implementation: prometheus
+      keepCookies: []
+      timeInterval: 1m
+    readOnly: false
+  - name: loki
+    type: loki
+    access: proxy
+    url: http://loki-read:3100
+    jsonData:
+      httpHeaderName1: "X-Scope-OrgID"
+    secureJsonData:
+      httpHeaderValue1: "ccx"

@@ -1,0 +1,15 @@
+# kustomization.yaml
+
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+commonLabels:
+ grafana_datasource: "1"
+
+configMapGenerator:
+- name: grafana-datasources
+  files:
+  - grafana_datasource.yaml
+
+generatorOptions:
+  disableNameSuffixHash: true

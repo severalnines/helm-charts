@@ -1,0 +1,972 @@
+#CCX cluster name - should be unique
+cluster_name: &cluster_name "ccx"
+ccx_host: &ccx_host "ccx"
+cmon_sd_url: &cmon_sd_url "http://cmon-master.production:8080"
+# by default this sets to release.name-victoria-metrics-single-server
+# change if necessary
+victoria_metrics_url: &victoria_metrics_url "http://ccx-monitoring-victoria-metrics-single-server:9090"
+# by default this sets to release.name-alertmanager
+# change if necessary
+alertmanager_url: &alertmanager_url "http://ccx-monitoring-alertmanager:9093"
+
+victoria-metrics-single:
+  #set enabled to false to disable this app
+  enabled: true
+  server:
+    service:
+      servicePort: 9090
+      clusterIP: null
+    statefulSet:
+      enabled: false
+    podAnnotations:
+      prometheus.io/scrape: 'true'
+      prometheus.io/port: '8428'
+    extraArgs:
+      envflag.enable: "true"
+      envflag.prefix: VM_
+      loggerFormat: json
+      promscrape.maxScrapeSize: 56777216
+      maxLabelsPerTimeseries: 99
+    scrape:
+      enabled: true
+      configMap: ""
+      ### below is standard victoria metrics config, change as needed
+      ### provided is simple, default config
+      config:
+        global:
+          scrape_interval: 1m
+          scrape_timeout: 10s
+          external_labels:
+            cluster: *cluster_name
+            #use_cmon_sd is required DO NOT REMOVE
+            use_cmon_sd: true
+            #monitor: clustercontrol is required DO NOT REMOVE
+            monitor: clustercontrol
+        scrape_configs:
+          # -- Scrape rule for scrape victoriametrics
+          - job_name: victoriametrics
+            static_configs:
+              - targets: [ "localhost:8428" ]
+            relabel_configs:
+              - target_label: cluster
+                replacement: *cluster_name
+
+            ## COPY from Prometheus helm chart https://github.com/helm/charts/blob/master/stable/prometheus/values.yaml
+
+            # -- Scrape config for API servers.
+            #
+            # Kubernetes exposes API servers as endpoints to the default/kubernetes
+            # service so this uses `endpoints` role and uses relabelling to only keep
+            # the endpoints associated with the default/kubernetes service using the
+            # default named port `https`. This works for single API server deployments as
+            # well as HA API server deployments.
+          - job_name: "kubernetes-apiservers"
+            kubernetes_sd_configs:
+              - role: endpoints
+            # Default to scraping over https. If required, just disable this or change to
+            # `http`.
+            scheme: https
+            # This TLS & bearer token file config is used to connect to the actual scrape
+            # endpoints for cluster components. This is separate to discovery auth
+            # configuration because discovery & scraping are two separate concerns in
+            # Prometheus. The discovery auth config is automatic if Prometheus runs inside
+            # the cluster. Otherwise, more config options have to be provided within the
+            # <kubernetes_sd_config>.
+            tls_config:
+              ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+              # If your node certificates are self-signed or use a different CA to the
+              # master CA, then disable certificate verification below. Note that
+              # certificate verification is an integral part of a secure infrastructure
+              # so this should only be disabled in a controlled environment. You can
+              # disable certificate verification by uncommenting the line below.
+              #
+              insecure_skip_verify: true
+            bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+            # Keep only the default/kubernetes service endpoints for the https port. This
+            # will add targets for each API server which Kubernetes adds an endpoint to
+            # the default/kubernetes service.
+            relabel_configs:
+              - source_labels:
+                  [
+                      __meta_kubernetes_namespace,
+                      __meta_kubernetes_service_name,
+                      __meta_kubernetes_endpoint_port_name,
+                  ]
+                action: keep
+                regex: default;kubernetes;https
+              - target_label: cluster
+                replacement: *cluster_name
+            # -- Scrape rule using kubernetes service discovery for nodes
+          - job_name: "kubernetes-nodes"
+            # Default to scraping over https. If required, just disable this or change to
+            # `http`.
+            scheme: https
+            # This TLS & bearer token file config is used to connect to the actual scrape
+            # endpoints for cluster components. This is separate to discovery auth
+            # configuration because discovery & scraping are two separate concerns in
+            # Prometheus. The discovery auth config is automatic if Prometheus runs inside
+            # the cluster. Otherwise, more config options have to be provided within the
+            # <kubernetes_sd_config>.
+            tls_config:
+              ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+              # If your node certificates are self-signed or use a different CA to the
+              # master CA, then disable certificate verification below. Note that
+              # certificate verification is an integral part of a secure infrastructure
+              # so this should only be disabled in a controlled environment. You can
+              # disable certificate verification by uncommenting the line below.
+              #
+              insecure_skip_verify: true
+            bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+            kubernetes_sd_configs:
+              - role: node
+            relabel_configs:
+              - action: labelmap
+                regex: __meta_kubernetes_node_label_(.+)
+              - target_label: __address__
+                replacement: kubernetes.default.svc:443
+              - source_labels: [ __meta_kubernetes_node_name ]
+                regex: (.+)
+                target_label: __metrics_path__
+                replacement: /api/v1/nodes/$1/proxy/metrics
+              - target_label: cluster
+                replacement: *cluster_name
+            # -- Scrape rule using kubernetes service discovery for cadvisor
+          - job_name: "kubernetes-nodes-cadvisor"
+            # Default to scraping over https. If required, just disable this or change to
+            # `http`.
+            scheme: https
+            # This TLS & bearer token file config is used to connect to the actual scrape
+            # endpoints for cluster components. This is separate to discovery auth
+            # configuration because discovery & scraping are two separate concerns in
+            # Prometheus. The discovery auth config is automatic if Prometheus runs inside
+            # the cluster. Otherwise, more config options have to be provided within the
+            # <kubernetes_sd_config>.
+            tls_config:
+              ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+              # If your node certificates are self-signed or use a different CA to the
+              # master CA, then disable certificate verification below. Note that
+              # certificate verification is an integral part of a secure infrastructure
+              # so this should only be disabled in a controlled environment. You can
+              # disable certificate verification by uncommenting the line below.
+              #
+              insecure_skip_verify: true
+            bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+            kubernetes_sd_configs:
+              - role: node
+            # This configuration will work only on kubelet 1.7.3+
+            # As the scrape endpoints for cAdvisor have changed
+            # if you are using older version you need to change the replacement to
+            # replacement: /api/v1/nodes/$1:4194/proxy/metrics
+            # more info here https://github.com/coreos/prometheus-operator/issues/633
+            relabel_configs:
+              - action: labelmap
+                regex: __meta_kubernetes_node_label_(.+)
+              - target_label: __address__
+                replacement: kubernetes.default.svc:443
+              - source_labels: [ __meta_kubernetes_node_name ]
+                regex: (.+)
+                target_label: __metrics_path__
+                replacement: /api/v1/nodes/$1/proxy/metrics/cadvisor
+              - target_label: cluster
+                replacement: *cluster_name
+            # -- Scrape rule using kubernetes service discovery for node exporter
+          - job_name: "kubernetes-node-exporter"
+            scheme: http
+            kubernetes_sd_configs:
+              - role: node
+            relabel_configs:
+              - action: labelmap
+                regex: __meta_kubernetes_node_label_(.+)
+              - action: replace
+                source_labels: [__address__]
+                regex: (.+):(.+)
+                replacement: ${1}:9100
+                target_label: __address__
+              - target_label: cluster
+                replacement: *cluster_name
+
+          # -- Scrape config for service endpoints.
+          #
+          # The relabeling allows the actual service scrape endpoint to be configured
+          # via the following annotations:
+          #
+          # * `prometheus.io/scrape`: Only scrape services that have a value of `true`
+          # * `prometheus.io/scheme`: If the metrics endpoint is secured then you will need
+          # to set this to `https` & most likely set the `tls_config` of the scrape config.
+          # * `prometheus.io/path`: If the metrics path is not `/metrics` override this.
+          # * `prometheus.io/port`: If the metrics are exposed on a different port to the
+          # service then set this appropriately.
+          # -- Scrape rule using kubernetes service discovery for endpoints
+          - job_name: "kubernetes-service-endpoints"
+            kubernetes_sd_configs:
+              - role: endpoints
+            relabel_configs:
+              - action: drop
+                source_labels: [ __meta_kubernetes_pod_container_init ]
+                regex: true
+              - action: keep_if_equal
+                source_labels: [ __meta_kubernetes_service_annotation_prometheus_io_port, __meta_kubernetes_pod_container_port_number ]
+              - source_labels:
+                  [ __meta_kubernetes_service_annotation_prometheus_io_scrape ]
+                action: keep
+                regex: true
+              - source_labels:
+                  [ __meta_kubernetes_service_annotation_prometheus_io_scheme ]
+                action: replace
+                target_label: __scheme__
+                regex: (https?)
+              - source_labels:
+                  [ __meta_kubernetes_service_annotation_prometheus_io_path ]
+                action: replace
+                target_label: __metrics_path__
+                regex: (.+)
+              - source_labels:
+                  [
+                      __address__,
+                      __meta_kubernetes_service_annotation_prometheus_io_port,
+                  ]
+                action: replace
+                target_label: __address__
+                regex: ([^:]+)(?::\d+)?;(\d+)
+                replacement: $1:$2
+              - action: labelmap
+                regex: __meta_kubernetes_service_label_(.+)
+              - source_labels: [ __meta_kubernetes_namespace ]
+                action: replace
+                target_label: kubernetes_namespace
+              - source_labels: [ __meta_kubernetes_service_name ]
+                action: replace
+                target_label: kubernetes_name
+              - source_labels: [ __meta_kubernetes_pod_node_name ]
+                action: replace
+                target_label: kubernetes_node
+              - target_label: cluster
+                replacement: *cluster_name
+          # -- Scrape config for slow service endpoints; same as above, but with a larger
+          # timeout and a larger interval
+          #
+          # The relabeling allows the actual service scrape endpoint to be configured
+          # via the following annotations:
+          #
+          # * `prometheus.io/scrape-slow`: Only scrape services that have a value of `true`
+          # * `prometheus.io/scheme`: If the metrics endpoint is secured then you will need
+          # to set this to `https` & most likely set the `tls_config` of the scrape config.
+          # * `prometheus.io/path`: If the metrics path is not `/metrics` override this.
+          # * `prometheus.io/port`: If the metrics are exposed on a different port to the
+          # service then set this appropriately.
+          - job_name: "kubernetes-service-endpoints-slow"
+            scrape_interval: 5m
+            scrape_timeout: 30s
+            kubernetes_sd_configs:
+              - role: endpoints
+            relabel_configs:
+              - action: drop
+                source_labels: [ __meta_kubernetes_pod_container_init ]
+                regex: true
+              - action: keep_if_equal
+                source_labels: [ __meta_kubernetes_service_annotation_prometheus_io_port, __meta_kubernetes_pod_container_port_number ]
+              - source_labels:
+                  [ __meta_kubernetes_service_annotation_prometheus_io_scrape_slow ]
+                action: keep
+                regex: true
+              - source_labels:
+                  [ __meta_kubernetes_service_annotation_prometheus_io_scheme ]
+                action: replace
+                target_label: __scheme__
+                regex: (https?)
+              - source_labels:
+                  [ __meta_kubernetes_service_annotation_prometheus_io_path ]
+                action: replace
+                target_label: __metrics_path__
+                regex: (.+)
+              - source_labels:
+                  [
+                      __address__,
+                      __meta_kubernetes_service_annotation_prometheus_io_port,
+                  ]
+                action: replace
+                target_label: __address__
+                regex: ([^:]+)(?::\d+)?;(\d+)
+                replacement: $1:$2
+              - action: labelmap
+                regex: __meta_kubernetes_service_label_(.+)
+              - source_labels: [ __meta_kubernetes_namespace ]
+                action: replace
+                target_label: kubernetes_namespace
+              - source_labels: [ __meta_kubernetes_service_name ]
+                action: replace
+                target_label: kubernetes_name
+              - source_labels: [ __meta_kubernetes_pod_node_name ]
+                action: replace
+                target_label: kubernetes_node
+              - target_label: cluster
+                replacement: *cluster_name
+          # -- Example scrape config for probing services via the Blackbox Exporter.
+          #
+          # The relabeling allows the actual service scrape endpoint to be configured
+          # via the following annotations:
+          #
+          # * `prometheus.io/probe`: Only probe services that have a value of `true`
+          - job_name: "kubernetes-services"
+            metrics_path: /probe
+            params:
+              module: [ http_2xx ]
+            kubernetes_sd_configs:
+              - role: service
+            relabel_configs:
+              - source_labels:
+                  [ __meta_kubernetes_service_annotation_prometheus_io_probe ]
+                action: keep
+                regex: true
+              - source_labels: [ __address__ ]
+                target_label: __param_target
+              - target_label: __address__
+                replacement: blackbox
+              - source_labels: [ __param_target ]
+                target_label: instance
+              - action: labelmap
+                regex: __meta_kubernetes_service_label_(.+)
+              - source_labels: [ __meta_kubernetes_namespace ]
+                target_label: kubernetes_namespace
+              - source_labels: [ __meta_kubernetes_service_name ]
+                target_label: kubernetes_name
+              - target_label: cluster
+                replacement: *cluster_name
+          # -- Example scrape config for pods
+          #
+          # The relabeling allows the actual pod scrape endpoint to be configured via the
+          # following annotations:
+          #
+          # * `prometheus.io/scrape`: Only scrape pods that have a value of `true`
+          # * `prometheus.io/path`: If the metrics path is not `/metrics` override this.
+          # * `prometheus.io/port`: Scrape the pod on the indicated port instead of the default of `9102`.
+          - job_name: "kubernetes-pods"
+            scheme: http
+            kubernetes_sd_configs:
+              - role: pod
+            relabel_configs:
+              - action: drop
+                source_labels: [ __meta_kubernetes_pod_container_init ]
+                regex: true
+              - action: keep_if_equal
+                source_labels: [ __meta_kubernetes_pod_annotation_prometheus_io_port, __meta_kubernetes_pod_container_port_number ]
+              - source_labels: [ __meta_kubernetes_pod_annotation_prometheus_io_scrape ]
+                action: keep
+                regex: true
+              - source_labels: [ __meta_kubernetes_pod_annotation_prometheus_io_path ]
+                action: replace
+                target_label: __metrics_path__
+                regex: (.+)
+              - source_labels:
+                  [ __address__, __meta_kubernetes_pod_annotation_prometheus_io_port ]
+                action: replace
+                regex: ([^:]+)(?::\d+)?;(\d+)
+                replacement: $1:$2
+                target_label: __address__
+              - action: labelmap
+                regex: __meta_kubernetes_pod_label_(.+)
+              - source_labels: [ __meta_kubernetes_namespace ]
+                action: replace
+                target_label: kubernetes_namespace
+              - source_labels: [ __meta_kubernetes_pod_name ]
+                action: replace
+                target_label: kubernetes_pod_name
+              - target_label: cluster
+                replacement: *cluster_name
+            ## End of COPY
+
+      extraScrapeConfigs:
+        ### CMON SERVICE DISCOVERY
+        - job_name: cmon-sd
+          http_sd_configs:
+            - url: *cmon_sd_url
+          relabel_configs:
+            - source_labels: [__address__]
+              regex: '(.*):(\d+)'
+              target_label: ip
+              replacement: '${1}'
+            - target_label: environment
+              replacement: lab
+            - target_label: cluster
+              replacement: *cluster_name
+            - target_label: use_cmon_sd
+              replacement: true
+              
+
+        ### END CMON SERVICE DISCOVERY
+
+
+victoria-metrics-alert:
+  #set enabled to false to disable this app
+  enabled: true
+  server:
+    podAnnotations:
+      prometheus.io/scrape: 'true'
+      prometheus.io/port: '8880'
+
+    # vmalert reads metrics from source, next section represents its configuration. It can be any service which supports
+    # MetricsQL or PromQL.
+    datasource:
+      url: *victoria_metrics_url
+
+    notifier:
+      alertmanager:
+        url: *alertmanager_url
+
+    #get at least 2 instances on different nodes
+    replicaCount: 2
+    affinity:
+      podAntiAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          - topologyKey: kubernetes.io/hostname
+            labelSelector:
+              matchExpressions:
+                - {key: app.kubernetes.io/name, operator: In, values: [vmalert]}
+
+    # vmalert alert rules configuration configuration:
+    # use existing configmap if specified
+    # otherwise .config values will be used
+    config:
+      alerts:
+        groups:
+        - name: Datastore Status
+          rules:
+          - alert: Cluster Failed
+            # Condition for alerting
+            expr: cmon_cluster_failed == 1
+            for: 2m
+            # Annotation - additional informational labels to store more information
+            annotations:
+              title: 'Cluster {{ $labels.ClusterName }} is FAILED'
+              summary: '{{ $labels.ClusterName }} has been down for more than 2 minute.'
+            # Labels - additional labels to be attached to the alert
+            labels:
+              severity: 'critical'
+
+          - alert: Cluster Degraded
+            # Condition for alerting
+            expr: cmon_cluster_degraded == 1
+            for: 2m
+            # Annotation - additional informational labels to store more information
+            annotations:
+              title: 'Cluster {{ $labels.ClusterName }} is DEGRADED'
+              summary: '{{ $labels.ClusterName }} has been degraded for more than 2 minute.'
+            # Labels - additional labels to be attached to the alert
+            labels:
+              severity: 'critical'
+
+          - alert: Datastore Repair Failed
+            # Condition for alerting
+            expr: increase(datastores_repairs_failed[5m]) > 0
+            for: 0m
+            # Annotation - additional informational labels to store more information
+            annotations:
+              title: 'Datastore {{ $labels.datastore }} repair has FAILED'
+              summary: '{{ $labels.datastore }} Datastore repair has been in failed state.'
+            # Labels - additional labels to be attached to the alert
+            labels:
+              severity: 'critical'
+            
+          - alert: Cluster Failed to Init
+            # Condition for alerting
+            expr: cmon_cluster_failed_init > 0
+            for: 0m
+            # Annotation - additional informational labels to store more information
+            annotations:
+              title: 'Cluster {{ $labels.ClusterName }} failed to initialize on {{ $labels.ControllerId }}'
+              summary: '{{ $labels.ClusterName }} failed to initialize on {{ $labels.ControllerId }}.'
+            # Labels - additional labels to be attached to the alert
+            labels:
+              severity: 'critical'	      
+
+        - name: CCX Alerts
+          rules:
+          - alert: New User
+            expr: increase(admin_users_total[1m]) > 0
+            for: 0m
+            labels:
+              severity: info 
+            annotations:
+              summary: New user has signed up on {{ $labels.instance }})
+              description: "New user has signed up \n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+          - alert: Datastore Created
+            expr: increase(admin_datastores_total{status="all"}[1m]) > 0
+            for: 0m
+            labels:
+              severity: info 
+            annotations:
+              summary: New datastore created on {{ $labels.instance }})
+              description: "New datastore \n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+
+        - name: Deployment status
+          rules:
+          - alert: service-down
+            labels:
+              namespace: "{{ .Labels.namespace }}"
+              name: "{{ .Labels.deployment }}"
+            expr: kube_deployment_status_replicas_available < 1
+            for: 5m
+            annotations:
+              title: >
+                {{ .Labels.deployment }} in {{ .Labels.namespace }}
+              summary: >
+                {{ .Labels.deployment }} in {{ .Labels.namespace }} has 0 replicas running for last 5 minutes
+
+        - name: Statefulset status
+          rules:
+          - alert: service-down
+            labels:
+              namespace: "{{ .Labels.namespace }}"
+              name: "{{ .Labels.statefulset }}"
+            expr: kube_statefulset_status_replicas_available < 1
+            for: 5m
+            annotations:
+              summary: >
+                {{ .Labels.statefulset }} in {{ .Labels.namespace }} has 0 replicas running for last 5 minutes
+
+        - name: Metrics alerts
+          rules:
+          - alert: MetricsJobMissing
+            expr: absent(up{job="victoriametrics"})
+            for: 0m
+            labels:
+              severity: warning
+            annotations:
+              summary: Victoria metrics job missing (instance {{ $labels.instance }})
+              description: "A Victoria Metrics job has disappeared\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+          - alert: MetricsTargetMissing
+            expr: up == 0
+            for: 10m
+            labels:
+              severity: critical
+            annotations:
+              summary: Metrics target missing (instance {{ $labels.instance }})
+              description: "A Metrics target has disappeared. An exporter might be crashed.\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+          - alert: MetricsAllTargetsMissing
+            expr: sum by (job) (up) == 0
+            for: 10m
+            labels:
+              severity: critical
+            annotations:
+              summary: Metrics all targets missing (instance {{ $labels.instance }})
+              description: "A Metrics job does not have living target anymore.\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+
+        - name: Kubernetes Apps
+          rules:
+          - alert: KubernetesContainerOomKiller
+            expr: (kube_pod_container_status_restarts_total - kube_pod_container_status_restarts_total offset 10m >= 1) and ignoring (reason) min_over_time(kube_pod_container_status_last_terminated_reason{reason="OOMKilled"}[10m]) == 1
+            for: 0m
+            labels:
+              severity: critical
+            annotations:
+              summary: Kubernetes container oom killer (instance {{ $labels.instance }})
+              description: "Container {{ $labels.container }} in pod {{ $labels.namespace }}/{{ $labels.pod }} has been OOMKilled {{ $value }} times in the last 10 minutes.\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+          - alert: KubernetesPodCrashLooping
+            expr: (sum(increase(kube_pod_container_status_restarts_total[10m])) by (container, instance, pod, namespace)) > 1
+            for: 15m
+            labels:
+              severity: critical
+            annotations:
+              summary: Container {{ $labels.container }} in Pod {{ $labels.namespace }}/{{ $labels.pod }} restarting more than once times during ten minutes.
+              description: "Pod {{ $labels.pod }} restarting more than once during last ten minutes.\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+
+        - name: Hosts alerts
+          rules:
+          - alert: HostOutOfMemory
+            expr: node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes * 100 < 10
+            for: 2m
+            labels:
+              severity: warning
+            annotations:
+              summary: Host out of memory (instance {{ $labels.instance }})
+              description: "Node memory is filling up (< 10% left)\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+          - alert: HostMemoryUnderMemoryPressure
+            expr: rate(node_vmstat_pgmajfault[1m]) > 1000
+            for: 2m
+            labels:
+              severity: warning
+            annotations:
+              summary: Host memory under memory pressure (instance {{ $labels.instance }})
+              description: "The node is under heavy memory pressure. High rate of major page faults\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+          - alert: HostUnusualDiskReadRate
+            expr: sum by (instance) (rate(node_disk_read_bytes_total[2m])) / 1024 / 1024 > 50
+            for: 5m
+            labels:
+              severity: warning
+            annotations:
+              summary: Host unusual disk read rate (instance {{ $labels.instance }})
+              description: "Disk is probably reading too much data (> 50 MB/s)\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+          - alert: HostUnusualDiskWriteRate
+            expr: sum by (instance) (rate(node_disk_written_bytes_total[2m])) / 1024 / 1024 > 50
+            for: 2m
+            labels:
+              severity: warning
+            annotations:
+              summary: Host unusual disk write rate (instance {{ $labels.instance }})
+              description: "Disk is probably writing too much data (> 50 MB/s)\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+          # Please add ignored mountpoints in node_exporter parameters like
+          # "--collector.filesystem.ignored-mount-points=^/(sys|proc|dev|run)($|/)".
+          # Same rule using "node_filesystem_free_bytes" will fire when disk fills for non-root users.
+          - alert: HostOutOfDiskSpace
+            expr: (node_filesystem_avail_bytes * 100) / node_filesystem_size_bytes < 10 and ON (instance, device, mountpoint) node_filesystem_readonly == 0
+            for: 2m
+            labels:
+              severity: critical
+            annotations:
+              summary: Host out of disk space (instance {{ $labels.instance }})
+              description: "Disk is almost full (< 10% left)\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+          # Please add ignored mountpoints in node_exporter parameters like
+          # "--collector.filesystem.ignored-mount-points=^/(sys|proc|dev|run)($|/)".
+          # Same rule using "node_filesystem_free_bytes" will fire when disk fills for non-root users.
+          - alert: HostDiskWillFillIn24Hours
+            expr: (node_filesystem_avail_bytes * 100) / node_filesystem_size_bytes < 10 and ON (instance, device, mountpoint) predict_linear(node_filesystem_avail_bytes{fstype!~"tmpfs"}[1h], 24 * 3600) < 0 and ON (instance, device, mountpoint) node_filesystem_readonly == 0
+            for: 2m
+            labels:
+              severity: warning
+            annotations:
+              summary: Host disk will fill in 24 hours (instance {{ $labels.instance }})
+              description: "Filesystem is predicted to run out of space within the next 24 hours at current write rate\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+          - alert: HostOutOfInodes
+            expr: node_filesystem_files_free{mountpoint ="/rootfs"} / node_filesystem_files{mountpoint="/rootfs"} * 100 < 10 and ON (instance, device, mountpoint) node_filesystem_readonly{mountpoint="/rootfs"} == 0
+            for: 2m
+            labels:
+              severity: warning
+            annotations:
+              summary: Host out of inodes (instance {{ $labels.instance }})
+              description: "Disk is almost running out of available inodes (< 10% left)\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+          - alert: HostHighCpuLoad
+            expr: 100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[2m])) * 100) > 80
+            for: 0m
+            labels:
+              severity: warning
+            annotations:
+              summary: Host high CPU load (instance {{ $labels.instance }})
+              description: "CPU load is > 80%\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+          - alert: HostCpuStealNoisyNeighbor
+            expr: avg by(instance) (rate(node_cpu_seconds_total{mode="steal"}[5m])) * 100 > 10
+            for: 0m
+            labels:
+              severity: warning
+            annotations:
+              summary: Host CPU steal noisy neighbor (instance {{ $labels.instance }})
+              description: "CPU steal is > 10%. A noisy neighbor is killing VM performances or a spot instance may be out of credit.\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+          - alert: HostCpuHighIowait
+            expr: avg by (instance) (rate(node_cpu_seconds_total{mode="iowait"}[5m])) * 100 > 5
+            for: 0m
+            labels:
+              severity: warning
+            annotations:
+              summary: Host CPU high iowait (instance {{ $labels.instance }})
+              description: "CPU iowait > 5%. A high iowait means that you are disk or network bound.\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+          # 1000 context switches is an arbitrary number.
+          # Alert threshold depends on nature of application.
+          # Please read: https://github.com/samber/awesome-prometheus-alerts/issues/58
+          - alert: HostContextSwitching
+            expr: (rate(node_context_switches_total[5m])) / (count without(cpu, mode) (node_cpu_seconds_total{mode="idle"})) > 1000
+            for: 0m
+            labels:
+              severity: warning
+            annotations:
+              summary: Host context switching (instance {{ $labels.instance }})
+              description: "Context switching is growing on node (> 1000 / s)\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+          - alert: HostOomKillDetected
+            expr: increase(node_vmstat_oom_kill[1m]) > 0
+            for: 0m
+            labels:
+              severity: critical
+            annotations:
+              summary: Host OOM kill detected (instance {{ $labels.instance }})
+              description: "OOM kill detected\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+        - name: MySQL Alerts
+          rules:
+          - alert: MysqlDown
+            expr: mysql_up == 0
+            for: 0m
+            labels:
+              severity: critical
+            annotations:
+              summary: MySQL down (instance {{ $labels.instance }})
+              description: "MySQL instance is down on {{ $labels.instance }}\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+          - alert: MysqlTooManyConnections(>80%)
+            expr: max_over_time(mysql_global_status_threads_connected[1m]) / mysql_global_variables_max_connections * 100 > 80
+            for: 2m
+            labels:
+              severity: warning
+            annotations:
+              summary: MySQL too many connections (> 80%) (instance {{ $labels.instance }})
+              description: "More than 80% of MySQL connections are in use on {{ $labels.instance }}\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+          - alert: MysqlSlaveReplicationLag
+            expr: mysql_slave_status_master_server_id > 0 and ON (instance) (mysql_slave_status_seconds_behind_master - mysql_slave_status_sql_delay) > 30
+            for: 1m
+            labels:
+              severity: critical
+            annotations:
+              summary: MySQL Slave replication lag (instance {{ $labels.instance }})
+              description: "MySQL replication lag on {{ $labels.instance }}\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+          - alert: MysqlRestarted
+            expr: mysql_global_status_uptime < 60
+            for: 0m
+            labels:
+              severity: info
+            annotations:
+              summary: MySQL restarted (instance {{ $labels.instance }})
+              description: "MySQL has just been restarted, less than one minute ago on {{ $labels.instance }}.\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+        - name: PostgreSQL Alerts
+          rules:
+          - alert: PostgresqlDown
+            expr: pg_up == 0
+            for: 0m
+            labels:
+              severity: critical
+            annotations:
+              summary: Postgresql down (instance {{ $labels.instance }})
+              description: "Postgresql instance is down\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+          - alert: PostgresqlRestarted
+            expr: time() - pg_postmaster_start_time_seconds < 60
+            for: 0m
+            labels:
+              severity: critical
+            annotations:
+              summary: Postgresql restarted (instance {{ $labels.instance }})
+              description: "Postgresql restarted\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+          - alert: PostgresqlExporterError
+            expr: pg_exporter_last_scrape_error > 0
+            for: 0m
+            labels:
+              severity: critical
+            annotations:
+              summary: Postgresql exporter error (instance {{ $labels.instance }})
+              description: "Postgresql exporter is showing errors. A query may be buggy in query.yaml\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+          - alert: PostgresqlTooManyConnections
+            expr: sum by (datname) (pg_stat_activity_count{datname!~"template.*|postgres"}) > pg_settings_max_connections * 0.8
+            for: 2m
+            labels:
+              severity: warning
+            annotations:
+              summary: Postgresql too many connections (instance {{ $labels.instance }})
+              description: "PostgreSQL instance has too many connections (> 80%).\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+          - alert: PostgresqlDeadLocks
+            expr: increase(pg_stat_database_deadlocks{datname!~"template.*|postgres"}[1m]) > 5
+            for: 0m
+            labels:
+              severity: warning
+            annotations:
+              summary: Postgresql dead locks (instance {{ $labels.instance }})
+              description: "PostgreSQL has dead-locks\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+          - alert: PostgresqlHighRollbackRate
+            expr: rate(pg_stat_database_xact_rollback{datname!~"template.*"}[3m]) / rate(pg_stat_database_xact_commit{datname!~"template.*"}[3m]) > 0.02
+            for: 0m
+            labels:
+              severity: warning
+            annotations:
+              summary: Postgresql high rollback rate (instance {{ $labels.instance }})
+              description: "Ratio of transactions being aborted compared to committed is > 2 %\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+        - name: Redis Alerts
+          rules:
+          - alert: RedisDown
+            expr: redis_up == 0
+            for: 0m
+            labels:
+              severity: critical
+            annotations:
+              summary: Redis down (instance {{ $labels.instance }})
+              description: "Redis instance is down\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+
+        - name: Vault Alerts
+          rules:
+          - alert: VaultDown
+            expr: up{job="vault"} == 0
+            for: 5m
+            labels:
+              severity: critical
+            annotations:
+              summary: Vault is missing metrics at (instance {{ $labels.instance }} job {{ $labels.job }} cluster {{ $labels.cluster }})
+              description: |
+                Vault may be down or not accesible!
+                Please see https://ccx-monitoring.s9s-dev.net/vm/targets for more information.
+          - alert: VaultSealed
+            expr: vault_core_unsealed == 0
+            for: 5m
+            labels:
+              severity: critical
+            annotations:
+              summary: Vault sealed (instance {{ $labels.instance }} cluster {{ $labels.cluster }} )
+              description: "Vault instance is sealed on {{ $labels.instance }}\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+
+        - name: Backup Alerts
+          rules:
+          - alert: Backup Failed
+            expr: cmon_cluster_backup_failed == 1
+            for: 2m
+            labels:
+              severity: warning
+            annotations:
+              summary: Backup failed for datastore {{ $labels.name }} {{ $labels.cid }} cluster {{ $labels.cluster }}
+              description: "Backup failed for {{ $labels.name }}\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+          - alert: Backup Upload Failed
+            expr: cmon_cluster_backup_failed == 1
+            for: 2m
+            labels:
+              severity: warning
+            annotations:
+              summary: Upload of backup failed for datastore {{ $labels.name }} {{ $labels.cid }} cluster {{ $labels.cluster }}
+              description: "Uploading backup failed for {{ $labels.name }}\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+
+
+alertmanager:
+  #set enabled to false to disable this app
+  enabled: true
+  replicaCount: 2
+
+  ## Pod anti-affinity can prevent the scheduler from placing Alertmanager replicas on the same node.
+  ## The default value "soft" means that the scheduler should *prefer* to not schedule two replica pods onto the same node but no guarantee is provided.
+  ## The value "hard" means that the scheduler is *required* to not schedule two replica pods onto the same node.
+  ## The value "" will disable pod anti-affinity so that no anti-affinity rules will be configured.
+  ##
+  podAntiAffinity: "hard"
+
+  ## If anti-affinity is enabled sets the topologyKey to use for anti-affinity.
+  ## This can be changed to, for example, failure-domain.beta.kubernetes.io/zone
+  ##
+  podAntiAffinityTopologyKey: kubernetes.io/hostname
+
+  podAnnotations:
+    prometheus.io/scrape: 'true'
+    prometheus.io/port: '9093'
+
+  config:
+    global:
+      resolve_timeout: 15m
+
+    route:
+      receiver: 'slack-notifications'
+      routes:
+        - receiver: slack-notifications
+
+      repeat_interval: 24h
+
+    receivers:
+    - name: slack-notifications
+      slack_configs:
+      - channel: #CHANGE-ME
+        api_url: http://CHANGE_ME.COM
+        send_resolved: true
+        icon_url: https://avatars3.githubusercontent.com/u/3380462
+        color: '{{ if eq .Status "firing" }}{{ if eq .CommonLabels.severity "warning" }}warning{{ else }}danger{{ end }}{{ else }}good{{ end }}'
+        title: |-
+         [{{ .Status | toUpper }}{{ if eq .Status "firing" }}:{{ .Alerts.Firing | len }} alerts {{ end }}] {{ .CommonLabels.alertname }} for {{ .CommonLabels.instance }}
+        text: >-
+         {{ range .Alerts -}}
+         *{{ .Labels.severity | toUpper }}*
+
+         *Summary:* {{ .Annotations.summary }}
+
+         {{ .Annotations.description }}
+
+         *Details:*
+           {{ range .Labels.SortedPairs }} • *{{ .Name }}:* `{{ .Value }}`
+           {{ end }}
+         {{ end }}
+
+    templates:
+      - '/etc/alertmanager/*.tmpl'
+
+  templates: {}
+  #   alertmanager.tmpl: |-
+
+
+
+kube-state-metrics:
+  #set enabled to false to disable this app
+  enabled: true
+  # Annotations to be added to the pod
+  podAnnotations:
+    prometheus.io/scrape: 'true' #autoscrape this
+    prometheus.io/port: '8080'
+
+
+
+grafana:
+  #set enabled to false to disable this app
+  enabled: true
+  service:
+    enabled: true
+    type: ClusterIP
+    port: 3000
+    targetPort: 3000
+
+  ## Pod Annotations
+  podAnnotations:
+    prometheus.io/scrape: 'true'
+    prometheus.io/port: '3000'
+
+  ingress:
+    enabled: true
+    # For Kubernetes >= 1.18 you should specify the ingress-controller via the field ingressClassName
+    # See https://kubernetes.io/blog/2020/04/02/improvements-to-the-ingress-api-in-kubernetes-1.18/#specifying-the-class-of-an-ingress
+    # ingressClassName: nginx
+    # Values can be templated
+    annotations:
+      kubernetes.io/ingress.class: nginx
+      nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    path: /
+
+    hosts:
+      - grafana.local
+
+    tls:
+      - secretName: grafana-cert
+        hosts:
+          - grafana.local
+
+  ## Sidecars that collect the configmaps with specified label and stores the included files them into the respective folders
+  ## Requires at least Grafana 5 to work and can't be used together with parameters dashboardProviders, datasources and dashboards
+  sidecar:
+    dashboards:
+      enabled: true
+    datasources:
+      enabled: true
+
+victoria-metrics-agent:
+  enabled: false
+
+node-exporter:
+  enabled: true
+
+prometheus-blackbox-exporter:
+  enabled: false
+
+karma:
+  enabled: false
+  ingress:
+    enabled: false
+    annotations: {}
+    host: karma.local
+
+loki:
+  enabled: false
+  loki:
+    schemaConfig:
+      configs:
+        - from: 2024-04-01
+          store: tsdb
+          object_store: s3
+          schema: v13
+          index:
+            prefix: loki_index_
+            period: 24h
+  minio:
+    enabled: true
+  gateway:
+    ingress:
+      enabled: true
+      annotations: 
+      hosts:
+        - host: loki.local
+          paths:
+            - path: /
+              pathType: Prefix
+      tls:
+        - secretName: loki-gateway-tls
+          hosts:
+            - loki.local
