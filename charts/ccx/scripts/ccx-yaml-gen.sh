@@ -171,8 +171,9 @@ case $installCCXDeps in
         ;;
     esac
     echo "Installing Helm CCXDeps..."
+    helm repo add s9s https://severalnines.github.io/helm-charts/
     helm repo update
-    helm upgrade --install ccxdeps ccxdeps/ccxdeps --debug $set_flags
+    helm upgrade --install ccxdeps s9s/ccxdeps --debug $set_flags
     if [ $? -eq 0 ]; then
         echo "Helm chart CCXDEPS installed successfully."
     else
