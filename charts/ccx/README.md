@@ -2,7 +2,7 @@
 
 # Quickstart
 
-This guide assumes using dependencies helper repo - https://github.com/severalnines/helm-charts/tree/main/charts/ccxdeps
+This guide assumes using dependencies helper repo - [helm-ccxdeps](https://github.com/severalnines/helm-charts/tree/main/charts/ccxdeps)
 
 Add repos
 
