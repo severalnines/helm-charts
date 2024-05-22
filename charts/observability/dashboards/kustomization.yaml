@@ -1,0 +1,61 @@
+# Global options
+generatorOptions:
+  disableNameSuffixHash: true
+  labels:
+    grafana_dashboard: "true"
+commonAnnotations:
+  grafana_folder: "CCX"
+
+# Generate a ConfigMap for each dashboard
+configMapGenerator:
+#################################################
+# Views Dashboards
+#################################################
+- name: dashboard-ccx-status
+  files: [ CCX/CCX_status.json ]
+
+- name: dashboard-mssql
+  files: [ DB/mssql.json ]
+
+- name: dashboard-postgres
+  files: [ DB/postgres.json ]
+
+- name: dashboard-mysql
+  files: [ DB/mysql.json ]
+
+- name: dashboard-redis
+  files: [ DB/redis.json ]
+
+- name: dashboard-victoria
+  files: [ General/victoria.json ]
+
+- name: dashboard-vmalert
+  files: [ General/vmalert.json ]
+
+- name: dashboard-alertmanager
+  files: [ General/alertmanager.json ]
+
+- name: dashboard-node-exporter
+  files: [ General/node_exporter.json ]
+
+- name: dashboard-vmagent
+  files: [ General/vmagent.json ]
+
+- name: dashboard-k8s-views-nodes
+  files: [ K8s/k8s-views-nodes.json ]
+
+- name: dashboard-k8s-views-namespaces
+  files: [ K8s/k8s-views-namespaces.json ]
+
+- name: dashboard-k8s-views-pods
+  files: [ K8s/k8s-views-pods.json ]
+
+- name: dashboard-cert-manager
+  files: [ K8s/cert-manager.json ]
+
+- name: dashboard-k8s-views-global
+  files: [ K8s/k8s-views-global.json ]
+
+- name: dashboard-k8s-views-deployment-sets
+  files: [ K8s/k8s-views-deployment-sets.json ]
+
