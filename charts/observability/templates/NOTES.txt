@@ -1,0 +1,3 @@
+1. Get your '{{ .Values.grafana.adminUser }}' user password by running:
+
+   kubectl get secret {{ .Release.Name | lower }}-grafana -o jsonpath="{.data.admin-password}" | base64 --decode ; echo
