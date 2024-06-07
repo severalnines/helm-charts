@@ -1,4 +1,4 @@
-{{ if .Values.ccx.services.billing.enabled }}
+{{ if .Values.ccx.services.billing.stripe }}
 apiVersion: v1
 kind: ConfigMap
 metadata:

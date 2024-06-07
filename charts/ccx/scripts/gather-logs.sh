@@ -50,6 +50,8 @@ dir=$(mktemp -d)
 echo Gathering k8s services and pods status...
 kubectl ${NAMESPACE} get pod > ${dir}/k8s.pods.txt 2>&1
 kubectl ${NAMESPACE} get services > ${dir}/k8s.services.txt 2>&1
+kubectl ${NAMESPACE} get deploy -o wide > ${dir}/k8s.deployments.txt 2>&1
+kubectl ${NAMESPACE} get statefulset -o wide > ${dir}/k8s.statefulsets.txt 2>&1
 
 for i in ${services}
 do
@@ -77,7 +79,8 @@ done
 
 echo Dumping CCX tables...
 export DB_DSN=$(kubectl ${NAMESPACE} get secret db -o jsonpath='{.data.DB_DSN}' | base64 --decode)
-kubectl ${NAMESPACE} run -it --rm psql --image=postgres:15-alpine --restart=Never -- pg_dump ${DB_DSN} -t cluster_config_parameters -t cluster_firewalls -t cluster_hosts -t clusters -t controllers -t databases -t darwin_migrations -t job_messages -t jobs -t vpc -t vpc_subnets > ${dir}/ccx_tables_dump.sql
+kubectl ${NAMESPACE} run -it --rm psql --image=postgres:15-alpine --restart=Never -- pg_dump ${DB_DSN} -x -O -t cluster_config_parameters -t cluster_firewalls -t cluster_hosts -t clusters -t controllers -t databases -t darwin_migrations -t vpc -t vpc_subnets > ${dir}/ccx_tables_dump.sql
+kubectl ${NAMESPACE} run -it --rm psql --image=postgres:15-alpine --restart=Never -- pg_dump ${DB_DSN} -x -O -t job_messages -t jobs > ${dir}/ccx_jobs_dump.sql
 
 echo Archiving logs...
 tar -zcf ${OUTPUT_FILE} -C ${dir} .

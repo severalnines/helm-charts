@@ -10,6 +10,9 @@ metadata:
     nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
     nginx.ingress.kubernetes.io/rewrite-target: /$1
     nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    {{- with .Values.ccx.ingress.annotations }}
+      {{- toYaml . | nindent 4 }}
+    {{- end }}
 spec:
   ingressClassName: {{ .Values.ccx.ingress.ingressClassName | default "nginx" }}
   tls:
@@ -32,7 +35,7 @@ spec:
             pathType: ImplementationSpecific
             backend:
               service:
-                name: ccx-rest-svc
+                name: ccx-rest-user-svc
                 port:
                   number: 20001
           - path: /(.*)
@@ -46,9 +49,9 @@ spec:
             pathType: ImplementationSpecific
             backend:
               service:
-                name: ccx-admin-service-svc
+                name: ccx-rest-admin-svc
                 port:
-                  number: 19787
+                  number: 20001
           - path: /api/auth/(.+)
             pathType: ImplementationSpecific
             backend:
@@ -63,3 +66,10 @@ spec:
                 name: ccx-billing-service-svc
                 port:
                   number: 18077
+          - path: /monitor/(.+)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: ccx-monitor-service-svc
+                port:
+                  number: 18091

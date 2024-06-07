@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: ccx-rest-admin-svc
+  labels:
+    app: ccx-rest-admin-service
+    run: ccx-rest-admin-service
+spec:
+  type: ClusterIP
+  selector:
+    app: ccx-rest-admin-service
+  ports:
+    - protocol: TCP
+      port: 20001
+      targetPort: 20001

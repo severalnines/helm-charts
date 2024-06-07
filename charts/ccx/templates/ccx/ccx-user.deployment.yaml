@@ -25,12 +25,16 @@ spec:
       containers:
         - name: ccx-user
           image: {{ .Values.ccx.services.user.image | default .Values.ccx.backend.image | required "No image set for users" }}
-          command: ["/bin/ccx-user"]
+          command: ["/bin/ccx-users"]
           env:
             - name: POD_NAMESPACE
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.namespace
+          {{- range $key, $val := .Values.ccx.services.auth.env }}
+            - name: {{ $key }}
+              value: {{ $val | quote }}
+          {{- end }}
           {{- range $key, $val := .Values.ccx.services.user.env }}
             - name: {{ $key }}
               value: {{ $val | quote }}
