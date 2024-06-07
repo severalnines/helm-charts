@@ -30,7 +30,8 @@ if ! command -v yq &> /dev/null; then
           ;;
         *) 
           echo "Unsupported arch for this installation of yq" 
-          echo "Please install yq before running this script."
+          echo "Please install yq before running this script. see link https://mikefarah.gitbook.io/yq/v/v3.x"
+          exit 1
           ;;
     esac
 
@@ -43,19 +44,20 @@ if ! command -v yq &> /dev/null; then
           wget https://github.com/mikefarah/yq/releases/download/${VERSION}/${BINARY} -O /usr/local/bin/yq >/dev/null 2>&1 &&\
           chmod +x /usr/local/bin/yq
           ;;
-        arm)
+        arm64)
           BINARY=yq_darwin_arm64
           wget https://github.com/mikefarah/yq/releases/download/${VERSION}/${BINARY} -O /usr/local/bin/yq >/dev/null 2>&1 &&\
           chmod +x /usr/local/bin/yq
           ;;
         *) 
           echo "Unsupported arch for this installation of yq" 
-          echo "Please install yq before running this script."
+          echo "Please install yq before running this script. see link https://mikefarah.gitbook.io/yq/v/v3.x"
+          exit 1
           ;;
     esac
   else
     echo "Unsupported OS installation for yq installation"
-    echo "Please install yq before running this script."
+    echo "Please install yq before running this script. see link https://mikefarah.gitbook.io/yq/v/v3.x"
     exit 1
   fi
 fi
@@ -116,6 +118,7 @@ echo "*      This configuration is specific to the CCX Dependencies system for Q
 echo "*                                                                                                        *"
 echo "**********************************************************************************************************"
 echo ""
+print_colored "Please ensure that your respective cloud provider command line tool is installed. Example aws-cli or openstack" "success"
 print_colored "Please ensure that you're in correct namespace when running this script" "success"
 
 
@@ -190,9 +193,15 @@ case $installCCXDeps in
     ;;
 esac
 
+print_colored "Please note that your values.yaml file will be rewritten incase if it exists already" "success"
 > values.yaml
 
 check_openstack_credentials() {
+    if ! command -v openstack &> /dev/null
+    then
+        echo "See the installation instructions in the link https://docs.openstack.org/python-openstackclient/latest/"
+        errorExit "openstack command line tool could not be found. Please install it before proceeding."
+    fi
     echo "Configuring OpenStack credentials as secret..."
     print_colored "REQUIRED: Enter Openstack Project-level authentication scope (by ID):" "success"
     read OS_PROJECT_ID
@@ -223,6 +232,11 @@ check_openstack_credentials() {
 
 
 check_aws_credentials() {
+    if ! command -v aws &> /dev/null
+    then
+        echo "Please see this link https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html"
+        errorExit "aws-cli tool could not be found. Please install it before proceeding."
+    fi
     print_colored "REQUIRED: Enter your AWS access key ID:" "success"
     read aws_access_key_id
     export AWS_ACCESS_KEY_ID="$aws_access_key_id"
@@ -248,76 +262,12 @@ check_aws_credentials() {
 
 echo "**********************************************************************************************************"
 echo "*                                                                                                        *"
-echo "*                  Configuration CCX values file                                                         *"
-echo "*      This section is for configuration specific to the CCX system                                      *"
-echo "*                                                                                                        *"
-echo "**********************************************************************************************************"
-
-print_colored "REQUIRED: Input Session Domain URL: This is used across the app to identify your instance. for example example.com" "success"
-readInputs
-yq eval ".sessionDomain = \"$input\"" -i values.yaml
-
-print_colored "REQUIRED: Input ccxFQDN: fqdn of this ccx instance, for example ccx.example.com" "success"
-readInputs
-ccxFQDN=$input
-yq eval ".ccxFQDN = \"$ccxFQDN\"" -i values.yaml
-
-print_colored "REQUIRED: Input ccFQDN: fqdn of this ccx instance, for example cc.example.com" "success"
-readInputs
-yq eval ".ccFQDN = \"$input\"" -i values.yaml
-
-print_colored "REQUIRED: Input DNS names to users. this should be a domain you can configure into externaldns. for example ccx.example.com" "success"
-readInputs
-yq eval ".ccx.userDomain= \"$input\"" -i values.yaml
-
-print_colored "[optional]: Input storageClassName: k8s storage class used for PVs across CCX. This is a global variable applied to all PVCs/PVs. (default standard). You can press \"Enter\" to skip it" "debug"
-read storageClassName
-if [[ -z "$storageClassName" ]]; then
-        echo "Using Default storageclass"
-else
-        yq eval ".storageClassName = \"$storageClassName\"" -i values.yaml
-fi
-
-print_colored "[optional]: Input SSL cluster Issuer. You can press \"Enter\" to skip it" "debug"
-read sslIssuer
-if [[ -z "$sslIssuer" ]]; then
-        echo "Using Default "
-else
-        yq eval ".ccx.ingress.ssl.clusterIssuer= \"$sslIssuer\"" -i values.yaml
-fi
-
-echo "**********************************************************************************************************"
-echo "*                                                                                                        *"
-echo "*   Now we are going to configure the CMON                                                               *"
-echo "*                                                                                                        *"
-echo "**********************************************************************************************************"
-
-# CMON DB configs
-print_colored "REQUIRED: Input your CMON license key here by copy pasting without base64 encoding. (press Ctrl+D to finish)" "success"
-encode_base64() {
-    base64 <<< "$1" | tr -d '\n'
-}
-base64_input=""
-while IFS= read -r line; do
-    base64_input+="$line"
-done
-encoded_content=$(encode_base64 "$base64_input")
-yq eval ".cmon.license = \"$encoded_content\"" -i values.yaml
-
-
-print_colored "REQUIRED: Input CMON password" "success"
-readInputs
-yq eval ".cmon.password = \"$input\"" -i values.yaml
-
-
-echo "**********************************************************************************************************"
-echo "*                                                                                                        *"
 echo "*   Now we are going to configure the CCX Openstack Configuration.                                       *"
 echo "*                                                                                                        *"
 echo "**********************************************************************************************************"
 
 # Openstack Cloud vendor
-print_colored "Are you using Openstack as cloud provider vendor? [Y/n] " "success"
+print_colored "Are you using Openstack as cloud provider vendor? [Y/n] (default is No) You can press \"Enter\" to skip it " "success"
 read openstackCloudVendor
 openstackCloudVendor=${openstackCloudVendor:-N}
 case $openstackCloudVendor in
@@ -495,14 +445,13 @@ echo "*                                                                         
 echo "**********************************************************************************************************"
 
 # Aws Cloud vendor
-print_colored "Are you using AWS as cloud provider vendor? [Y/n] " "success"
+print_colored "Are you using AWS as cloud provider vendor? [Y/n] (default is No) You can press \"Enter\" to skip it " "success"
 read awsCloudVendor
 awsCloudVendor=${awsCloudVendor:-N}
 case $awsCloudVendor in
     [yY][eE][sS]|[yY])
     check_aws_credentials
     yq eval ".ccx.cloudSecrets[0] = \"aws-secret\"" -i values.yaml
-    echo "You will have your values.yaml generated in your path. use 'helm upgrade --install ccx ccx/ccx --values values.yaml --debug' to install ccx"
     ;;
     [nN][oO]|[nN])
     print_colored "Skipping Aws config" "debug"
@@ -512,3 +461,70 @@ case $awsCloudVendor in
     exit 1
     ;;
 esac
+
+
+
+echo "**********************************************************************************************************"
+echo "*                                                                                                        *"
+echo "*                  Configuration CCX values file                                                         *"
+echo "*      This section is for configuration specific to the CCX system                                      *"
+echo "*                                                                                                        *"
+echo "**********************************************************************************************************"
+
+print_colored "REQUIRED: Input Session Domain URL: This is used across the app to identify your instance. for example example.com" "success"
+readInputs
+yq eval ".sessionDomain = \"$input\"" -i values.yaml
+
+print_colored "REQUIRED: Input ccxFQDN: fqdn of this ccx instance, for example ccx.example.com" "success"
+readInputs
+ccxFQDN=$input
+yq eval ".ccxFQDN = \"$ccxFQDN\"" -i values.yaml
+
+print_colored "REQUIRED: Input ccFQDN: fqdn of this ccx instance, for example cc.example.com" "success"
+readInputs
+yq eval ".ccFQDN = \"$input\"" -i values.yaml
+
+print_colored "REQUIRED: Input DNS names to users. this should be a domain you can configure into externaldns. for example ccx.example.com" "success"
+readInputs
+yq eval ".ccx.userDomain= \"$input\"" -i values.yaml
+
+print_colored "[optional]: Input storageClassName: k8s storage class used for PVs across CCX. This is a global variable applied to all PVCs/PVs. (default standard). You can press \"Enter\" to skip it" "debug"
+read storageClassName
+if [[ -z "$storageClassName" ]]; then
+        echo "Using Default storageclass"
+else
+        yq eval ".storageClassName = \"$storageClassName\"" -i values.yaml
+fi
+
+print_colored "[optional]: Input SSL cluster Issuer. You can press \"Enter\" to skip it" "debug"
+read sslIssuer
+if [[ -z "$sslIssuer" ]]; then
+        echo "Using Default "
+else
+        yq eval ".ccx.ingress.ssl.clusterIssuer= \"$sslIssuer\"" -i values.yaml
+fi
+
+echo "**********************************************************************************************************"
+echo "*                                                                                                        *"
+echo "*   Now we are going to configure the CMON                                                               *"
+echo "*                                                                                                        *"
+echo "**********************************************************************************************************"
+
+# CMON DB configs
+print_colored "REQUIRED: Input your CMON Original license key here by copy pasting without base64 encoding. (press Ctrl+D to finish after pasting the license)" "success"
+encode_base64() {
+    base64 <<< "$1" | tr -d '\n'
+}
+base64_input=""
+while IFS= read -r line; do
+    base64_input+="$line"
+done
+encoded_content=$(encode_base64 "$base64_input")
+yq eval ".cmon.license = \"$encoded_content\"" -i values.yaml
+
+
+print_colored "REQUIRED: Input CMON password" "success"
+readInputs
+yq eval ".cmon.password = \"$input\"" -i values.yaml
+
+echo "You will have your values.yaml generated in your path. use 'helm upgrade --install ccx ccx/ccx --values values.yaml --debug' to install ccx"

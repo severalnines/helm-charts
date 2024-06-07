@@ -1,4 +1,4 @@
-{{- if and .Values.ccx.oldWorld .Values.ccx.newWorld }}
+{{- if and .Values.ccx.migrateStores }}
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -13,7 +13,7 @@ spec:
           command: ["/bin/ccx-stores", "migrate"]
           envFrom:
             - secretRef:
-                name: db-stores
+                name: db
       containers:
         - name: stores-migrate
           image: {{ .Values.ccx.services.stores_service.image | default .Values.ccx.backend.image | required "No image set for stores" }}
@@ -43,7 +43,7 @@ spec:
             - secretRef:
                 name: cmon-credentials
             - secretRef:
-                name: db-stores
+                name: db
             - secretRef:
                 name: vault
           {{- range $name := .Values.ccx.cloudSecrets }}

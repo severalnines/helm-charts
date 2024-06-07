@@ -31,27 +31,20 @@ spec:
             - name: {{ $key }}
               value: {{ $val | quote }}
           {{- end }}
-          {{ if .Values.ccx.newWorld }}
-            # new stores enabled
-            - name: PREFER_NEW_STORES
-              value: "true"
-          {{ else }}
-            # new stores disabled
-            - name: PREFER_NEW_STORES
-              value: "false"
-          {{ end }}
           envFrom:
             - configMapRef:
                 name: ccx
+            {{ if not .Values.ccx.useK8sSecrets }}
             - secretRef:
                 name: vault
-            {{ if .Values.ccx.services.billing.enabled }}
+            {{ end }}
+            {{ if .Values.ccx.services.billing.stripe }}
             - secretRef:
                 name: stripe
             {{ end }}
             - secretRef:
                 name: db
-          {{ if .Values.ccx.services.billing.enabled }}
+          {{ if .Values.ccx.services.billing.stripe }}
           volumeMounts:
             - name: prices-volume
               mountPath: /etc/prices.yaml
@@ -66,7 +59,7 @@ spec:
               protocol: TCP
           resources:
             {{- toYaml .Values.ccx.services.billing.resources | nindent 12 }}
-      {{ if .Values.ccx.services.billing.enabled }}
+      {{ if .Values.ccx.services.billing.stripe }}
       volumes:
         - name: prices-volume
           configMap:

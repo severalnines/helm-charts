@@ -1,4 +1,3 @@
-{{ if .Values.ccx.oldWorld }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -57,6 +56,10 @@ spec:
                 name: ccx
             - secretRef:
                 name: db
+            {{ if not .Values.ccx.useK8sSecrets }}
+            - secretRef:
+                name: vault
+            {{ end }}
           ports:
             - name: metrics
               containerPort: 9090
@@ -82,4 +85,3 @@ spec:
       tolerations:
         {{ toYaml . | nindent 8 }}
       {{ end }}
-{{ end }}
