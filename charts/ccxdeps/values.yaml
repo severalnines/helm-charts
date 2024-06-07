@@ -22,15 +22,6 @@ nats:
       debug: false
       trace: false
 
-vault:
-  enabled: true
-  #nameOverride: myVault
-  server:
-    dev:
-      enabled: true ## this is NOT RECOMMENDED FOR PRODUCTION USE
-  injector:
-    enabled: false
-
 postgresql:
   replicas: 1
 

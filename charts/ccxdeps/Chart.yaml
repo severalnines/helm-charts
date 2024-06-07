@@ -15,17 +15,13 @@ type: application
 # This is the chart version. This version number should be incremented each time you make changes
 # to the chart and its templates, including the app version.
 # Versions are expected to follow Semantic Versioning (https://semver.org/)
-version: 0.4.2
+version: 0.4.4
 
 dependencies:
   - name: postgres-operator
     repository: https://opensource.zalando.com/postgres-operator/charts/postgres-operator
     version: 1.11.0
     condition: installOperators
-  - name: vault
-    repository: https://helm.releases.hashicorp.com
-    version: 0.22.1
-    condition: vault.enabled
   - name: nginx-ingress-controller
     repository: https://charts.bitnami.com/bitnami
     version: 9.3.21
