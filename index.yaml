@@ -13,17 +13,6 @@ entries:
     - https://github.com/severalnines/helm-charts/releases/download/ccx-1.48.1/ccx-1.48.1.tgz
     version: 1.48.1
   - apiVersion: v2
-    appVersion: 1.48.0
-    created: "2024-06-07T11:29:47.898510013Z"
-    description: A Helm chart for CCX
-    digest: 6fbcbd642b2fcff562f0b0a4cf8f7e72dbd289c7f6c18411d6e6d295f3112ec8
-    icon: https://st.s9s.io/ccx/logo/ccx-purple.svg
-    name: ccx
-    type: application
-    urls:
-    - https://github.com/severalnines/helm-charts/releases/download/ccx-1.48.0/ccx-1.48.0.tgz
-    version: 1.48.0
-  - apiVersion: v2
     appVersion: 1.47.1
     created: "2024-05-15T05:20:56.947127588Z"
     description: A Helm chart for CCX
