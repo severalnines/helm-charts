@@ -14,7 +14,6 @@ spec:
     metadata:
       labels:
         app: ccx-ui-auth
-        run: ccx-ui-auth
     spec:
       containers:
         - name: ccx-ui-auth

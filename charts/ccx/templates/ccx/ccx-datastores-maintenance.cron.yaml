@@ -1,3 +1,4 @@
+{{ if .Values.ccx.oldWorld }}
 apiVersion: batch/v1
 kind: CronJob
 metadata:
@@ -38,3 +39,4 @@ spec:
               envFrom:
                 - configMapRef:
                     name: ccx
+{{ end }}

@@ -2,21 +2,21 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: ccx-monitor-service
+  name: ccx-backup-storage
   labels:
-    app: ccx-monitor-service
-    run: ccx-monitor-service
+    app: ccx-backup-storage
+    run: ccx-backup-storage
 spec:
-  replicas: {{ .Values.ccx.services.monitor.replicas | default 1 }}
+  replicas: {{ .Values.ccx.services.backupstorage.replicas | default 1 }}
   selector:
     matchLabels:
-      app: ccx-monitor-service
-      run: ccx-monitor-service
+      app: ccx-backup-storage
+      run: ccx-backup-storage
   template:
     metadata:
       labels:
-        app: ccx-monitor-service
-        run: ccx-monitor-service
+        app: ccx-backup-storage
+        run: ccx-backup-storage
       annotations:
         prometheus.io/scrape: "true"
         prometheus.io/port: "9090"
@@ -24,13 +24,15 @@ spec:
         checksum/config: {{ include (print $.Template.BasePath "/ccx/config.yaml") . | sha256sum }}
     spec:
       containers:
-        - name: ccx-monitor-service
-          image: {{ .Values.ccx.services.monitor.image | default .Values.ccx.backend.image | required "No image set for monitor" }}
-          command: ["/bin/ccx-monitor-service"]
+        - name: ccx-backup-storage
+          image: {{ .Values.ccx.services.backupstorage.image | default .Values.ccx.backend.image | required "No image set for backups" }}
+          command: ["/bin/ccx-backup-storage"]
           env:
-            - name: SUPPORT_RECEIVERS
-              value: {{ .Values.ccx.emailSupport }}
-          {{- range $key, $val := .Values.ccx.services.monitor.env }}
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+          {{- range $key, $val := .Values.ccx.services.backupstorage.env }}
             - name: {{ $key }}
               value: {{ $val | quote }}
           {{- end }}
@@ -38,27 +40,27 @@ spec:
             - configMapRef:
                 name: ccx
             - secretRef:
-                name: db
+                name: db-backup
             - secretRef:
                 name: vault
           ports:
             - name: service
-              containerPort: 18091
+              containerPort: 19000
               protocol: TCP
             - name: metrics
               containerPort: 9090
               protocol: TCP
           resources:
-            {{- toYaml .Values.ccx.services.monitor.resources | nindent 12 }}
-      {{ with .Values.ccx.services.monitor.affinity }}
+            {{- toYaml .Values.ccx.services.backupstorage.resources | nindent 12 }}
+      {{ with .Values.ccx.services.backupstorage.affinity }}
       affinity:
         {{ toYaml . | nindent 8 }}
       {{ end }}
-      {{ with .Values.ccx.services.monitor.nodeSelector }}
+      {{ with .Values.ccx.services.backupstorage.nodeSelector }}
       nodeSelector:
         {{ toYaml . | nindent 8 }}
       {{ end }}
-      {{ with .Values.ccx.services.monitor.tolerations }}
+      {{ with .Values.ccx.services.backupstorage.tolerations }}
       tolerations:
         {{ toYaml . | nindent 8 }}
       {{ end }}

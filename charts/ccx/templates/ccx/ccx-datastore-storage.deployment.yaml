@@ -2,23 +2,21 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: ccx-state-worker
+  name: ccx-datastore-storage
   labels:
-    app: ccx-state-worker
-    run: ccx-state-worker
+    app: ccx-datastore-storage
+    run: ccx-datastore-storage
 spec:
-  replicas: 1
-  strategy:
-    type: Recreate
+  replicas: {{ .Values.ccx.services.datastorestorage.replicas | default 1 }}
   selector:
     matchLabels:
-      app: ccx-state-worker
-      run: ccx-state-worker
+      app: ccx-datastore-storage
+      run: ccx-datastore-storage
   template:
     metadata:
       labels:
-        app: ccx-state-worker
-        run: ccx-state-worker
+        app: ccx-datastore-storage
+        run: ccx-datastore-storage
       annotations:
         prometheus.io/scrape: "true"
         prometheus.io/port: "9090"
@@ -26,31 +24,19 @@ spec:
         checksum/config: {{ include (print $.Template.BasePath "/ccx/config.yaml") . | sha256sum }}
     spec:
       containers:
-        - name: state-worker
-          image: {{ .Values.ccx.services.datastorestorage.image | default .Values.ccx.backend.image | required "No image set for state-worker" }}
-          command: [ "/bin/ccx-datastore-storage" ]
-          args:
-            - state-worker
+        - name: ccx-datastore-storage
+          image: {{ .Values.ccx.services.datastorestorage.image | default .Values.ccx.backend.image | required "No image set for datastores" }}
+          command: ["/bin/ccx-datastore-storage"]
           env:
             - name: CONFIG_FILE
               value: "/conf/ccx.yaml"
-          {{- range $key, $val := .Values.ccx.services.datastorestorage.env }}
-            - name: {{ $key }}
-              value: {{ $val | quote }}
-          {{- end }}
             - name: POD_NAMESPACE
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.namespace
-          {{- if .Values.ccx.services.datastorestorage.workInterval }}
-            - name: WORK_INTERVAL
-              value : {{ .Values.ccx.services.datastorestorage.workInterval | quote }}
-          {{- end }}
-          {{- if .Values.ccx.autoRepair.enabled }}
-            - name: AUTO_REPAIR_ENABLED
-              value : "true"
-            - name: AUTO_REPAIR_AFTER
-              value : {{ .Values.ccx.autoRepair.delay | quote }}
+          {{- range $key, $val := .Values.ccx.services.datastorestorage.env }}
+            - name: {{ $key }}
+              value: {{ $val | quote }}
           {{- end }}
           envFrom:
             - configMapRef:
@@ -58,6 +44,9 @@ spec:
             - secretRef:
                 name: db
           ports:
+            - name: service
+              containerPort: 19786
+              protocol: TCP
             - name: metrics
               containerPort: 9090
               protocol: TCP

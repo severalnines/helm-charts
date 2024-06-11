@@ -1,21 +1,22 @@
+{{ if .Values.ccx.oldWorld }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: ccx-user
+  name: ccx-notification-service
   labels:
-    app: ccx-user
-    run: ccx-user
+    app: ccx-notification-service
+    run: ccx-notification-service
 spec:
-  replicas: {{ .Values.ccx.services.user.replicas | default 1 }}
+  replicas: {{ .Values.ccx.services.notification.replicas | default 1 }}
   selector:
     matchLabels:
-      app: ccx-user
-      run: ccx-user
+      app: ccx-notification-service
+      run: ccx-notification-service
   template:
     metadata:
       labels:
-        app: ccx-user
-        run: ccx-user
+        app: ccx-notification-service
+        run: ccx-notification-service
       annotations:
         prometheus.io/scrape: "true"
         prometheus.io/port: "9090"
@@ -23,15 +24,15 @@ spec:
         checksum/config: {{ include (print $.Template.BasePath "/ccx/config.yaml") . | sha256sum }}
     spec:
       containers:
-        - name: ccx-user
-          image: {{ .Values.ccx.services.user.image | default .Values.ccx.backend.image | required "No image set for users" }}
-          command: ["/bin/ccx-user"]
+        - name: ccx-notification-service
+          image: {{ .Values.ccx.services.notification.image | default .Values.ccx.backend.image | required "No image set for notification" }}
+          command: ["/bin/ccx-notification-service"]
           env:
             - name: POD_NAMESPACE
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.namespace
-          {{- range $key, $val := .Values.ccx.services.user.env }}
+          {{- range $key, $val := .Values.ccx.services.notification.env }}
             - name: {{ $key }}
               value: {{ $val | quote }}
           {{- end }}
@@ -39,27 +40,26 @@ spec:
             - configMapRef:
                 name: ccx
             - secretRef:
-                name: admin-users
-            - secretRef:
-                name: db
+                name: db-notification
           ports:
             - name: service
-              containerPort: 3030
+              containerPort: 18097
               protocol: TCP
             - name: metrics
               containerPort: 9090
               protocol: TCP
           resources:
-            {{- toYaml .Values.ccx.services.user.resources | nindent 12 }}
-      {{ with .Values.ccx.services.user.affinity }}
+            {{- toYaml .Values.ccx.services.notification.resources | nindent 12 }}
+      {{ with .Values.ccx.services.notification.affinity }}
       affinity:
         {{ toYaml . | nindent 8 }}
       {{ end }}
-      {{ with .Values.ccx.services.user.nodeSelector }}
+      {{ with .Values.ccx.services.notification.nodeSelector }}
       nodeSelector:
         {{ toYaml . | nindent 8 }}
       {{ end }}
-      {{ with .Values.ccx.services.user.tolerations }}
+      {{ with .Values.ccx.services.notification.tolerations }}
       tolerations:
         {{ toYaml . | nindent 8 }}
       {{ end }}
+{{ end }}

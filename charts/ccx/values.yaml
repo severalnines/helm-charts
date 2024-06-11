@@ -31,7 +31,8 @@ cmon:
     name: cmon
     user: cmon
     password: Super$3cr3t
-  image: severalnines/cmon:2.0.0-9042
+
+  image: severalnines/cmon:2.0.0-8679
   extra_args: # extra arguments for cmon binary
     - -s
     - --no-log-db
@@ -55,10 +56,9 @@ cmon:
         memory: 10Mi
     image: severalnines/cmon_exporter-linux-amd64:main
   ccv2:
-    image: severalnines/cc-frontend:2.2.3
+    image: severalnines/cc-frontend:2.2.2
   license: # REQUIRED put your CMON license key here, base64 encoded
   coreDumpEnable: false
-
 ## this section is for configuring specifics of the CCX system
 ccx:
   ## affiliation allows enabling custom functionality for a customer, if applicable
@@ -83,9 +83,18 @@ ccx:
   ## Technically, CCX will start with this empty, however, you won't be able to deploy anything
   cloudSecrets: []
 
-  ## do not enable these
-  preferNewStores: false
-  migrateStores: false
+  # if only old world, then everything should be as before
+  # if old and new, then we prefer new, but leave things enabled for migration
+  # if only new, then all old things are disabled
+  oldWorld: true
+  newWorld: false
+
+  # if true, then CCX will use k8s secrets for cloud credentials
+  # if false, then CCX will use vault for cloud credentials
+  useK8sSecrets: false
+
+  # newNotify allows to run new notify in old world, which seems to work
+  newNotify: true
 
   # configure automatic failure handling
   autoRepair:
@@ -94,7 +103,8 @@ ccx:
 
   ## default settings for all backend components
   backend:
-    image: europe-docker.pkg.dev/severalnines-public/ccx/ccx-backend:build-4494
+    image: europe-docker.pkg.dev/severalnines-public/ccx/ccx-backend:build-4223
+
 
   ## postgresql server used by all backend components
   db:
@@ -105,15 +115,7 @@ ccx:
     #username: ccx
     #password: ccx
 
-  # if true, then CCX will use k8s secrets for cloud credentials
-  # if true, no need to configure vault below
-  # if true, vault will NOT be used
-  # if false, then CCX will use vault for cloud credentials
-  useK8sSecrets: true
-
   ## vault server used by all backend components
-  # no need for vault if useK8sSecrets is true - default
-  # if both are true (useK8sSecrets and vault) ccx-migrate-secrets job will be run and will copy secrets from vault to k8s
   vault: #this is set for default ccxdeps vault, CHANGE FOR YOUR VAULT
     addr: #YOUR VAULT ADDRESS example - http://my-vault:8200/
     token: #YOUR VAULT TOKEN
@@ -135,7 +137,7 @@ ccx:
     ssl:
       secretName: # use an existing k8s secret of type tls for CCX ingress
       clusterIssuer: # set this to your cert manager's cluster issuer or simply remove to not use one
-    annotations: #Add ability to specify annotations
+
   ## NATS+JetStream server used by all backend components
   nats:
     server: ccxdeps-ccx-nats # your nats server name/address
@@ -172,11 +174,9 @@ ccx:
           cpu: 1m
           memory: 5Mi
     billing:
-      # note that this does not disable the billing service, it disables the billing UI
+      # note that this does not disable the billing service, it disables the billing updater
+      # also, this will not disable all of billing unless you also set BILLING_IMPLIED_SUBSCRIPTION in the right places
       enabled: false
-      # when enabled, the billing service will use the stripe and bill the users based on their subscriptions and usage
-      # note that enabling this will require you to set up the stripe secret in the secrets and prices in config
-      stripe: false
       env:
       resources:
         requests:
@@ -198,6 +198,11 @@ ccx:
           cpu: 1m
           memory: 5Mi
     deployer:
+      env:
+      resources:
+        requests:
+          cpu: 1m
+          memory: 10Mi
       ## REQUIRED to set deployer config to match your infrastructure
       config:
         aws_vendor:
@@ -340,6 +345,12 @@ ccx:
         requests:
           cpu: 1m
           memory: 5Mi
+    rbac:
+      env:
+      resources:
+        requests:
+          cpu: 1m
+          memory: 5Mi
     rest_service:
       env:
         HIDE_CIDRS: "35.205.236.175/32"
@@ -360,6 +371,8 @@ ccx:
           memory: 5Mi
     runner:
       env:
+        BILLING_SERVICE_ADDR: http://ccx-billing-service-svc:18077
+        BILLING_SERVICE_INTERNAL_TOKEN: d25b95e8a7967a75b2a08cd40d67c4f792603271b148df7a79b5587f85d46d92
         CMON_PROXY_ADDR: cmon-proxy-svc:19051
         CMON_PROXY_INSECURE: "true"
         BACKUP_FULL: "0 4 * * *"
@@ -378,8 +391,6 @@ ccx:
         requests:
           cpu: 1m
           memory: 5Mi
-    stores_migrate:
-      env:
     stores_service:
       # IMPORTANT stores_service and stores_worker should always have the same configuration
       # these values should not normally be changed
@@ -387,6 +398,7 @@ ccx:
         ENABLE_HOOKS: "true"
         ENABLE_NOTIFICATIONS: "true"
         ENABLE_K8S: "true"
+        BILLING_SERVICE_INTERNAL_TOKEN: d25b95e8a7967a75b2a08cd40d67c4f792603271b148df7a79b5587f85d46d92
       resources:
         requests:
           cpu: 1m
@@ -398,12 +410,13 @@ ccx:
         ENABLE_HOOKS: "true"
         ENABLE_NOTIFICATIONS: "true"
         ENABLE_K8S: "true"
+        BILLING_SERVICE_INTERNAL_TOKEN: d25b95e8a7967a75b2a08cd40d67c4f792603271b148df7a79b5587f85d46d92
       resources:
         requests:
           cpu: 1m
           memory: 10Mi
     uiapp:
-      image: europe-docker.pkg.dev/severalnines-public/ccx/ccx-ui-app:build-2740
+      image: europe-docker.pkg.dev/severalnines-public/ccx/ccx-ui-app:build-2660
       resources:
         requests:
           cpu: 1m
@@ -415,6 +428,12 @@ ccx:
           cpu: 1m
           memory: 5Mi
     user:
+      env:
+      resources:
+        requests:
+          cpu: 1m
+          memory: 5Mi
+    vpcstorage:
       env:
       resources:
         requests:

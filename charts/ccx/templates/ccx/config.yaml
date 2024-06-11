@@ -5,7 +5,6 @@ metadata:
 data:
   # this should be essentially static after the cluster is created - mutable config is in other places
   SESSION_DOMAIN: {{ include "ccx.sessionDomain" . }}
-  BASE_DOMAIN: {{ include "ccx.ccxFQDN" . }}
   CROSS_ORIGINS: {{ .Values.crossOrigins | join "," | quote }}
   {{- if .Values.ccx.userDomain }}
   USER_DOMAIN: {{ .Values.ccx.userDomain }}
@@ -17,22 +16,18 @@ data:
   NATS_SERVER: {{ .Values.ccx.nats.server | default "ccx-nats" | quote }}
   NATS_CLUSTER_ID: {{ .Values.ccx.nats.clusterID | default "test-cluster" | quote }}
   GIN_MODE: release
+  # billing service and billing updater
+  {{- if .Values.ccx.services.billing.enabled }}
+  BILLING_IMPLIED_SUBSCRIPTION: "0"
   CCX_BILLING_NETWORK: "true"
   CCX_BILLING_STORAGE: "true"
-  # billing service and billing updater
-  {{- if .Values.ccx.services.billing.stripe }}
-  BILLING_IMPLIED_SUBSCRIPTION: "0"
   {{- else }}
   BILLING_IMPLIED_SUBSCRIPTION: "1"
   {{- end }}
-  BACKUP_STORAGE_ADDR: ccx-stores-svc:20002
-  CONTROLLER_STORAGE_ADDR: ccx-stores-svc:20002
-  DATASTORE_STORAGE_ADDR: ccx-stores-svc:20002
+  {{- if .Values.ccx.newWorld }}
   DEPLOYER_ADDR: ccx-stores-svc:20002
-  JOB_STORAGE_ADDR: ccx-stores-svc:20002
   VPC_STORAGE_ADDR: ccx-stores-svc:20002
-  BILLING_SERVICE_ADDR: ccx-billing-service-svc:18077
-  BILLING_SERVICE_INTERNAL_TOKEN: d25b95e8a7967a75b2a08cd40d67c4f792603271b148df7a79b5587f85d46d92
+  {{- end }}
   {{- range $key, $val := .Values.ccx.env }}
   {{ $key }} : {{ $val | quote }}
   {{- end }}

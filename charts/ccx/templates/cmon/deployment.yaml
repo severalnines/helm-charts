@@ -59,7 +59,11 @@ spec:
         {{- with .Values.cmon.extra_args }}
         {{- toYaml . | nindent 8 }}
         {{ end }}
+        {{ if .Values.ccx.newWorld }}
         - --events-client=http://ccx-stores-listener-svc:18097/cmon-events/{{ .Values.cmon.id }}
+        {{ else }}
+        - --events-client=http://ccx-notification-service-svc:18097/api/v1/events/cmon
+        {{ end }}
         securityContext:
           privileged: True
         ports:

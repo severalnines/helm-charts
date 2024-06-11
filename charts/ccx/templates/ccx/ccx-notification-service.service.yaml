@@ -1,0 +1,17 @@
+{{ if .Values.ccx.oldWorld }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: ccx-notification-service-svc
+  labels:
+    app: ccx-notification-service
+    run: ccx-notification-service
+spec:
+  type: ClusterIP
+  selector:
+    app: ccx-notification-service
+  ports:
+    - protocol: TCP
+      port: 18097
+      targetPort: 18097
+{{ end }}
