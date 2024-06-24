@@ -94,7 +94,7 @@ ccx:
 
   ## default settings for all backend components
   backend:
-    image: europe-docker.pkg.dev/severalnines-public/ccx/ccx-backend:build-4689
+    image: europe-docker.pkg.dev/severalnines-public/ccx/ccx-backend:297
 
   ## postgresql server used by all backend components
   db:
