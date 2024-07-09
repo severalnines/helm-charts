@@ -2,6 +2,17 @@ apiVersion: v1
 entries:
   ccx:
   - apiVersion: v2
+    appVersion: 1.48.6
+    created: "2024-07-09T13:04:31.300302595Z"
+    description: A Helm chart for CCX
+    digest: fd98b494bc6a844d1b6de4d280d2b0cc3deb7e6ca06b5f8740d6775fe3572d4b
+    icon: https://st.s9s.io/ccx/logo/ccx-purple.svg
+    name: ccx
+    type: application
+    urls:
+    - https://github.com/severalnines/helm-charts/releases/download/ccx-1.48.6/ccx-1.48.6.tgz
+    version: 1.48.6
+  - apiVersion: v2
     appVersion: 1.48.5
     created: "2024-06-27T06:54:56.164253369Z"
     description: A Helm chart for CCX
@@ -105,6 +116,41 @@ entries:
     - https://github.com/severalnines/helm-charts/releases/download/ccx-monitoring-0.5.0/ccx-monitoring-0.5.0.tgz
     version: 0.5.0
   ccxdeps:
+  - apiVersion: v2
+    created: "2024-07-09T13:04:31.502083324Z"
+    dependencies:
+    - condition: installOperators
+      name: postgres-operator
+      repository: https://opensource.zalando.com/postgres-operator/charts/postgres-operator
+      version: 1.11.0
+    - condition: ingressController.enabled
+      name: nginx-ingress-controller
+      repository: https://charts.bitnami.com/bitnami
+      version: 9.3.21
+    - condition: nats.enabled
+      name: nats
+      repository: https://nats-io.github.io/k8s/helm/charts/
+      version: 0.19.16
+    - condition: external-dns.enabled
+      name: external-dns
+      repository: oci://registry-1.docker.io/bitnamicharts
+      version: 6.26.3
+    - alias: oracle-mysql-operator
+      condition: oracle-mysql-operator.enabled
+      name: mysql-operator
+      repository: https://mysql.github.io/mysql-operator/
+      version: 2.2.0
+    - condition: mysql-innodbcluster.enabled
+      name: mysql-innodbcluster
+      repository: https://mysql.github.io/mysql-operator/
+      version: 2.2.0
+    description: A Helm chart for deploying CCX dependencies
+    digest: a138738ec46ea9f6d1b5334f423e28075208746e4334908d326e149d69cb55bf
+    name: ccxdeps
+    type: application
+    urls:
+    - https://github.com/severalnines/helm-charts/releases/download/ccxdeps-0.4.6/ccxdeps-0.4.6.tgz
+    version: 0.4.6
   - apiVersion: v2
     created: "2024-06-27T06:54:56.302462731Z"
     dependencies:
@@ -411,4 +457,4 @@ entries:
     urls:
     - https://github.com/severalnines/helm-charts/releases/download/clustercontrol-2024.03.1/clustercontrol-2024.03.1.tgz
     version: 2024.03.1
-generated: "2024-06-27T06:54:56.302498899Z"
+generated: "2024-07-09T13:04:31.502136052Z"
