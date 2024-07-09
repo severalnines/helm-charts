@@ -15,7 +15,7 @@ type: application
 # This is the chart version. This version number should be incremented each time you make changes
 # to the chart and its templates, including the app version.
 # Versions are expected to follow Semantic Versioning (https://semver.org/)
-version: 0.4.5
+version: 0.4.6
 
 dependencies:
   - name: postgres-operator
@@ -35,11 +35,11 @@ dependencies:
     version: 6.26.3
     condition: external-dns.enabled
   - name: mysql-operator
-    version: 2.1.3
+    version: 2.2.0
     repository: https://mysql.github.io/mysql-operator/
     condition: oracle-mysql-operator.enabled
     alias: oracle-mysql-operator
   - name: mysql-innodbcluster
-    version: 2.1.3
+    version: 2.2.0
     repository: https://mysql.github.io/mysql-operator/
     condition: mysql-innodbcluster.enabled
