@@ -8,6 +8,8 @@ victoria_metrics_url: &victoria_metrics_url "http://ccx-monitoring-victoria-metr
 # by default this sets to release.name-alertmanager
 # change if necessary
 alertmanager_url: &alertmanager_url "http://ccx-monitoring-alertmanager:9093"
+#change the namespace in webhook config url to trigger email notifications. By default it sets to production namespace
+webhook_config_url: &webhook_config_url "http://ccx-stores-listener-svc.production.svc:18097/alert-manager"
 
 victoria-metrics-single:
   #set enabled to false to disable this app
@@ -612,6 +614,7 @@ victoria-metrics-alert:
             for: 2m
             labels:
               severity: critical
+              alert-category: webhook-alerts
             annotations:
               summary: Host out of disk space (instance {{ $labels.instance }})
               description: "Disk is almost full (< 10% left)\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
@@ -842,10 +845,18 @@ alertmanager:
       receiver: 'slack-notifications'
       routes:
         - receiver: slack-notifications
-
+        - receiver: webhook-alerts
+          group_by: [ClusterName, instance, alertname]
+          matchers:
+            - alert-category="webhook-alerts"
       repeat_interval: 24h
 
     receivers:
+    - name: webhook-alerts
+      webhook_configs:
+      - url: *webhook_config_url
+        send_resolved: false
+
     - name: slack-notifications
       slack_configs:
       - channel: #CHANGE-ME
