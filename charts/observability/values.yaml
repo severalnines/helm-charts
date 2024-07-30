@@ -436,11 +436,11 @@ victoria-metrics-alert:
           - alert: Cluster Failed
             # Condition for alerting
             expr: cmon_cluster_failed == 1
-            for: 2m
+            for: 3m
             # Annotation - additional informational labels to store more information
             annotations:
               title: 'Cluster {{ $labels.ClusterName }} is FAILED'
-              summary: '{{ $labels.ClusterName }} has been down for more than 2 minute.'
+              summary: '{{ $labels.ClusterName }} has been down for more than 3 minutes.'
             # Labels - additional labels to be attached to the alert
             labels:
               severity: 'critical'
@@ -448,14 +448,14 @@ victoria-metrics-alert:
           - alert: Cluster Degraded
             # Condition for alerting
             expr: cmon_cluster_degraded == 1
-            for: 2m
+            for: 3m
             # Annotation - additional informational labels to store more information
             annotations:
               title: 'Cluster {{ $labels.ClusterName }} is DEGRADED'
-              summary: '{{ $labels.ClusterName }} has been degraded for more than 2 minute.'
+              summary: '{{ $labels.ClusterName }} has been degraded for more than 3 minutes.'
             # Labels - additional labels to be attached to the alert
             labels:
-              severity: 'critical'
+              severity: 'warning'
 
           - alert: Datastore Repair Failed
             # Condition for alerting
@@ -464,7 +464,7 @@ victoria-metrics-alert:
             # Annotation - additional informational labels to store more information
             annotations:
               title: 'Datastore {{ $labels.datastore }} repair has FAILED'
-              summary: '{{ $labels.datastore }} Datastore repair has been in failed state.'
+              summary: '{{ $labels.datastore }} Datastore repair job has failed.'
             # Labels - additional labels to be attached to the alert
             labels:
               severity: 'critical'
@@ -600,7 +600,7 @@ victoria-metrics-alert:
               description: "Disk is probably reading too much data (> 50 MB/s)\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
           - alert: HostUnusualDiskWriteRate
             expr: sum by (instance) (rate(node_disk_written_bytes_total[2m])) / 1024 / 1024 > 50
-            for: 2m
+            for: 5m
             labels:
               severity: warning
             annotations:
@@ -611,7 +611,7 @@ victoria-metrics-alert:
           # Same rule using "node_filesystem_free_bytes" will fire when disk fills for non-root users.
           - alert: HostOutOfDiskSpace
             expr: (node_filesystem_avail_bytes * 100) / node_filesystem_size_bytes < 10 and ON (instance, device, mountpoint) node_filesystem_readonly == 0
-            for: 2m
+            for: 5m
             labels:
               severity: critical
               alert_category: webhook-alerts
@@ -623,7 +623,7 @@ victoria-metrics-alert:
           # Same rule using "node_filesystem_free_bytes" will fire when disk fills for non-root users.
           - alert: HostDiskWillFillIn24Hours
             expr: (node_filesystem_avail_bytes * 100) / node_filesystem_size_bytes < 10 and ON (instance, device, mountpoint) predict_linear(node_filesystem_avail_bytes{fstype!~"tmpfs"}[1h], 24 * 3600) < 0 and ON (instance, device, mountpoint) node_filesystem_readonly == 0
-            for: 2m
+            for: 5m
             labels:
               severity: warning
             annotations:
@@ -631,7 +631,7 @@ victoria-metrics-alert:
               description: "Filesystem is predicted to run out of space within the next 24 hours at current write rate\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
           - alert: HostOutOfInodes
             expr: node_filesystem_files_free{mountpoint ="/rootfs"} / node_filesystem_files{mountpoint="/rootfs"} * 100 < 10 and ON (instance, device, mountpoint) node_filesystem_readonly{mountpoint="/rootfs"} == 0
-            for: 2m
+            for: 5m
             labels:
               severity: warning
             annotations:
@@ -682,14 +682,6 @@ victoria-metrics-alert:
               description: "OOM kill detected\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
         - name: MySQL Alerts
           rules:
-          - alert: MysqlDown
-            expr: mysql_up == 0
-            for: 0m
-            labels:
-              severity: critical
-            annotations:
-              summary: MySQL down (instance {{ $labels.instance }})
-              description: "MySQL instance is down on {{ $labels.instance }}\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
           - alert: MysqlTooManyConnections(>80%)
             expr: max_over_time(mysql_global_status_threads_connected[1m]) / mysql_global_variables_max_connections * 100 > 80
             for: 2m
@@ -702,41 +694,17 @@ victoria-metrics-alert:
             expr: mysql_slave_status_master_server_id > 0 and ON (instance) (mysql_slave_status_seconds_behind_master - mysql_slave_status_sql_delay) > 30
             for: 1m
             labels:
-              severity: critical
+              severity: warning
             annotations:
               summary: MySQL Slave replication lag (instance {{ $labels.instance }})
               description: "MySQL replication lag on {{ $labels.instance }}\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
-          - alert: MysqlRestarted
-            expr: mysql_global_status_uptime < 60
-            for: 0m
-            labels:
-              severity: info
-            annotations:
-              summary: MySQL restarted (instance {{ $labels.instance }})
-              description: "MySQL has just been restarted, less than one minute ago on {{ $labels.instance }}.\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
         - name: PostgreSQL Alerts
           rules:
-          - alert: PostgresqlDown
-            expr: pg_up == 0
-            for: 0m
-            labels:
-              severity: critical
-            annotations:
-              summary: Postgresql down (instance {{ $labels.instance }})
-              description: "Postgresql instance is down\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
-          - alert: PostgresqlRestarted
-            expr: time() - pg_postmaster_start_time_seconds < 60
-            for: 0m
-            labels:
-              severity: critical
-            annotations:
-              summary: Postgresql restarted (instance {{ $labels.instance }})
-              description: "Postgresql restarted\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
           - alert: PostgresqlExporterError
             expr: pg_exporter_last_scrape_error > 0
             for: 0m
             labels:
-              severity: critical
+              severity: warning
             annotations:
               summary: Postgresql exporter error (instance {{ $labels.instance }})
               description: "Postgresql exporter is showing errors. A query may be buggy in query.yaml\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
@@ -764,16 +732,6 @@ victoria-metrics-alert:
             annotations:
               summary: Postgresql high rollback rate (instance {{ $labels.instance }})
               description: "Ratio of transactions being aborted compared to committed is > 2 %\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
-        - name: Redis Alerts
-          rules:
-          - alert: RedisDown
-            expr: redis_up == 0
-            for: 0m
-            labels:
-              severity: critical
-            annotations:
-              summary: Redis down (instance {{ $labels.instance }})
-              description: "Redis instance is down\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
 
         - name: Vault Alerts
           rules:
