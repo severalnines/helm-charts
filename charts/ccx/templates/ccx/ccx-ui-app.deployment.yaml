@@ -6,7 +6,7 @@ metadata:
     app: ccx-ui-app
     run: ccx-ui-app
 spec:
-  replicas: {{ .Values.ccx.services.uiapp.replicas | default 1 }}
+  replicas: {{ .Values.ccx.services.uiapp.replicas | default .Values.global.replicas }}
   selector:
     matchLabels:
       app: ccx-ui-app
@@ -30,7 +30,7 @@ spec:
               value: {{ $val | quote }}
           {{- end }}
             - name: FE_BASE_DOMAIN
-              value: {{ include "ccx.sessionDomain" . }}
+              value: {{ include "ccx.ccxFQDN" . }}
           ports:
             - name: service
               containerPort: 8080
