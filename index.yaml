@@ -80,6 +80,53 @@ entries:
     version: 1.47.1
   ccx-monitoring:
   - apiVersion: v2
+    appVersion: 0.5.3
+    created: "2024-08-04T20:06:16.208124624Z"
+    dependencies:
+    - condition: victoria-metrics-single.enabled
+      name: victoria-metrics-single
+      repository: https://victoriametrics.github.io/helm-charts/
+      version: 0.9.14
+    - condition: victoria-metrics-alert.enabled
+      name: victoria-metrics-alert
+      repository: https://victoriametrics.github.io/helm-charts/
+      version: 0.8.6
+    - condition: victoria-metrics-agent.enabled
+      name: victoria-metrics-agent
+      repository: https://victoriametrics.github.io/helm-charts/
+      version: 0.9.15
+    - condition: kube-state-metrics.enabled
+      name: kube-state-metrics
+      repository: https://prometheus-community.github.io/helm-charts
+      version: 5.16.0
+    - condition: alertmanager.enabled
+      name: alertmanager
+      repository: https://prometheus-community.github.io/helm-charts
+      version: 1.7.0
+    - condition: grafana.enabled
+      name: grafana
+      repository: https://grafana.github.io/helm-charts
+      version: 7.0.1
+    - condition: loki.enabled
+      name: loki
+      repository: https://grafana.github.io/helm-charts
+      version: 6.5.2
+    - condition: node-exporter.enabled
+      name: prometheus-node-exporter
+      repository: https://prometheus-community.github.io/helm-charts
+      version: 4.23.2
+    - condition: prometheus-blackbox-exporter.enabled
+      name: prometheus-blackbox-exporter
+      repository: https://prometheus-community.github.io/helm-charts
+      version: 8.4.0
+    description: An Umbrella Chart for observability components in CCX
+    digest: 8c1d41d59b1d23146d843dc50ee7ffa25bb8290e5d797d74cdb97d5c3a582aa9
+    name: ccx-monitoring
+    type: application
+    urls:
+    - https://github.com/severalnines/helm-charts/releases/download/ccx-monitoring-0.5.3/ccx-monitoring-0.5.3.tgz
+    version: 0.5.3
+  - apiVersion: v2
     appVersion: 0.5.0
     created: "2024-05-22T07:46:34.815604398Z"
     dependencies:
@@ -468,4 +515,4 @@ entries:
     urls:
     - https://github.com/severalnines/helm-charts/releases/download/clustercontrol-2024.03.1/clustercontrol-2024.03.1.tgz
     version: 2024.03.1
-generated: "2024-07-19T13:01:12.918967969Z"
+generated: "2024-08-04T20:06:16.208161973Z"
