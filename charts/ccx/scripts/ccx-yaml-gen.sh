@@ -92,7 +92,7 @@ errorExit () {
 function readInputs {
   while true; do
       read input
-      if [ -z $input ]; then
+      if [ -z "$input" ]; then
         print_colored "Can't be empty" "danger"
         continue
       fi
@@ -194,7 +194,12 @@ case $installCCXDeps in
 esac
 
 print_colored "Please note that your values.yaml file will be rewritten incase if it exists already" "success"
-> values.yaml
+
+if [ -f "values.yaml" ]; then
+    >> "values.yaml"
+else
+    > "values.yaml"
+fi
 
 check_openstack_credentials() {
     if ! command -v openstack &> /dev/null
@@ -203,26 +208,31 @@ check_openstack_credentials() {
         errorExit "openstack command line tool could not be found. Please install it before proceeding."
     fi
     echo "Configuring OpenStack credentials as secret..."
-    print_colored "REQUIRED: Enter Openstack Project-level authentication scope (by ID):" "success"
+    print_colored "REQUIRED: Enter Openstack Project-level authentication scope by ID (OS_PROJECT_ID):" "success"
     read OS_PROJECT_ID
-    print_colored "REQUIRED: Enter Openstack Domain name containing project:" "success"
-    read OS_PROJECT_DOMAIN_NAME
-    print_colored "REQUIRED: Enter Openstack Domain name containing user:" "success"
+    # print_colored "REQUIRED: Enter Openstack Domain name containing project (OS_PROJECT_DOMAIN_NAME):" "success"
+    # read OS_PROJECT_DOMAIN_NAME
+    print_colored "REQUIRED: Enter Openstack Domain name containing user (OS_USER_DOMAIN_NAME):" "success"
     read OS_USER_DOMAIN_NAME
-    print_colored "REQUIRED: Enter Openstack Authentication username:" "success"
+    print_colored "REQUIRED: Enter Openstack Authentication username (OS_USERNAME):" "success"
     read OS_USERNAME
-    print_colored "REQUIRED: Enter Openstack Authentication password:" "success"
+    print_colored "REQUIRED: Enter Openstack Authentication password (OS_PASSWORD):" "success"
     read OS_PASSWORD
-    print_colored "REQUIRED: Enter Openstack Authentication URL:" "success"
+    print_colored "REQUIRED: Enter Openstack Authentication URL (OS_AUTH_URL):" "success"
     read OS_AUTH_URL
+    export OS_USER_DOMAIN_NAME="$OS_USER_DOMAIN_NAME"
+    export OS_PROJECT_ID="$OS_PROJECT_ID"
+    export OS_USERNAME="$OS_USERNAME"
+    export OS_PASSWORD="$OS_PASSWORD"
+    export OS_AUTH_URL="$OS_AUTH_URL"
     openstack --os-auth-url "$OS_AUTH_URL" --os-project-id "$OS_PROJECT_ID" --os-username "$OS_USERNAME" --os-password "$OS_PASSWORD" --insecure token issue >/dev/null 2>&1
     if [ $? -eq 0 ]; then
         echo "OpenStack authentication successful."
         if kubectl get secret openstack-creds >/dev/null 2>&1; then
-            kubectl create secret generic openstack-creds --from-literal=OPENSTACK_AUTH_URL="$OS_AUTH_URL" --from-literal=OPENSTACK_USERNAME="$OS_USERNAME" --from-literal=OPENSTACK_PASSWORD="$OS_PASSWORD" --from-literal=OPENSTACK_PROJECT_ID="$OS_PROJECT_ID" --from-literal=OPENSTACK_PROJECT_DOMAIN_NAME="$OS_PROJECT_DOMAIN_NAME" --from-literal=OPENSTACK_USER_DOMAIN_NAME="$OS_USER_DOMAIN_NAME" --dry-run=client -o yaml | kubectl apply -f -
+            kubectl create secret generic openstack-creds --from-literal="$vendorName"_AUTH_URL=$(echo "$OS_AUTH_URL") --from-literal="$vendorName"_USERNAME=$(echo "$OS_USERNAME") --from-literal="$vendorName"_PASSWORD=$(echo "$OS_PASSWORD") --from-literal="$vendorName"_PROJECT_ID=$(echo "$OS_PROJECT_ID") --from-literal="$vendorName"_USER_DOMAIN_NAME=$(echo "$OS_USER_DOMAIN_NAME") --dry-run=client -o yaml | kubectl apply -f -
             echo "Secret openstack-creds updated successfully."
         else
-            kubectl create secret generic "openstack-creds" --from-literal=OPENSTACK_AUTH_URL="$OS_AUTH_URL" --from-literal=OPENSTACK_USERNAME="$OS_USERNAME" --from-literal=OPENSTACK_PASSWORD="$OS_PASSWORD" --from-literal=OPENSTACK_PROJECT_ID="$OS_PROJECT_ID" --from-literal=OPENSTACK_PROJECT_DOMAIN_NAME="$OS_PROJECT_DOMAIN_NAME" --from-literal=OPENSTACK_USER_DOMAIN_NAME="$OS_USER_DOMAIN_NAME" || errorExit "Error in creating openstack secret using kubectl"
+            kubectl create secret generic "openstack-creds" --from-literal="$vendorName"_AUTH_URL=$(echo "$OS_AUTH_URL") --from-literal="$vendorName"_USERNAME=$(echo "$OS_USERNAME") --from-literal="$vendorName"_PASSWORD=$(echo "$OS_PASSWORD") --from-literal="$vendorName"_PROJECT_ID=$(echo "$OS_PROJECT_ID") --from-literal="$vendorName"_USER_DOMAIN_NAME=$(echo "$OS_USER_DOMAIN_NAME") || errorExit "Error in creating openstack secret using kubectl"
             echo "Secret openstack-creds created successfully."
         fi
     else
@@ -272,6 +282,10 @@ read openstackCloudVendor
 openstackCloudVendor=${openstackCloudVendor:-N}
 case $openstackCloudVendor in
     [yY][eE][sS]|[yY])
+    print_colored "REQUIRED: Vendor Name. eg, your company name as short" "success"
+    read vendorName
+    vendorName=${vendorName:-s9s}
+    
     check_openstack_credentials
 
     check_tools_installed "openstack"
@@ -307,10 +321,7 @@ case $openstackCloudVendor in
             yq eval ".ccx.services.deployer.config.openstack_vendors.s9s.floating_ip_api_version = \"$floatingApiVersion\"" -i values.yaml
     fi
 
-    # print_colored "REQUIRED: Input openstack project id. It refers to a unique identifier assigned to an Openstack project. All the resources (VMs, volumes, sec. groups, floating IPs, etc.) created by ccx will be created in this project" "success"
-    # read projectId
     yq eval ".ccx.services.deployer.config.openstack_vendors.s9s.project_id= \"$OS_PROJECT_ID\"" -i values.yaml
-
 
     print_colored "REQUIRED: Input openstack floating network id. The floating_network_id refers to a floating IP pool, which is a range of public IP addresses available for assignment to virtual machines." "success"
     read floatingNetworkId
@@ -348,20 +359,17 @@ case $openstackCloudVendor in
             print_colored "[Required:] Input your s3 Bucket name" "success"
             read s3BucketName
             if kubectl get secret openstack-s3  >/dev/null 2>&1; then
-                kubectl create secret generic openstack-s3 --from-literal=OPENSTACK_S3_ACCESSKEY="$s3AccessKey" --from-literal=OPENSTACK_S3_BUCKETNAME="$s3BucketName" --from-literal=OPENSTACK_S3_ENDPOINT="$openstackS3Endpoint" --from-literal=OPENSTACK_S3_SECRETKEY="$s3SecretKey" --dry-run=client -o yaml | kubectl apply -f -
+                kubectl create secret generic openstack-s3 --from-literal="$vendorName"_S3_ACCESSKEY=$(echo "$s3AccessKey") --from-literal="$vendorName"_S3_BUCKETNAME=$(echo "$s3BucketName") --from-literal="$vendorName"_S3_ENDPOINT=$(echo "$openstackS3Endpoint") --from-literal="$vendorName"_S3_SECRETKEY=$(echo "$s3SecretKey") --dry-run=client -o yaml | kubectl apply -f -
                 echo "Secret openstack-s3 updated successfully."
             else
-                kubectl create secret generic "openstack-s3" --from-literal=OPENSTACK_S3_ACCESSKEY="$s3AccessKey" --from-literal=OPENSTACK_S3_BUCKETNAME="$s3BucketName" --from-literal=OPENSTACK_S3_ENDPOINT="$openstackS3Endpoint" --from-literal=OPENSTACK_S3_SECRETKEY="$s3SecretKey" || errorExit "Error in creating openstack-s3 secret using kubectl"
+                kubectl create secret generic openstack-s3 --from-literal="$vendorName"_S3_ACCESSKEY=$(echo "$s3AccessKey") --from-literal="$vendorName"_S3_BUCKETNAME=$(echo "$s3BucketName") --from-literal="$vendorName"_S3_ENDPOINT=$(echo "$openstackS3Endpoint") --from-literal="$vendorName"_S3_SECRETKEY=$(echo "$s3SecretKey") || errorExit "Error in creating openstack-s3 secret using kubectl"
                 echo "Secret openstack-s3 created successfully."
             fi
             yq eval ".ccx.cloudSecrets[1] = \"openstack-s3\"" -i values.yaml
     fi
 
-    print_colored "REQUIRED: Vendor Name. eg, your company name as short" "success"
-    read vendorName
     print_colored "REQUIRED: openstack region name" "success"
     read openstackRegion
-    vendorName=${vendorName:-s9s}
     vendorName=$vendorName yq '(.ccx.services.deployer.config.openstack_vendors.s9s | key) = strenv(vendorName)' -i values.yaml
     vendorName=$vendorName yq '.ccx.config.clouds[0] = {"code": strenv(vendorName), "name": strenv(vendorName)}' -i values.yaml
     openstackRegion=$openstackRegion vendorName=$vendorName yq '(.ccx.services.deployer.config.openstack_vendors.[strenv(vendorName)].regions.regionName | key) = strenv(openstackRegion)' -i values.yaml
@@ -463,6 +471,139 @@ case $awsCloudVendor in
 esac
 
 
+echo "**********************************************************************************************************"
+echo "*                                                                                                        *"
+echo "*   Now we are going to configure the CCX VMWARE Configuration.                                             *"
+echo "*                                                                                                        *"
+echo "**********************************************************************************************************"
+
+
+# Vmware Cloud vendor
+print_colored "Are you using Vmware as cloud provider vendor? [Y/n] (default is No) You can press \"Enter\" to skip it " "success"
+read vmwareCloudVendor
+vmwareCloudVendor=${vmwareCloudVendor:-N}
+case $vmwareCloudVendor in
+    [yY][eE][sS]|[yY])
+    print_colored "REQUIRED: Input the ESXi URL address. Example \"https://140.90.180.200/sdk\" " "success"
+    readInputs
+    yq eval ".ccx.services.deployer.config.vmware_vendors.vmware.vc_url = \"$input\"" -i values.yaml
+
+    print_colored "REQUIRED: Input the name of the data center. Example \"ha-datacenter\" " "success"
+    readInputs
+    yq eval ".ccx.services.deployer.config.vmware_vendors.vmware.dc = \"$input\"" -i values.yaml
+
+    print_colored "REQUIRED: Input the path to the Ubuntu ISO image with the information in which datastore the ISO is stored. Example \"[datastore1] iso/ccx.iso\" " "success"
+    readInputs
+    yq eval ".ccx.services.deployer.config.vmware_vendors.vmware.iso = \"$input\"" -i values.yaml
+
+    print_colored "REQUIRED: Input the network to which the new VMs will be attached. Example \"public.4\" " "success"
+    readInputs
+    yq eval ".ccx.services.deployer.config.vmware_vendors.vmware.network = \"$input\"" -i values.yaml
+
+    print_colored "REQUIRED: Input the network adapter type . Example \"vmxnet3\" " "success"
+    readInputs
+    yq eval ".ccx.services.deployer.config.vmware_vendors.vmware.network_adapter = \"$input\"" -i values.yaml
+
+    print_colored "REQUIRED: Input the resource pool name . Example \"esxi./Resources\" " "success"
+    readInputs
+    yq eval ".ccx.services.deployer.config.vmware_vendors.vmware.resource_pool = \"$input\"" -i values.yaml
+
+    print_colored "REQUIRED: Input the ESXi username. Example \"root\" " "success"
+    readInputs
+    yq eval ".ccx.services.deployer.config.vmware_vendors.vmware.vc_username = \"$input\"" -i values.yaml
+
+    print_colored "REQUIRED: Input the name of the datastore . Example \"datastore1\" " "success"
+    readInputs
+    yq eval ".ccx.services.deployer.config.vmware_vendors.vmware.vm_path = \"$input\"" -i values.yaml
+
+    print_colored "REQUIRED: Vendor Name. eg, your company name as short. example \"vmware\" " "success"
+    read vendorName
+    print_colored "REQUIRED: vmware region name" "success"
+    read vmwareRegion
+    vendorName=${vendorName:-vmware}
+    vendorName=$vendorName yq '(.ccx.services.deployer.config.vmware_vendors.vmware | key) = strenv(vendorName)' -i values.yaml
+    vendorName=$vendorName yq '.ccx.config.clouds[0] = {"code": strenv(vendorName), "name": strenv(vendorName)}' -i values.yaml
+    vmwareRegion=$vmwareRegion yq '.ccx.config.clouds[0].regions[0] = {"code": strenv(vmwareRegion), "display_code": strenv(vmwareRegion),  "name": strenv(vmwareRegion)}' -i values.yaml
+
+
+    print_colored "REQUIRED: Two letter region country code. This is used for displaying the flag in ui of ccx application" "success"
+    read vmwareCountryCode
+    vmwareCountryCode=$vmwareCountryCode yq '.ccx.config.clouds[0].regions[0] |= . + {"country_code": strenv(vmwareCountryCode)}' -i values.yaml
+
+    print_colored "REQUIRED: Two letter continent code. This is used for displaying the flag in ui of ccx application" "success"
+    read vmwareContinentCode
+    vmwareContinentCode=$vmwareContinentCode yq '.ccx.config.clouds[0].regions[0] |= . + {"continent_code": strenv(vmwareContinentCode)}' -i values.yaml
+
+    print_colored "REQUIRED: Two letter region city. This is used for displaying the flag in ui of ccx application" "success"
+    read vmwareCityCode
+    vmwareCityCode=$vmwareCityCode yq '.ccx.config.clouds[0].regions[0] |= . + {"city": strenv(vmwareCityCode)}' -i values.yaml
+
+    print_colored "REQUIRED: This must be a valid Openstack availability zone as defined by the cloud vendor. Enter comma-separated "default" or Q to quit:" "success"
+    IFS=, read -ra vmwareAZ
+    iteration=0
+    for az in "${vmwareAZ[@]}"; do
+      if [[ "$az" == "Q" ]]; then
+        break 2
+      fi
+      az=$az iteration=$iteration yq 'with(.ccx.config.clouds[0].regions[0].availability_zones[env(iteration)]["code","name"]; . = strenv(az))' -i values.yaml
+      ((iteration++))
+    done
+
+    yq '.ccx.config.clouds[0].network_types[0] = {"name": "Public", "code": "Public", "info": "All instances will be deployed with public IPs. Access to the public IPs is controlled by a firewall", "in_vpc": false }' -i values.yaml
+
+    iteration=0
+    while true; do
+      print_colored 'REQUIRED: Input Instance type flavors name one by one that allow you to choose the size of your virtual machine. use "vmware flavor list" to see the flavor names. Example "v1-small" (or type 'Q' to exit) ' "success"
+      read instanceType
+      if [[ "$instanceType" == "Q" ]] || [[ "$instanceType" == "q" ]]; then
+        break 2
+      fi
+      instanceType=$instanceType iteration=$iteration yq 'with(.ccx.config.clouds[0].instance_types[env(iteration)]["code","name","type"]; . = env(instanceType))' -i values.yaml
+      print_colored "REQUIRED: Input CPU size of Instance. Enter CPU size in integers. Example "2":" "success"
+      read instanceCPU
+      instanceCPU=$instanceCPU iteration=$iteration yq 'with(.ccx.config.clouds[0].instance_types[env(iteration)]["cpu"]; . = env(instanceCPU))' -i values.yaml
+      print_colored "REQUIRED: Input RAM size of Instance. Enter RAM size in integers. Example "4":" "success"
+      read instanceRAM
+      instanceRAM=$instanceRAM iteration=$iteration yq 'with(.ccx.config.clouds[0].instance_types[env(iteration)]["ram"]; . = env(instanceRAM))' -i values.yaml
+      print_colored "REQUIRED: Input Disk size of Instance. Enter Disk size in integers. Example "60":" "success"
+      read instanceDisk
+      instanceDisk=$instanceDisk iteration=$iteration yq 'with(.ccx.config.clouds[0].instance_types[env(iteration)]["disk_size"]; . = env(instanceDisk))' -i values.yaml
+      ((iteration++)) 
+    done
+
+    iteration=0
+    while true; do
+      print_colored 'REQUIRED: Input Volume type name one by one . use "vmware volume type list" to see the volume types name. Example "scsi" (or type 'Q' to exit) ' "success"
+      read volumeType
+      if [[ "$volumeType" == "Q" ]] || [[ "$volumeType" == "q" ]]; then
+        break 2
+      fi
+      volumeType=$volumeType iteration=$iteration yq 'with(.ccx.config.clouds[0].volume_types[env(iteration)]["code","name"]; . = strenv(volumeType))' -i values.yaml
+      iteration=$iteration yq 'with(.ccx.config.clouds[0].volume_types[env(iteration)]["info"]; . = "Storage is directly attached to the server")' -i values.yaml
+      iteration=$iteration yq 'with(.ccx.config.clouds[0].volume_types[env(iteration)]["has_iops"]; . = false)' -i values.yaml
+      iteration=$iteration yq '.ccx.config.clouds[0].volume_types[env(iteration)].size |= . + { "min": 80, "max": 8000, "default": 80 }' -i values.yaml
+      ((iteration++))
+    done
+
+    print_colored "[Required:] Input your ESX PASSWORD .To set up the password for user *vm_username* we need to create a Kubernetes secret" "success"
+    read esxPassword
+    if kubectl get secret "$vendorName" >/dev/null 2>&1; then
+        kubectl create secret generic "$vendorName" --from-literal="$vendorName"_ESX_PASSWORD="$esxPassword" --dry-run=client -o yaml | kubectl apply -f -
+        echo "Secret "$vendorName" updated successfully."
+    else
+        kubectl create secret generic "$vendorName" --from-literal="$vendorName"_ESX_PASSWORD="$esxPassword"  || errorExit "Error in creating vmware secret using kubectl"
+        echo "Secret "$vendorName" created successfully."
+    fi
+    yq eval ".ccx.cloudSecrets[0] = \"$vendorName\"" -i values.yaml
+    ;;
+    [nN][oO]|[nN])
+    print_colored "Skipping vmware config" "debug"
+    ;;
+    *)
+    print_colored "Invalid input..." "danger"
+    exit 1
+    ;;
+esac
 
 echo "**********************************************************************************************************"
 echo "*                                                                                                        *"
@@ -523,8 +664,8 @@ encoded_content=$(encode_base64 "$base64_input")
 yq eval ".cmon.license = \"$encoded_content\"" -i values.yaml
 
 
-print_colored "REQUIRED: Input CMON password" "success"
+print_colored "REQUIRED: Input CMON password. valid values example \"8fcf2304e46f39fa70710583a41455fd39cc5408\" " "success"
 readInputs
 yq eval ".cmon.password = \"$input\"" -i values.yaml
 
-echo "You will have your values.yaml generated in your path. use 'helm upgrade --install ccx ccx/ccx --values values.yaml --debug' to install ccx"
+echo "You will have your values.yaml generated in your path. use 'helm upgrade --install ccx s9s/ccx --values values.yaml --debug' to install ccx"

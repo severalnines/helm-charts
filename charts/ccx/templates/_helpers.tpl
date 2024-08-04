@@ -93,10 +93,6 @@ Create the name of the service account to use
 {{- .Values.ccx.db.port | required "ccx.db.port is required" }}
 {{- end }}
 
-{{- define "ccx.sessionDomain" -}}
-{{- .Values.sessionDomain | required "sessionDomain is required" }}
-{{- end }}
-
 {{- define "ccx.ccxFQDN" -}}
 {{- .Values.ccxFQDN | required "ccxFQDN is required" }}
 {{- end }}

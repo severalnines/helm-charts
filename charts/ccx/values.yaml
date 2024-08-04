@@ -1,9 +1,5 @@
 ## Default values for ccx.
-## This is a YAML-formatted file.
-## Declare variables to be passed into your templates.
 
-## REQUIRED this is used across the app to identify your instance. Use something like "apple.com" or "fbi.gov".
-sessionDomain: localhost
 ## REQUIRED fqdn of this ccx instance, for example "ccx.example.com".
 ccxFQDN: ccx.localhost
 ## REQUIRED fqdn for cluster control instance provided with this ccx instance.
@@ -15,6 +11,12 @@ crossOrigins:
 prometheusHostname: ccx-monitoring-victoria-metrics-single-server.victoriametrics
 ## k8s storage class used for PVs across CCX. This is a global variable applied to all PVCs/PVs to simplify things.
 storageClassName:
+
+# shared configuration across all units
+global:
+  # default number of replicas for normal service units - this should be set to more than 1 in a production environment
+  # NB. this does not apply to all units, e.g. some units will be run with a single replica always
+  replicas: 1
 
 ## this section allows to deploy a single default cmon instance in the k8s cluster
 cmon:
@@ -31,7 +33,7 @@ cmon:
     name: cmon
     user: cmon
     password: Super$3cr3t
-  image: severalnines/cmon:2.2.0-9636
+  image: severalnines/cmon:2.2.0-9906
   extra_args: # extra arguments for cmon binary
     - -s
     - -b 0.0.0.0
@@ -42,7 +44,7 @@ cmon:
       cpu: 100m
       memory: 1Gi
   sd:
-    image: severalnines/cmon-sd:build-26
+    image: severalnines/cmon-sd:build-40
     resources:
       requests:
         cpu: 10m
@@ -93,7 +95,7 @@ ccx:
 
   ## default settings for all backend components
   backend:
-    image: europe-docker.pkg.dev/severalnines-public/ccx/ccx-backend:535
+    image: europe-docker.pkg.dev/severalnines-public/ccx/ccx-backend:800
 
   ## postgresql server used by all backend components
   db:
@@ -183,6 +185,13 @@ ccx:
           memory: 10Mi
     billingupdater:
       env:
+    ccxUIAdmin:
+      image: eu.gcr.io/brave-night-121210/ccx-ui-admin:12
+      env:
+      resources:
+        requests:
+          cpu: 1m
+          memory: 5Mi
     controllerstorage: # DEPRECATED
       env:
       resources:
@@ -402,13 +411,13 @@ ccx:
           cpu: 1m
           memory: 10Mi
     uiapp:
-      image: europe-docker.pkg.dev/severalnines-public/ccx/ccx-ui-app:build-2863
+      image: europe-docker.pkg.dev/severalnines-public/ccx/ccx-ui-app:build-2871
       resources:
         requests:
           cpu: 1m
           memory: 10Mi
     uiauth:
-      image: europe-docker.pkg.dev/severalnines-public/ccx/ccx-ui-auth:build-33
+      image: europe-docker.pkg.dev/severalnines-public/ccx/ccx-ui-auth:build-38
       resources:
         requests:
           cpu: 1m
@@ -524,6 +533,7 @@ ccx:
           - "11"
           - "14"
           - "15"
+          - "16"
         num_nodes:
           - 1
           - 2

@@ -28,6 +28,8 @@ spec:
           image: {{ .Values.ccx.services.runner.image | default .Values.ccx.backend.image | required "No image set for runner" }}
           command: ["/bin/ccx-runner-service"]
           env:
+            - name: CONFIG_FILE
+              value: "/conf/ccx.yaml"
             - name: POD_NAME
               valueFrom:
                 fieldRef:
@@ -57,8 +59,16 @@ spec:
             - name: metrics
               containerPort: 9090
               protocol: TCP
+          volumeMounts:
+            - name: conf-core
+              mountPath: "/conf/ccx.yaml"
+              subPath: "ccx.yaml"
           resources:
             {{- toYaml .Values.ccx.services.runner.resources | nindent 12 }}
+      volumes:
+        - name: conf-core
+          configMap:
+            name: ccx-config-core
       {{ with .Values.ccx.services.runner.affinity }}
       affinity:
         {{ toYaml . | nindent 8 }}
