@@ -197,6 +197,41 @@ entries:
     version: 0.5.0
   ccxdeps:
   - apiVersion: v2
+    created: "2024-08-08T15:46:31.628420612Z"
+    dependencies:
+    - condition: installOperators
+      name: postgres-operator
+      repository: https://opensource.zalando.com/postgres-operator/charts/postgres-operator
+      version: 1.11.0
+    - condition: ingressController.enabled
+      name: nginx-ingress-controller
+      repository: https://charts.bitnami.com/bitnami
+      version: 9.3.21
+    - condition: nats.enabled
+      name: nats
+      repository: https://nats-io.github.io/k8s/helm/charts/
+      version: 0.19.16
+    - condition: external-dns.enabled
+      name: external-dns
+      repository: oci://registry-1.docker.io/bitnamicharts
+      version: 6.26.3
+    - alias: oracle-mysql-operator
+      condition: oracle-mysql-operator.enabled
+      name: mysql-operator
+      repository: https://mysql.github.io/mysql-operator/
+      version: 2.2.1
+    - condition: mysql-innodbcluster.enabled
+      name: mysql-innodbcluster
+      repository: https://mysql.github.io/mysql-operator/
+      version: 2.2.1
+    description: A Helm chart for deploying CCX dependencies
+    digest: 61e39b9417b63a989432e87109878f77348a0915230d811630e00783e28140a5
+    name: ccxdeps
+    type: application
+    urls:
+    - https://github.com/severalnines/helm-charts/releases/download/ccxdeps-0.5.0/ccxdeps-0.5.0.tgz
+    version: 0.5.0
+  - apiVersion: v2
     created: "2024-08-08T15:13:59.983446808Z"
     dependencies:
     - condition: installOperators
@@ -607,4 +642,4 @@ entries:
     urls:
     - https://github.com/severalnines/helm-charts/releases/download/clustercontrol-2024.03.1/clustercontrol-2024.03.1.tgz
     version: 2024.03.1
-generated: "2024-08-08T15:13:59.983503353Z"
+generated: "2024-08-08T15:46:31.628483269Z"
