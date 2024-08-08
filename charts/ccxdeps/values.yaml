@@ -6,6 +6,8 @@ createDatabases: true
 installOperators: true
 ingressController:
   enabled: false
+
+nginx-ingress-controller:
   config:
     allow-backend-server-header: "true"
     allow-snippet-annotations: "true"
@@ -13,6 +15,8 @@ ingressController:
   metrics:
     enabled: true
   publishService:
+    enabled: true
+  scope:
     enabled: true
 
 nats:
