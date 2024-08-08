@@ -16,8 +16,6 @@ nginx-ingress-controller:
     enabled: true
   publishService:
     enabled: true
-  scope:
-    enabled: true
 
 nats:
   enabled: true
