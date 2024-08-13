@@ -41,7 +41,7 @@ cmon:
     name: cmon
     user: cmon
     password: cmon
-  image: severalnines/cmon:2.0.0-9169
+  image: severalnines/cmon:2.1.0-9960
   extra_args: # extra arguments for ClusterControl binary
     - -s
     - --no-log-db
