@@ -1,0 +1,22 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ui-admin-config-js
+data:
+  config.js: |
+    window.FEAS_ENV = {
+    {{- range $key, $val := .Values.ccx.env }}
+      {{- if hasPrefix "FE_" $key }}
+        {{ $newKey := trimPrefix "FE_" $key }}
+        {{ $newKey }}: {{ $val | quote }},
+      {{- end }}
+    {{- end }}
+
+    {{- range $key, $val := .Values.ccx.services.uiadmin.env }}
+      {{- if hasPrefix "FE_" $key }}
+        {{ $newKey := trimPrefix "FE_" $key }}
+        {{ $newKey }}: {{ $val | quote }},
+      {{- end }}
+    {{- end }}
+
+    };

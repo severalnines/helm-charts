@@ -6,7 +6,7 @@ metadata:
     run: ccx-ui-admin
     app: ccx-ui-admin
 spec:
-  replicas: {{ .Values.ccx.services.ccxUIAdmin.replicas | default 1 }}
+  replicas: {{ .Values.ccx.services.uiadmin.replicas | default 1 }}
   selector:
     matchLabels:
       app: ccx-ui-admin
@@ -16,12 +16,14 @@ spec:
       labels:
         app: ccx-ui-admin
         run: ccx-ui-admin
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/ccx/ccx-ui-admin-config.yaml") . | sha256sum }}
     spec:
       containers:
         - name: ccx-ui-admin
-          image: {{ .Values.ccx.services.ccxUIAdmin.image | required "No image set for ccxUIAdmin" }}
+          image: {{ .Values.ccx.services.uiadmin.image | required "No image set for uiadmin" }}
           env:
-          {{- range $key, $val := .Values.ccx.services.ccxUIAdmin.env }}
+          {{- range $key, $val := .Values.ccx.services.uiadmin.env }}
             - name: {{ $key }}
               value: {{ $val | quote }}
           {{- end }}
@@ -30,16 +32,24 @@ spec:
               containerPort: 80
               protocol: TCP
           resources:
-            {{- toYaml .Values.ccx.services.ccxUIAdmin.resources | nindent 12 }}
-      {{ with .Values.ccx.services.ccxUIAdmin.affinity }}
+            {{- toYaml .Values.ccx.services.uiadmin.resources | nindent 12 }}
+          volumeMounts:
+          - mountPath: /usr/share/nginx/html/config.js
+            subPath: config.js
+            name: ui-admin-config-js-cfg
+      {{ with .Values.ccx.services.uiadmin.affinity }}
       affinity:
         {{ toYaml . | nindent 8 }}
       {{ end }}
-      {{ with .Values.ccx.services.ccxUIAdmin.nodeSelector }}
+      {{ with .Values.ccx.services.uiadmin.nodeSelector }}
       nodeSelector:
         {{ toYaml . | nindent 8 }}
       {{ end }}
-      {{ with .Values.ccx.services.ccxUIAdmin.tolerations }}
+      {{ with .Values.ccx.services.uiadmin.tolerations }}
       tolerations:
         {{ toYaml . | nindent 8 }}
       {{ end }}
+      volumes:
+        - name: ui-admin-config-js-cfg
+          configMap:
+            name: ui-admin-config-js
