@@ -95,7 +95,7 @@ ccx:
 
   ## default settings for all backend components
   backend:
-    image: europe-docker.pkg.dev/severalnines-public/ccx/ccx-backend:940
+    image: europe-docker.pkg.dev/severalnines-public/ccx/ccx-backend:1015
 
   ## postgresql server used by all backend components
   db:
@@ -129,6 +129,8 @@ ccx:
     EXTERNAL_DNS_TTL: 15
     ## Change below to the current date to trigger the servers upgrade described in "Lifecycle Management". The format is RFC 3339.
     LATEST_SERVER_CONFIG: "2006-01-02T15:04:05Z"
+    ## Frontend Theme
+    FE_THEME: "ccx"
 
   ## common settings for all k8s ingresses
   ingress:
@@ -185,13 +187,6 @@ ccx:
           memory: 10Mi
     billingupdater:
       env:
-    ccxUIAdmin:
-      image: europe-docker.pkg.dev/severalnines-public/ccx/ccx-ui-admin:25
-      env:
-      resources:
-        requests:
-          cpu: 1m
-          memory: 5Mi
     controllerstorage: # DEPRECATED
       env:
       resources:
@@ -411,11 +406,18 @@ ccx:
           cpu: 1m
           memory: 10Mi
     uiapp:
-      image: europe-docker.pkg.dev/severalnines-public/ccx/ccx-ui-app:build-2871
+      image: europe-docker.pkg.dev/severalnines-public/ccx/ccx-ui-app:69
       resources:
         requests:
           cpu: 1m
           memory: 10Mi
+    uiadmin:
+      image: europe-docker.pkg.dev/severalnines-public/ccx/ccx-ui-admin:29
+      env:
+      resources:
+        requests:
+          cpu: 1m
+          memory: 5Mi
     uiauth:
       image: europe-docker.pkg.dev/severalnines-public/ccx/ccx-ui-auth:build-38
       resources:

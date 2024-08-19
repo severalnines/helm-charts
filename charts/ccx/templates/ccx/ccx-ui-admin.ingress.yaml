@@ -20,7 +20,7 @@ spec:
     - host: {{ include "ccx.ccxFQDN" . }}
       http:
         paths:
-          - path: /admin(/|$)(.*)
+          - path: /admin(.*)
             pathType: ImplementationSpecific
             backend:
               service:
@@ -38,7 +38,6 @@ metadata:
     cert-manager.io/cluster-issuer: {{ .Values.ccx.ingress.ssl.clusterIssuer }}
     {{ end }}
     nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
-    nginx.ingress.kubernetes.io/rewrite-target: /admin/assets/$1
     nginx.ingress.kubernetes.io/ssl-redirect: "true"
 spec:
   ingressClassName: {{ .Values.ccx.ingress.ingressClassName | default "nginx" }}
