@@ -131,6 +131,8 @@ ccx:
     LATEST_SERVER_CONFIG: "2006-01-02T15:04:05Z"
     ## Frontend Theme
     FE_THEME: "ccx"
+    ## Wait time for the host to be ready
+    INIT_HOST_WAIT_CONFIG: "60x15s"
 
   ## common settings for all k8s ingresses
   ingress:
