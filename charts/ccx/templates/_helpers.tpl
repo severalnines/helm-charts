@@ -93,6 +93,10 @@ Create the name of the service account to use
 {{- .Values.ccx.db.port | required "ccx.db.port is required" }}
 {{- end }}
 
+{{- define "ccx.sessionDomain" -}}
+{{- .Values.sessionDomain | required "sessionDomain is required" }}
+{{- end }}
+
 {{- define "ccx.ccxFQDN" -}}
 {{- .Values.ccxFQDN | required "ccxFQDN is required" }}
 {{- end }}
@@ -102,7 +106,7 @@ Create the name of the service account to use
 {{- end }}
 
 {{- define "ccx.cmonDbHost" -}}
-{{- .Values.cmon.db.host | default "ccxdeps" }}
+{{- .Values.cmon.db.host | default "ccxdeps-cmon-db-mysql-master" }}
 {{- end }}
 
 {{- define "ccx.cmonDbPort" -}}
@@ -118,7 +122,7 @@ Create the name of the service account to use
 {{- end }}
 
 {{- define "ccx.cmonDbPassword" -}}
-{{- .Values.cmon.db.password | default "Super$3cr3t" }}
+{{- .Values.cmon.db.password | default "ccxRocks" }}
 {{- end }}
 
 {{- define "ccx.cmonRPCKey" -}}

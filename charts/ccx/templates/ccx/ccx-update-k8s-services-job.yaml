@@ -1,0 +1,54 @@
+{{ if .Values.ccx.oldWorld }}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: update-k8s-services
+spec:
+  ttlSecondsAfterFinished: 100
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: update
+        image: {{ .Values.cmon.image | required ".Values.cmon.image is missing" }}
+        command: [ '/bin/bash', '-c']
+        args:
+          - |
+            #!/bin/bash
+            for cid in $(/usr/bin/s9s --cmon-user=${CMON_USERNAME} --password=${CMON_PASSWORD} --controller=https://cmon-master:9501/ cluster --list --long | head -n -1 | tail -n +2 | awk '{print $1}')
+            do
+                ret=$(curl -s -w "%{http_code}" -XPOST http://${CCX_NOTIFICATION_SERVICE_SVC_SERVICE_HOST}:${CCX_NOTIFICATION_SERVICE_SVC_SERVICE_PORT}/api/v1/events/cmon -d '{"event_class": "EventHost","event_name": "Changed","controller_id": "00000000-0000-0000-0000-000000000000","event_specifics": {"cluster_id": '${cid}'}}')
+                if [ $ret -ne 202 ]
+                then
+                    echo "Calling ${CCX_NOTIFICATION_SERVICE_SVC_SERVICE_HOST}:${CCX_NOTIFICATION_SERVICE_SVC_SERVICE_PORT} resulted in ${ret} exiting"
+                    exit -1
+                fi
+            done
+
+        env:
+          - name: CMON_USERNAME
+            valueFrom:
+              secretKeyRef:
+                name: cmon-credentials
+                key: cmon-user
+                optional: false
+          - name: CMON_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: cmon-credentials
+                key: cmon-password
+                optional: false
+      {{ with .Values.cmon.affinity }}
+      affinity:
+        {{ toYaml . | nindent 8 }}
+      {{ end }}
+      {{ with .Values.cmon.nodeSelector }}
+      nodeSelector:
+        {{ toYaml . | nindent 8 }}
+      {{ end }}
+      {{ with .Values.cmon.tolerations }}
+      tolerations:
+        {{ toYaml . | nindent 8 }}
+      {{ end }}
+{{ end }}

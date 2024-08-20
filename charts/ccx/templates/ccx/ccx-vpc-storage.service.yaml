@@ -1,0 +1,17 @@
+{{ if not .Values.ccx.newWorld }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: ccx-vpc-storage-svc
+  labels:
+    app: ccx-vpc-storage
+    run: ccx-vpc-storage
+spec:
+  type: ClusterIP
+  selector:
+    app: ccx-vpc-storage
+  ports:
+    - protocol: TCP
+      port: 19789
+      targetPort: 19789
+{{ end }}

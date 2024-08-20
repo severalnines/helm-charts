@@ -1,30 +1,28 @@
-{{ if .Values.ccx.services.cmonproxy.enabled }}
+{{ if .Values.ccx.oldWorld }}
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: cmon-proxy-ingress
+  name: s9s-notification-service-ingress
   annotations:
     {{ if .Values.ccx.ingress.ssl.clusterIssuer }}
     kubernetes.io/tls-acme: "true"
     cert-manager.io/cluster-issuer: {{ .Values.ccx.ingress.ssl.clusterIssuer }}
     {{ end }}
-    nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
-    nginx.ingress.kubernetes.io/secure-backends: "true"
 spec:
   ingressClassName: {{ .Values.ccx.ingress.ingressClassName | default "nginx" }}
   tls:
     - hosts:
-        - ccx-mgmt.{{ include "ccx.sessionDomain" . }}
-      secretName: {{ .Values.ccx.ingress.ssl.secretName | default "cmon-proxy-cert" }}
+        - ccx-notification-service.{{ include "ccx.sessionDomain" . }}
+      secretName: {{ .Values.ccx.ingress.ssl.secretName | default "ccx-notification-service-cert" }}
   rules:
-    - host: ccx-mgmt.{{ include "ccx.sessionDomain" . }}
+    - host: ccx-notification-service.{{ include "ccx.sessionDomain" . }}
       http:
         paths:
           - path: /
             pathType: ImplementationSpecific
             backend:
               service:
-                name: cmon-proxy-svc
+                name: ccx-notification-service-svc
                 port:
-                  number: 19051
+                  number: 18097
 {{ end }}
