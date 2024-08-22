@@ -33,7 +33,7 @@ cmon:
     name: cmon
     user: cmon
     password: Super$3cr3t
-  image: severalnines/cmon:2.2.0-10000
+  image: severalnines/cmon:2.2.0-10138
   extra_args: # extra arguments for cmon binary
     - -s
     - -b 0.0.0.0
