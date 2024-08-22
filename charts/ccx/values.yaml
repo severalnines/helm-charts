@@ -8,7 +8,7 @@ ccFQDN: cc.localhost
 crossOrigins:
   #- https://not.ccx.local
 ## host of your prometheus/victoria metrics instance, must be available on port 9090
-prometheusHostname: ccx-monitoring-victoria-metrics-single-server.victoriametrics
+prometheusHostname:
 ## k8s storage class used for PVs across CCX. This is a global variable applied to all PVCs/PVs to simplify things.
 storageClassName:
 

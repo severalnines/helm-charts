@@ -126,9 +126,17 @@ Create the name of the service account to use
 {{- end }}
 
 {{- define "ccx.prometheusHostname" -}}
-{{- .Values.prometheusHostname | default "ccx-monitoring-victoria-metrics-single-server.ccx-monitoring" }}
+{{- if not .Values.prometheusHostname }}
+{{- $serviceObj := (lookup "v1" "Service" .Release.Namespace "victoria-metrics") }}
+{{- if not $serviceObj }}
+{{- fail ".Values.prometheusHostname is required when not using embedded monitoring stack!" }}
+{{- else }}
+{{- "victoria-metrics" }}
 {{- end }}
-
+{{- else }}
+{{- .Values.prometheusHostname }}
+{{- end }}
+{{- end }}
 
 {{- define "ccx.services.admin.basicauth.username" -}}
 {{- $secretObj := (lookup "v1" "Secret" .Release.Namespace "admin-basicauth") | default dict }}
