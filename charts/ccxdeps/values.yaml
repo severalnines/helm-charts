@@ -78,3 +78,149 @@ mysql-innodbcluster:
       resources:
         requests:
           memory: "2048Mi"
+
+ccx-monitoring:
+  enabled: true
+  cmon_sd_url: &cmon_sd_url "http://cmon-master:8080"
+  # by default this sets to release.name-victoria-metrics-single-server
+  # change if necessary
+  victoria_metrics_url: &victoria_metrics_url "http://victoria-metrics:9090"
+  # by default this sets to release.name-alertmanager
+  # change if necessary
+  alertmanager_url: &alertmanager_url "http://alertmanager:9093"
+  #change the namespace in webhook config url to trigger email notifications. By default it sets to production namespace
+  webhook_config_url: &webhook_config_url "http://ccx-stores-listener-svc:18097/alert-manager"
+
+  victoria-metrics-single:
+    #set enabled to false to disable this app
+    enabled: true
+    server:
+      fullnameOverride: victoria-metrics
+      service:
+        servicePort: 9090
+        clusterIP: null
+      statefulSet:
+        enabled: false
+      podAnnotations:
+        prometheus.io/scrape: 'true'
+        prometheus.io/port: '8428'
+      extraArgs:
+        envflag.enable: "true"
+        envflag.prefix: VM_
+        loggerFormat: json
+        promscrape.maxScrapeSize: 56777216
+        maxLabelsPerTimeseries: 99
+      scrape:
+        enabled: true
+        configMap: ""
+        ### below is standard victoria metrics config, change as needed
+        ### provided is simple, default config
+        config:
+          global:
+            scrape_interval: 1m
+            scrape_timeout: 10s
+            external_labels:
+              use_cmon_sd: true
+              #monitor: clustercontrol is required DO NOT REMOVE
+              monitor: clustercontrol
+          scrape_configs:
+            # -- Scrape rule for scrape victoriametrics
+            - job_name: victoriametrics
+              static_configs:
+                - targets: [ "localhost:8428" ]
+        extraScrapeConfigs:
+          ### CMON SERVICE DISCOVERY
+          - job_name: cmon-sd
+            http_sd_configs:
+              - url: *cmon_sd_url
+            relabel_configs:
+              - source_labels: [__address__]
+                regex: '(.*):(\d+)'
+                target_label: ip
+                replacement: '${1}'
+              - target_label: use_cmon_sd
+                replacement: true
+              - target_label: monitor
+                replacement: clustercontrol
+          ### END CMON SERVICE DISCOVERY
+
+
+  victoria-metrics-alert:
+    #set enabled to false to disable this app
+    enabled: true
+    server:
+      fullnameOverride: victoria-metrics-alert
+      podAnnotations:
+        prometheus.io/scrape: 'true'
+        prometheus.io/port: '8880'
+
+      # vmalert reads metrics from source, next section represents its configuration. It can be any service which supports
+      # MetricsQL or PromQL.
+      datasource:
+        url: *victoria_metrics_url
+
+      notifier:
+        alertmanager:
+          url: *alertmanager_url
+
+      replicaCount: 1
+
+      # vmalert alert rules configuration configuration:
+      # use existing configmap if specified
+      # otherwise .config values will be used
+      config:
+        alerts:
+          groups:
+          - name: Hosts alerts
+            rules:
+            - alert: HostOutOfDiskSpace
+              expr: (node_filesystem_avail_bytes * 100) / node_filesystem_size_bytes < 10 and ON (instance, device, mountpoint) node_filesystem_readonly == 0
+              for: 5m
+              labels:
+                severity: critical
+                alert_category: webhook-alerts
+              annotations:
+                summary: Host out of disk space (instance {{ $labels.instance }})
+                description: "Disk is almost full (< 10% left)\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+
+  alertmanager:
+    #set enabled to false to disable this app
+    enabled: true
+    replicaCount: 1
+    fullnameOverride: alertmanager
+
+    config:
+      global:
+        resolve_timeout: 15m
+
+      route:
+        receiver: 'webhook-alerts'
+        routes:
+          - receiver: webhook-alerts
+            group_by: [ClusterName, instance, alertname]
+            matchers:
+              - alert_category="webhook-alerts"
+        repeat_interval: 24h
+
+      receivers:
+        - name: webhook-alerts
+          webhook_configs:
+          - url: *webhook_config_url
+            send_resolved: false
+
+      templates:
+        - '/etc/alertmanager/*.tmpl'
+
+    templates: {}
+    #   alertmanager.tmpl: |-
+
+  grafana:
+    enabled: false
+  loki:
+    enabled: false
+  node-exporter:
+    enabled: false
+  prometheus-blackbox-exporter:
+    enabled: false
+  kube-state-metrics:
+    enabled: false
