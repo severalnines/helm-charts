@@ -94,6 +94,8 @@ ccx-monitoring:
   victoria-metrics-single:
     #set enabled to false to disable this app
     enabled: true
+    rbac:
+      namespaced: true
     server:
       fullnameOverride: victoria-metrics
       service:
@@ -148,6 +150,8 @@ ccx-monitoring:
   victoria-metrics-alert:
     #set enabled to false to disable this app
     enabled: true
+    rbac:
+      namespaced: true
     server:
       fullnameOverride: victoria-metrics-alert
       podAnnotations:
