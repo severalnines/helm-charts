@@ -6,7 +6,7 @@ metadata:
     app: ccx-hook-service
     run: ccx-hook-service
 spec:
-  replicas: {{ .Values.ccx.services.hook.replicas | default .Values.global.replicas }}
+  replicas: {{ .Values.ccx.services.hook.replicas | default 1 }}
   selector:
     matchLabels:
       app: ccx-hook-service
@@ -29,10 +29,6 @@ spec:
           env:
             - name: CONFIG_FILE
               value: "/conf/ccx.yaml"
-            - name: POD_NAMESPACE
-              valueFrom:
-                fieldRef:
-                  fieldPath: metadata.namespace
           {{- range $key, $val := .Values.ccx.services.hook.env }}
             - name: {{ $key }}
               value: {{ $val | quote }}
@@ -40,10 +36,8 @@ spec:
           envFrom:
             - configMapRef:
                 name: ccx
-            {{ if not .Values.ccx.useK8sSecrets }}
             - secretRef:
                 name: vault
-            {{ end }}
             - secretRef:
                 name: db
           ports:

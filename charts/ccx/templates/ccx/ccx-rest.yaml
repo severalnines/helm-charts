@@ -1,21 +1,20 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: ccx-rest-user-service
+  name: ccx-rest-service
   labels:
-    app: ccx-rest-user-service
-    run: ccx-rest-user-service
+    app: ccx-rest-service
+    run: ccx-rest-service
 spec:
   replicas: {{ .Values.ccx.services.rest_service.replicas | default 1 }}
   selector:
     matchLabels:
-      app: ccx-rest-user-service
-      run: ccx-rest-user-service
+      app: ccx-rest-service
   template:
     metadata:
       labels:
-        app: ccx-rest-user-service
-        run: ccx-rest-user-service
+        app: ccx-rest-service
+        run: ccx-rest-service
       annotations:
         prometheus.io/scrape: "true"
         prometheus.io/port: "9090"
@@ -23,7 +22,7 @@ spec:
         checksum/config: {{ include (print $.Template.BasePath "/ccx/config.yaml") . | sha256sum }}
     spec:
       containers:
-        - name: ccx-rest-user-service
+        - name: ccx-rest-service
           image: {{ .Values.ccx.services.rest_service.image | default .Values.ccx.backend.image | required "No image set for rest" }}
           command: ["/bin/ccx-rest", "serve"]
           env:
@@ -31,16 +30,26 @@ spec:
               value: "/conf/ccx.yaml"
             - name: PROMETHEUS_URL
               value: http://{{ include "ccx.prometheusHostname" . }}:9090
-            - name: POD_NAMESPACE
-              valueFrom:
-                fieldRef:
-                  fieldPath: metadata.namespace
           {{- range $key, $val := .Values.ccx.services.rest_service.env }}
             - name: {{ $key }}
               value: {{ $val | quote }}
           {{- end }}
-          {{ if .Values.ccx.preferNewStores }}
+          {{ if .Values.ccx.newWorld }}
+            # new stores enabled
             - name: PREFER_NEW_STORES
+              value: "true"
+            - name: INCLUDE_NEW_STORES
+              value: "true"
+            # old stores hidden, so that user will not see duplicates
+            - name: INCLUDE_OLD_STORES
+              value: "false"
+          {{ else }}
+            # new stores disabled
+            - name: PREFER_NEW_STORES
+              value: "false"
+            - name: INCLUDE_NEW_STORES
+              value: "false"
+            - name: INCLUDE_OLD_STORES
               value: "true"
           {{ end }}
           envFrom:
@@ -48,10 +57,8 @@ spec:
                 name: ccx
             - secretRef:
                 name: db
-            {{ if not .Values.ccx.useK8sSecrets }}
             - secretRef:
                 name: vault # userdb still needs this for now
-            {{ end }}
           ports:
             - name: service
               containerPort: 20001
@@ -84,14 +91,14 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: ccx-rest-user-svc
+  name: ccx-rest-svc
   labels:
-    app: ccx-rest-user-service
-    run: ccx-rest-user-service
+    app: ccx-rest-service
+    run: ccx-rest-service
 spec:
   type: ClusterIP
   selector:
-    app: ccx-rest-user-service
+    app: ccx-rest-service
   ports:
     - protocol: TCP
       port: 20001

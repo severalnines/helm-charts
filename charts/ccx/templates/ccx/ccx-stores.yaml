@@ -1,3 +1,5 @@
+{{ if .Values.ccx.newWorld }}
+---
 # deployment for service
 apiVersion: apps/v1
 kind: Deployment
@@ -28,7 +30,7 @@ spec:
           command: ["/bin/ccx-stores", "migrate"]
           envFrom:
             - secretRef:
-                name: db
+                name: db-stores
       containers:
         - name: ccx-stores-service
           image: {{ .Values.ccx.services.stores_service.image | default .Values.ccx.backend.image | required "No image set for stores" }}
@@ -36,29 +38,16 @@ spec:
           env:
             - name: CONFIG_FILE
               value: "/conf/ccx.yaml"
-            - name: POD_NAME
-              valueFrom:
-                fieldRef:
-                  fieldPath: metadata.name
-            - name: POD_NAMESPACE
-              valueFrom:
-                fieldRef:
-                  fieldPath: metadata.namespace
             - name: ADDR
               value: "0.0.0.0:20002"
             - name: PROMETHEUS_URL
               value: http://{{ include "ccx.prometheusHostname" . }}:9090
-            - name: BACKUPS_DB_DSN
-              valueFrom:
-                secretKeyRef:
-                  name: db-backup
-                  key: DB_DSN
             - name: DEPLOYER_DB_DSN
               valueFrom:
                 secretKeyRef:
                   name: db-deployer
                   key: DB_DSN
-            - name: VPCS_DB_DSN
+            - name: VPC_DB_DSN
               valueFrom:
                 secretKeyRef:
                   name: db-vpc
@@ -71,29 +60,15 @@ spec:
             - name: {{ $key }}
               value: {{ $val | quote }}
           {{- end }}
-          {{- range $key, $val := .Values.ccx.services.backupstorage.env }}
-            - name: {{ $key }}
-              value: {{ $val | quote }}
-          {{- end }}
-          {{- range $key, $val := .Values.ccx.services.datastorestorage.env }}
-            - name: {{ $key }}
-              value: {{ $val | quote }}
-          {{- end }}
-          {{- range $key, $val := .Values.ccx.services.deployer.env }}
-            - name: {{ $key }}
-              value: {{ $val | quote }}
-          {{- end }}
           envFrom:
             - configMapRef:
                 name: ccx
             - secretRef:
                 name: cmon-credentials
             - secretRef:
-                name: db
-          {{ if not .Values.ccx.useK8sSecrets }}
+                name: db-stores
             - secretRef:
                 name: vault
-          {{ end }}
           {{- range $name := .Values.ccx.cloudSecrets }}
             - secretRef:
                 name: {{ $name }}
@@ -106,31 +81,14 @@ spec:
               containerPort: 9090
               protocol: TCP
           volumeMounts:
-            - name: conf-core
-              mountPath: "/conf/ccx.yaml"
-              subPath: "ccx.yaml"
-            {{- if .Values.fluentbit.enabled }}
-            - name: conf-fluentbit
-              mountPath: "/conf/fluent-bit.conf"
-              subPath: "fluent-bit.conf"
-            {{- end }}
-            - name: conf-growfs
-              mountPath: "/conf/ccx_growfs.sh"
-              subPath: ccx_growfs.sh
+            - name: config
+              mountPath: "/conf"
           resources:
             {{- toYaml .Values.ccx.services.stores_service.resources | nindent 12 }}
       volumes:
-        - name: conf-core
+        - name: config
           configMap:
             name: ccx-config-core
-        {{- if .Values.fluentbit.enabled }}
-        - name: conf-fluentbit
-          configMap:
-            name: ccx-config-fluentbit
-        {{- end }}
-        - name: conf-growfs
-          configMap:
-            name: ccx-config-growfs
       {{ with .Values.ccx.services.stores_service.affinity }}
       affinity:
         {{ toYaml . | nindent 8 }}
@@ -197,7 +155,7 @@ spec:
           command: ["/bin/ccx-stores", "migrate"]
           envFrom:
             - secretRef:
-                name: db
+                name: db-stores
       containers:
         - name: ccx-stores-worker
           image: {{ .Values.ccx.services.stores_worker.image | default .Values.ccx.backend.image | required "No image set for stores" }}
@@ -215,17 +173,12 @@ spec:
                   fieldPath: metadata.namespace
             - name: PROMETHEUS_URL
               value: http://{{ include "ccx.prometheusHostname" . }}:9090
-            - name: BACKUPS_DB_DSN
-              valueFrom:
-                secretKeyRef:
-                  name: db-backup
-                  key: DB_DSN
             - name: DEPLOYER_DB_DSN
               valueFrom:
                 secretKeyRef:
                   name: db-deployer
                   key: DB_DSN
-            - name: VPCS_DB_DSN
+            - name: VPC_DB_DSN
               valueFrom:
                 secretKeyRef:
                   name: db-vpc
@@ -244,11 +197,9 @@ spec:
             - secretRef:
                 name: cmon-credentials
             - secretRef:
-                name: db
-          {{ if not .Values.ccx.useK8sSecrets }}
+                name: db-stores
             - secretRef:
                 name: vault
-          {{ end }}
           {{- range $name := .Values.ccx.cloudSecrets }}
             - secretRef:
                 name: {{ $name }}
@@ -324,14 +275,6 @@ spec:
           image: {{ .Values.ccx.services.stores_listener.image | default .Values.ccx.backend.image | required "No image set for stores" }}
           command: ["/bin/ccx-stores", "listen"]
           env:
-            - name: POD_NAME
-              valueFrom:
-                fieldRef:
-                  fieldPath: metadata.name
-            - name: POD_NAMESPACE
-              valueFrom:
-                fieldRef:
-                  fieldPath: metadata.namespace
             - name: ADDR
               value: "0.0.0.0:18097"
           {{- range $key, $val := .Values.ccx.services.stores_listener.env }}
@@ -341,12 +284,6 @@ spec:
           envFrom:
             - configMapRef:
                 name: ccx
-            - secretRef:
-                name: db
-          {{ if not .Values.ccx.useK8sSecrets }}
-            - secretRef:
-                name: vault
-          {{ end }}
           ports:
             - name: service
               containerPort: 18097
@@ -414,4 +351,5 @@ spec:
                 name: ccx-stores-listener-svc
                 port:
                   number: 18097
+{{ end }}
 {{ end }}

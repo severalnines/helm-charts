@@ -1,4 +1,3 @@
-{{ if not .Values.ccx.useK8sSecrets }}
 # just mounts a space in vault
 apiVersion: batch/v1
 kind: Job
@@ -32,4 +31,3 @@ spec:
             - secretRef:
                 name: vault
       restartPolicy: Never
-{{ end }}

@@ -1,0 +1,93 @@
+{{ if not .Values.ccx.newWorld }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ccx-deployer-service
+  labels:
+    app: ccx-deployer-service
+    run: ccx-deployer-service
+spec:
+  replicas: {{ .Values.ccx.services.deployer.replicas | default 1 }}
+  selector:
+    matchLabels:
+      app: ccx-deployer-service
+      run: ccx-deployer-service
+  template:
+    metadata:
+      annotations:
+        prometheus.io/port: "9090"
+        prometheus.io/scrape: "true"
+        checksum: {{ include (print $.Template.BasePath "/ccx/secrets.yaml") . | sha256sum }}
+        checksum/config: {{ include (print $.Template.BasePath "/ccx/config.yaml") . | sha256sum }}
+      labels:
+        app: ccx-deployer-service
+        run: ccx-deployer-service
+    spec:
+      terminationGracePeriodSeconds: 300
+      containers:
+        - name: ccx-deployer-service
+          image: {{ .Values.ccx.services.deployer.image | default .Values.ccx.backend.image | required "No image set for deployer" }}
+          command: ["/bin/ccx-deployer-service"]
+          env:
+            - name: CONFIG
+              value: "/conf/config.yaml"
+          {{- range $key, $val := .Values.ccx.services.deployer.env }}
+            - name: {{ $key }}
+              value: {{ $val | quote }}
+          {{- end }}
+          envFrom:
+            - configMapRef:
+                name: ccx
+            - secretRef:
+                name: db-deployer
+            - secretRef:
+                name: vault
+            {{- range $name := .Values.ccx.cloudSecrets }}
+            - secretRef:
+                name: {{ $name }}
+            {{- end }}
+          ports:
+            - name: service
+              containerPort: 19309
+              protocol: TCP
+            - name: metrics
+              containerPort: 9090
+              protocol: TCP
+          volumeMounts:
+            - name: config
+              mountPath: /conf
+            - name: ccx-growfs
+              mountPath: /etc/ccx-growfs/
+              readOnly: true
+          {{- if .Values.fluentbit.enabled }}
+            - name: fluent-bit-config
+              mountPath: /etc/fluent-bit/
+              readOnly: true
+          {{- end }}
+          resources:
+            {{- toYaml .Values.ccx.services.deployer.resources | nindent 12 }}
+      volumes:
+        - name: config
+          configMap:
+            name: ccx-deployer
+        - name: ccx-growfs
+          configMap:
+            name: ccx-growfs
+      {{- if .Values.fluentbit.enabled }}
+        - name: fluent-bit-config
+          configMap:
+            name: fluent-bit-config
+      {{- end }}
+      {{ with .Values.ccx.services.deployer.affinity }}
+      affinity:
+        {{ toYaml . | nindent 8 }}
+      {{ end }}
+      {{ with .Values.ccx.services.deployer.nodeSelector }}
+      nodeSelector:
+        {{ toYaml . | nindent 8 }}
+      {{ end }}
+      {{ with .Values.ccx.services.deployer.tolerations }}
+      tolerations:
+        {{ toYaml . | nindent 8 }}
+      {{ end }}
+{{ end }}

@@ -1,0 +1,17 @@
+{{ if .Values.ccx.oldWorld }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: ccx-datastore-storage-svc
+  labels:
+    app: ccx-datastore-storage
+    run: ccx-datastore-storage
+spec:
+  type: ClusterIP
+  selector:
+    app: ccx-datastore-storage
+  ports:
+    - protocol: TCP
+      port: 19786
+      targetPort: 19786
+{{ end }}

@@ -1,3 +1,4 @@
+{{ if .Values.ccx.oldWorld }}
 apiVersion: v1
 kind: Service
 metadata:
@@ -13,3 +14,4 @@ spec:
     - protocol: TCP
       port: 18091
       targetPort: 18091
+{{ end }}

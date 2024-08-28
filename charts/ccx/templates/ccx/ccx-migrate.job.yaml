@@ -23,9 +23,8 @@ spec:
         {{- toYaml . | nindent 8 }}
     {{- end }}
       containers:
-        - name: migrate
-          image: {{ .Values.ccx.services.migrate.image | default .Values.ccx.backend.image |  required "migrate image is missing" }}
-          command: ["/bin/ccx-migrate"]
+        - name: latest
+          image: {{ .Values.ccx.services.migrate.image | required ".Values.ccx.services.migrate.image is missing" }}
           envFrom:
             - secretRef:
                 name: db

@@ -59,7 +59,11 @@ spec:
         {{- with .Values.cmon.extra_args }}
         {{- toYaml . | nindent 8 }}
         {{ end }}
+        {{ if .Values.ccx.newWorld }}
         - --events-client=http://ccx-stores-listener-svc:18097/cmon-events/{{ .Values.cmon.id }}
+        {{ else }}
+        - --events-client=http://ccx-notification-service-svc:18097/api/v1/events/cmon
+        {{ end }}
         securityContext:
           privileged: True
         ports:
@@ -131,17 +135,6 @@ spec:
                 optional: false
         resources:
           {{- toYaml .Values.cmon.sd.resources | nindent 10 }}
-      - name: cmon-ssh
-        image: {{ .Values.cmon.image | required ".Values.cmon.image is missing" }}
-        command: ['sh', '-c', '/usr/sbin/cmon-ssh']
-        imagePullPolicy: IfNotPresent
-        ports:
-        - containerPort: 9511
-          protocol: TCP
-          name: cmon-ssh9511
-        volumeMounts:
-        - mountPath: /etc/cmon.d/
-          name: cmon-master-pv
       - name: cmon-exporter
         image: {{ .Values.cmon.exporter.image | required ".Values.cmon.exporter.image is missing" }}
         ports:
@@ -166,11 +159,11 @@ spec:
       - name: ccv2
         image: {{ .Values.cmon.ccv2.image | required ".Values.cmon.ccv2.image is missing" }}
         ports:
-        - containerPort: 80
+        - containerPort: 3000
           protocol: TCP
-          name: 80-port
+          name: 3000-port
         volumeMounts:
-        - mountPath: /usr/share/nginx/html/config.js
+        - mountPath: /usr/src/app/config.js
           subPath: config.js
           name: config-js-cfg
         resources:
