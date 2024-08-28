@@ -606,6 +606,15 @@ victoria-metrics-alert:
             annotations:
               summary: Host unusual disk write rate (instance {{ $labels.instance }})
               description: "Disk is probably writing too much data (> 50 MB/s)\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+          - alert: HostAutoScaleDiskSpaceReached
+            expr: (1 - (node_filesystem_avail_bytes{mountpoint ="/data"} / node_filesystem_size_bytes{mountpoint ="/data"})) * 100 > 70
+            for: 5m
+            labels:
+              severity: warning
+              alert_category: webhook-alerts
+            annotations:
+                summary: "Disk autoscale threshold has been reached on instance {{ $labels.instance }} {{ $value }}%"
+                description: "Disk usage on instance {{ $labels.instance }} is above the autoscale threshold of 70%. Current usage: {{ $value }}%"
           # Please add ignored mountpoints in node_exporter parameters like
           # "--collector.filesystem.ignored-mount-points=^/(sys|proc|dev|run)($|/)".
           # Same rule using "node_filesystem_free_bytes" will fire when disk fills for non-root users.
