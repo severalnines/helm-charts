@@ -14,10 +14,10 @@ spec:
   ingressClassName: {{ .Values.ccx.ingress.ingressClassName | default "nginx" }}
   tls:
     - hosts:
-        - ccx-mgmt.{{ include "ccx.ccxFQDN" . }}
+        - ccx-mgmt.{{ include "ccx.sessionDomain" . }}
       secretName: {{ .Values.ccx.ingress.ssl.secretName | default "cmon-proxy-cert" }}
   rules:
-    - host: ccx-mgmt.{{ include "ccx.ccxFQDN" . }}
+    - host: ccx-mgmt.{{ include "ccx.sessionDomain" . }}
       http:
         paths:
           - path: /
