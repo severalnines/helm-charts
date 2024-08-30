@@ -33,7 +33,7 @@ cmon:
     name: cmon
     user: cmon
     password: Super$3cr3t
-  image: severalnines/cmon:2.2.0-10138
+  image: severalnines/cmon:2.3.0.10232
   extra_args: # extra arguments for cmon binary
     - -s
     - -b 0.0.0.0
@@ -95,7 +95,7 @@ ccx:
 
   ## default settings for all backend components
   backend:
-    image: europe-docker.pkg.dev/severalnines-public/ccx/ccx-backend:1146
+    image: europe-docker.pkg.dev/severalnines-public/ccx/ccx-backend:1156
 
   ## postgresql server used by all backend components
   db:
