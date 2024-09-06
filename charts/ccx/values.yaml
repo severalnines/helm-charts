@@ -56,7 +56,7 @@ cmon:
         memory: 10Mi
     image: severalnines/cmon_exporter-linux-amd64:main
   ccv2:
-    image: severalnines/cc-frontend:2.2.3
+    image: severalnines/cc-frontend:2.2.5
   license: # REQUIRED put your CMON license key here, base64 encoded
   coreDumpEnable: false
 
@@ -95,7 +95,7 @@ ccx:
 
   ## default settings for all backend components
   backend:
-    image: europe-docker.pkg.dev/severalnines-public/ccx/ccx-backend:1156
+    image: europe-docker.pkg.dev/severalnines-public/ccx/ccx-backend:1210
 
   ## postgresql server used by all backend components
   db:
