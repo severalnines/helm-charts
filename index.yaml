@@ -2,6 +2,17 @@ apiVersion: v1
 entries:
   ccx:
   - apiVersion: v2
+    appVersion: 1.49.15
+    created: "2024-09-06T11:33:20.177025429Z"
+    description: A Helm chart for CCX
+    digest: d50e3ffbe075717c43633e4af26a8b6590a0faf3954a18fafbda005c9ec3a8b7
+    icon: https://st.s9s.io/ccx/logo/ccx-purple.svg
+    name: ccx
+    type: application
+    urls:
+    - https://github.com/severalnines/helm-charts/releases/download/ccx-1.49.15/ccx-1.49.15.tgz
+    version: 1.49.15
+  - apiVersion: v2
     appVersion: 1.49.13
     created: "2024-09-04T09:49:20.667490022Z"
     description: A Helm chart for CCX
@@ -923,4 +934,4 @@ entries:
     urls:
     - https://github.com/severalnines/helm-charts/releases/download/clustercontrol-2024.03.1/clustercontrol-2024.03.1.tgz
     version: 2024.03.1
-generated: "2024-09-04T09:49:20.667704352Z"
+generated: "2024-09-06T11:33:20.177183745Z"
