@@ -56,7 +56,7 @@ cmon:
         memory: 10Mi
     image: severalnines/cmon_exporter-linux-amd64:main
   ccv2:
-    image: severalnines/cc-frontend:2.2.3
+    image: severalnines/cc-frontend:2.2.5
   license: # REQUIRED put your CMON license key here, base64 encoded
   coreDumpEnable: false
 
