@@ -6,7 +6,7 @@ metadata:
     app: ccx-ui-auth
     run: ccx-ui-auth
 spec:
-  replicas: {{ .Values.ccx.services.uiauth.replicas | default .Values.global.replicas }}
+  replicas: {{ .Values.ccx.services.uiauth.replicas | default 1 }}
   selector:
     matchLabels:
       app: ccx-ui-auth
@@ -25,7 +25,7 @@ spec:
               value: {{ $val | quote }}
           {{- end }}
             - name: FE_BASE_DOMAIN
-              value: "{{ include "ccx.ccxFQDN" . }}"
+              value: "{{ include "ccx.sessionDomain" . }}"
             - name: FE_REACT_APP_CCX_URL
               value: "https://{{ include "ccx.ccxFQDN" .}}"
             - name: FE_REACT_APP_CCX_ADMIN_REDIRECT_PATH

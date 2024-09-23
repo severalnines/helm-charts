@@ -1,5 +1,9 @@
 ## Default values for ccx.
+## This is a YAML-formatted file.
+## Declare variables to be passed into your templates.
 
+## REQUIRED this is used across the app to identify your instance. Use something like "apple.com" or "fbi.gov".
+sessionDomain: localhost
 ## REQUIRED fqdn of this ccx instance, for example "ccx.example.com".
 ccxFQDN: ccx.localhost
 ## REQUIRED fqdn for cluster control instance provided with this ccx instance.
@@ -8,15 +12,9 @@ ccFQDN: cc.localhost
 crossOrigins:
   #- https://not.ccx.local
 ## host of your prometheus/victoria metrics instance, must be available on port 9090
-prometheusHostname:
+prometheusHostname: ccx-monitoring-victoria-metrics-single-server.victoriametrics
 ## k8s storage class used for PVs across CCX. This is a global variable applied to all PVCs/PVs to simplify things.
 storageClassName:
-
-# shared configuration across all units
-global:
-  # default number of replicas for normal service units - this should be set to more than 1 in a production environment
-  # NB. this does not apply to all units, e.g. some units will be run with a single replica always
-  replicas: 1
 
 ## this section allows to deploy a single default cmon instance in the k8s cluster
 cmon:
@@ -33,7 +31,7 @@ cmon:
     name: cmon
     user: cmon
     password: Super$3cr3t
-  image: severalnines/cmon:2.3.0-10290
+  image: severalnines/cmon:2.2.0-10584
   extra_args: # extra arguments for cmon binary
     - -s
     - -b 0.0.0.0
@@ -44,7 +42,7 @@ cmon:
       cpu: 100m
       memory: 1Gi
   sd:
-    image: severalnines/cmon-sd:build-40
+    image: severalnines/cmon-sd:build-26
     resources:
       requests:
         cpu: 10m
@@ -56,7 +54,7 @@ cmon:
         memory: 10Mi
     image: severalnines/cmon_exporter-linux-amd64:main
   ccv2:
-    image: severalnines/cc-frontend:2.2.5
+    image: severalnines/cc-frontend:2.2.3
   license: # REQUIRED put your CMON license key here, base64 encoded
   coreDumpEnable: false
 
@@ -95,7 +93,7 @@ ccx:
 
   ## default settings for all backend components
   backend:
-    image: europe-docker.pkg.dev/severalnines-public/ccx/ccx-backend:1210
+    image: europe-docker.pkg.dev/severalnines-public/ccx/ccx-backend:1357
 
   ## postgresql server used by all backend components
   db:
@@ -129,10 +127,6 @@ ccx:
     EXTERNAL_DNS_TTL: 15
     ## Change below to the current date to trigger the servers upgrade described in "Lifecycle Management". The format is RFC 3339.
     LATEST_SERVER_CONFIG: "2006-01-02T15:04:05Z"
-    ## Frontend Theme
-    FE_THEME: "ccx"
-    ## Wait time for the host to be ready
-    INIT_HOST_WAIT_CONFIG: "60x15s"
 
   ## common settings for all k8s ingresses
   ingress:
@@ -408,20 +402,13 @@ ccx:
           cpu: 1m
           memory: 10Mi
     uiapp:
-      image: europe-docker.pkg.dev/severalnines-public/ccx/ccx-ui-app:69
+      image: europe-docker.pkg.dev/severalnines-public/ccx/ccx-ui-app:build-2863
       resources:
         requests:
           cpu: 1m
           memory: 10Mi
-    uiadmin:
-      image: europe-docker.pkg.dev/severalnines-public/ccx/ccx-ui-admin:29
-      env:
-      resources:
-        requests:
-          cpu: 1m
-          memory: 5Mi
     uiauth:
-      image: europe-docker.pkg.dev/severalnines-public/ccx/ccx-ui-auth:build-38
+      image: europe-docker.pkg.dev/severalnines-public/ccx/ccx-ui-auth:build-33
       resources:
         requests:
           cpu: 1m
@@ -537,7 +524,6 @@ ccx:
           - "11"
           - "14"
           - "15"
-          - "16"
         num_nodes:
           - 1
           - 2

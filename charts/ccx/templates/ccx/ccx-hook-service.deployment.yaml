@@ -6,7 +6,7 @@ metadata:
     app: ccx-hook-service
     run: ccx-hook-service
 spec:
-  replicas: {{ .Values.ccx.services.hook.replicas | default .Values.global.replicas }}
+  replicas: {{ .Values.ccx.services.hook.replicas | default 1 }}
   selector:
     matchLabels:
       app: ccx-hook-service
