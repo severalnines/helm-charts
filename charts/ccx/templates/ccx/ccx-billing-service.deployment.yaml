@@ -6,7 +6,7 @@ metadata:
     app: ccx-billing-service
     run: ccx-billing-service
 spec:
-  replicas: {{ .Values.ccx.services.billing.replicas | default .Values.global.replicas }}
+  replicas: {{ .Values.ccx.services.billing.replicas | default 1 }}
   selector:
     matchLabels:
       app: ccx-billing-service

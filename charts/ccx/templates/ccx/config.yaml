@@ -4,8 +4,8 @@ metadata:
   name: ccx
 data:
   # this should be essentially static after the cluster is created - mutable config is in other places
+  SESSION_DOMAIN: {{ include "ccx.sessionDomain" . }}
   BASE_DOMAIN: {{ include "ccx.ccxFQDN" . }}
-  SESSION_DOMAIN: {{ include "ccx.ccxFQDN" . }}
   CROSS_ORIGINS: {{ .Values.crossOrigins | join "," | quote }}
   {{- if .Values.ccx.userDomain }}
   USER_DOMAIN: {{ .Values.ccx.userDomain }}
