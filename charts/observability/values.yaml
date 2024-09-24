@@ -814,6 +814,9 @@ alertmanager:
         - receiver: slack-notifications
         - receiver: webhook-alerts
           group_by: [ClusterName, instance, alertname]
+          group_interval: 1m
+          repeat_interval: 10m
+          group_wait: 30s
           matchers:
             - alert_category="webhook-alerts"
       repeat_interval: 24h
