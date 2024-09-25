@@ -12,7 +12,9 @@ spec:
   numberOfInstances: {{ .Values.postgresql.replicas | default 1 }}
   volume:
     size: {{ .Values.postgresql.volumeSize | default "10Gi" }}
-    storageClass: {{ .Values.postgresql.storageClass | default "standard" }}
+    {{- with .Values.postgresql.storageClass  }}
+    storageClass: {{ . }}
+    {{- end }}
   users:
     ccx:
       - superuser

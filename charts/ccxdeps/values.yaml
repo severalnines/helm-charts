@@ -38,6 +38,7 @@ postgres-operator:
 
 postgresql:
   replicas: 1
+  storageClass:
 
 external-dns:
   enabled: false
