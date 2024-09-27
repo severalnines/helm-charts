@@ -24,7 +24,7 @@ spec:
       containers:
         - name: ccx-notify-worker
           image: {{ .Values.ccx.services.notify_worker.image | default .Values.ccx.backend.image | required "No image set for notify" }}
-          command: ["/bin/ccx-notify", "work"]
+          command: [ "/bin/ccx-notify", "work" ]
           env:
             - name: POD_NAME
               valueFrom:
@@ -61,12 +61,18 @@ spec:
           volumeMounts:
             - name: config
               mountPath: "/conf"
+            - name: email-template
+              mountPath: "/etc/email_template.html"
+              subPath: "email_template.html"
           resources:
             {{- toYaml .Values.ccx.services.notify_worker.resources | nindent 12 }}
       volumes:
         - name: config
           configMap:
             name: ccx-config-core
+        - name: email-template
+          configMap:
+            name: email-template
       {{ with .Values.ccx.services.notify_worker.affinity }}
       affinity:
         {{ toYaml . | nindent 8 }}
@@ -79,3 +85,13 @@ spec:
       tolerations:
         {{ toYaml . | nindent 8 }}
       {{ end }}
+
+---
+# config map with email template
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: email-template
+data:
+  email_template.html: |
+    {{- .Values.ccx.services.notify_worker.email_template | nindent 4 }}

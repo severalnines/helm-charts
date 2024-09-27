@@ -28,7 +28,7 @@ spec:
           containers:
             - name: ccx-billing-updater
               image: {{ .Values.ccx.services.billingupdater.image | default .Values.ccx.backend.image | required "No image set for billing-updater" }}
-              command: ["/bin/ccx-billing-updater"]
+              command: ["/bin/ccx-billing", "update"]
               env:
               {{- range $key, $val := .Values.ccx.services.billingupdater.env }}
                 - name: {{ $key }}

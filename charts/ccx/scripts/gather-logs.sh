@@ -3,7 +3,7 @@
 OUTPUT_FILE="ccx-logs.tar.gz"
 NAMESPACE=""
 
-services="ccx-admin-service ccx-alertmgr-dispatcher ccx-auth-service ccx-backup-storage ccx-billing-service ccx-controller-storage ccx-datastores-maintenance ccx-datastore-storage ccx-datastore-storage-status-update ccx-deployer-service ccx-hook-service ccx-job-storage ccx-monitor-service ccx-notification-service ccx-notify-worker ccx-rbac-service ccx-rest-service ccx-runner-notifications ccx-runner-service ccx-stores-listener ccx-stores-service ccx-stores-worker ccx-ui-app ccx-ui-auth ccx-user ccx-vpc-storage cmon-master cmon-proxy"
+services="ccx-admin-service ccx-auth-service ccx-backup-storage ccx-billing-rest-service ccx-billing-service ccx-controller-storage ccx-datastores-maintenance ccx-datastore-storage ccx-datastore-storage-status-update ccx-deployer-service ccx-hook-service ccx-job-storage ccx-monitor-service ccx-notification-service ccx-notify-worker ccx-rbac-service ccx-rest-service ccx-runner-notifications ccx-runner-service ccx-stores-listener ccx-stores-service ccx-stores-worker ccx-ui-app ccx-ui-auth ccx-user ccx-vpc-storage cmon-master cmon-proxy"
 
 help() {
     echo "Usage: $0 [-n namespace] [-o output] [-h]"

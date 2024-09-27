@@ -138,6 +138,7 @@ Create the name of the service account to use
 {{- end }}
 {{- end }}
 
+
 {{- define "ccx.services.admin.basicauth.username" -}}
 {{- $secretObj := (lookup "v1" "Secret" .Release.Namespace "admin-basicauth") | default dict }}
 {{- $secretData := (get $secretObj "data") | default dict }}

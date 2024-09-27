@@ -22,8 +22,44 @@ data:
       {{- end }}
 
     deployer:
-      {{- with .Values.ccx.services.deployer.config }}
-      {{- toYaml . | nindent 6 }}
+      {{- if .Values.ccx.services.deployer.config }}
+      {{- toYaml .Values.ccx.services.deployer.config | nindent 6 }}
+      {{- else }}
+      aws_vendor:
+        regions:
+          eu-north-1:
+            image_id: ami-05baaef454dd96656
+        database_vendors:
+          - name: mariadb
+            security_groups:
+              - cidr: 0.0.0.0/0
+                from_port: 1
+                ip_protocol: tcp
+                to_port: 65535
+          - name: microsoft
+            security_groups:
+              - cidr: 0.0.0.0/0
+                from_port: 1
+                ip_protocol: tcp
+                to_port: 65535
+          - name: percona
+            security_groups:
+              - cidr: 0.0.0.0/0
+                from_port: 1
+                ip_protocol: tcp
+                to_port: 65535
+          - name: postgres
+            security_groups:
+              - cidr: 0.0.0.0/0
+                from_port: 1
+                ip_protocol: tcp
+                to_port: 65535
+          - name: redis
+            security_groups:
+              - cidr: 0.0.0.0/0
+                from_port: 1
+                ip_protocol: tcp
+                to_port: 65535
       {{- end }}
       copy_files:
         - target: "/home/ubuntu/ccx_growfs"
