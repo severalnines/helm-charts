@@ -2,6 +2,17 @@ apiVersion: v1
 entries:
   ccx:
   - apiVersion: v2
+    appVersion: 1.50.0
+    created: "2024-09-27T08:59:53.116107316Z"
+    description: A Helm chart for CCX
+    digest: 09f95bb1844eab80edb309f09982e9f4a3a67ddb9c98bed6ba603870da756758
+    icon: https://st.s9s.io/ccx/logo/ccx-purple.svg
+    name: ccx
+    type: application
+    urls:
+    - https://github.com/severalnines/helm-charts/releases/download/ccx-1.50.0-rc.1/ccx-1.50.0-rc.1.tgz
+    version: 1.50.0-rc.1
+  - apiVersion: v2
     appVersion: 1.49.15
     created: "2024-09-06T11:33:20.177025429Z"
     description: A Helm chart for CCX
@@ -244,6 +255,53 @@ entries:
     - https://github.com/severalnines/helm-charts/releases/download/ccx-1.47.1/ccx-1.47.1.tgz
     version: 1.47.1
   ccx-monitoring:
+  - apiVersion: v2
+    appVersion: 0.5.5
+    created: "2024-09-27T08:59:53.291796991Z"
+    dependencies:
+    - condition: victoria-metrics-single.enabled
+      name: victoria-metrics-single
+      repository: https://victoriametrics.github.io/helm-charts/
+      version: 0.9.14
+    - condition: victoria-metrics-alert.enabled
+      name: victoria-metrics-alert
+      repository: https://victoriametrics.github.io/helm-charts/
+      version: 0.8.6
+    - condition: victoria-metrics-agent.enabled
+      name: victoria-metrics-agent
+      repository: https://victoriametrics.github.io/helm-charts/
+      version: 0.9.15
+    - condition: kube-state-metrics.enabled
+      name: kube-state-metrics
+      repository: https://prometheus-community.github.io/helm-charts
+      version: 5.16.0
+    - condition: alertmanager.enabled
+      name: alertmanager
+      repository: https://prometheus-community.github.io/helm-charts
+      version: 1.7.0
+    - condition: grafana.enabled
+      name: grafana
+      repository: https://grafana.github.io/helm-charts
+      version: 7.0.1
+    - condition: loki.enabled
+      name: loki
+      repository: https://grafana.github.io/helm-charts
+      version: 6.5.2
+    - condition: node-exporter.enabled
+      name: prometheus-node-exporter
+      repository: https://prometheus-community.github.io/helm-charts
+      version: 4.23.2
+    - condition: prometheus-blackbox-exporter.enabled
+      name: prometheus-blackbox-exporter
+      repository: https://prometheus-community.github.io/helm-charts
+      version: 8.4.0
+    description: An Umbrella Chart for observability components in CCX
+    digest: e4901db63e8f3cfcf450f79efea93c9d2356304423419ba2872e2b6d7d0ac35a
+    name: ccx-monitoring
+    type: application
+    urls:
+    - https://github.com/severalnines/helm-charts/releases/download/ccx-monitoring-0.5.5/ccx-monitoring-0.5.5.tgz
+    version: 0.5.5
   - apiVersion: v2
     appVersion: 0.5.4
     created: "2024-08-28T10:54:39.866852193Z"
@@ -1012,4 +1070,4 @@ entries:
     urls:
     - https://github.com/severalnines/helm-charts/releases/download/clustercontrol-2024.03.1/clustercontrol-2024.03.1.tgz
     version: 2024.03.1
-generated: "2024-09-25T12:43:25.187939357Z"
+generated: "2024-09-27T08:59:53.291953481Z"
