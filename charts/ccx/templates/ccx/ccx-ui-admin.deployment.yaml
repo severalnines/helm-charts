@@ -16,8 +16,6 @@ spec:
       labels:
         app: ccx-ui-admin
         run: ccx-ui-admin
-      annotations:
-        checksum/config: {{ include (print $.Template.BasePath "/ccx/ccx-ui-admin-config.yaml") . | sha256sum }}
     spec:
       containers:
         - name: ccx-ui-admin

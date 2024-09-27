@@ -25,7 +25,7 @@ spec:
       containers:
         - name: ccx-billing-service
           image: {{ .Values.ccx.services.billing.image | default .Values.ccx.backend.image | required "No image set for billing" }}
-          command: ["/bin/ccx-billing-service"]
+          command: ["/bin/ccx-billing", "serve"]
           env:
           {{- range $key, $val := .Values.ccx.services.billing.env }}
             - name: {{ $key }}
@@ -52,7 +52,7 @@ spec:
           {{ end }}
           ports:
             - name: service
-              containerPort: 18077
+              containerPort: 20003
               protocol: TCP
             - name: metrics
               containerPort: 9090

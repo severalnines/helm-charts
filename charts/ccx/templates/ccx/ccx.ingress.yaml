@@ -24,27 +24,6 @@ spec:
     - host: {{ include "ccx.ccxFQDN" . }}
       http:
         paths:
-          - path: /auth/(.*)
-            pathType: ImplementationSpecific
-            backend:
-              service:
-                name: ccx-ui-auth-svc
-                port:
-                  number: 8080
-          - path: /api/(.+)
-            pathType: ImplementationSpecific
-            backend:
-              service:
-                name: ccx-rest-user-svc
-                port:
-                  number: 20001
-          - path: /(.*)
-            pathType: ImplementationSpecific
-            backend:
-              service:
-                name: ccx-ui-app-svc
-                port:
-                  number: 8080
           - path: /api/admin/(.+)
             pathType: ImplementationSpecific
             backend:
@@ -59,13 +38,20 @@ spec:
                 name: ccx-auth-service-svc
                 port:
                   number: 5050
-          - path: /api/billing/(.+)
+          - path: /api/(.+)
             pathType: ImplementationSpecific
             backend:
               service:
-                name: ccx-billing-service-svc
+                name: ccx-rest-user-svc
                 port:
-                  number: 18077
+                  number: 20001
+          - path: /auth/(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: ccx-ui-auth-svc
+                port:
+                  number: 8080
           - path: /monitor/(.+)
             pathType: ImplementationSpecific
             backend:
@@ -73,3 +59,10 @@ spec:
                 name: ccx-monitor-service-svc
                 port:
                   number: 18091
+          - path: /(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: ccx-ui-app-svc
+                port:
+                  number: 8080

@@ -85,7 +85,7 @@ spec:
     - host: {{ include "ccx.ccFQDN" . }}
       http:
         paths:
-          - path: /cmon-ssh/(.*)
+          - path: /cmon/v2/cmon-ssh/(.*)
             pathType: ImplementationSpecific
             backend:
               service:
