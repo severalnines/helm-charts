@@ -93,6 +93,10 @@ Create the name of the service account to use
 {{- .Values.ccx.db.port | required "ccx.db.port is required" }}
 {{- end }}
 
+{{- define "ccx.sessionDomain" -}}
+{{- .Values.sessionDomain | required "sessionDomain is required" }}
+{{- end }}
+
 {{- define "ccx.ccxFQDN" -}}
 {{- .Values.ccxFQDN | required "ccxFQDN is required" }}
 {{- end }}
@@ -126,16 +130,7 @@ Create the name of the service account to use
 {{- end }}
 
 {{- define "ccx.prometheusHostname" -}}
-{{- if not .Values.prometheusHostname }}
-{{- $serviceObj := (lookup "v1" "Service" .Release.Namespace "victoria-metrics") }}
-{{- if not $serviceObj }}
-{{- fail ".Values.prometheusHostname is required when not using embedded monitoring stack!" }}
-{{- else }}
-{{- "victoria-metrics" }}
-{{- end }}
-{{- else }}
-{{- .Values.prometheusHostname }}
-{{- end }}
+{{- .Values.prometheusHostname | default "ccx-monitoring-victoria-metrics-single-server.ccx-monitoring" }}
 {{- end }}
 
 
