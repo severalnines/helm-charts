@@ -41,7 +41,7 @@ cmon:
     name: cmon
     user: cmon
     password: cmon
-  image: severalnines/cmon:2.1.0-9960
+  image: severalnines/cmon:2.2.0-10707
   extra_args: # extra arguments for ClusterControl binary
     - -s
     - --no-log-db
@@ -65,7 +65,7 @@ cmon:
 #        cpu: 100m
 #        memory: 1Gi
   ccv2:
-    image: severalnines/cc-frontend:2.2.3
+    image: severalnines/cc-frontend:2.2.5
 #    resources:
 #      requests:
 #        cpu: 100m
