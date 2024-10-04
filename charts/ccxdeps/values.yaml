@@ -219,9 +219,70 @@ ccx-monitoring:
     templates: {}
     #   alertmanager.tmpl: |-
 
-  grafana:
-    enabled: false
   loki:
+    enabled: true
+    # Provide Ingress hostname by replacing loki.local which will be used by the Nginx Ingress.
+    loki_host_url: &loki_host_url "loki.local"
+    rbac:
+      namespaced: true
+    loki:
+      commonConfig:
+        replication_factor: 1
+      storage:
+        type: filesystem
+      schemaConfig:
+        configs:
+          - from: "2024-01-01"
+            store: tsdb
+            object_store: filesystem
+            schema: v13
+            index:
+              prefix: loki_index_
+              period: 24h
+      ingester:
+        chunk_encoding: snappy
+      tracing:
+        enabled: true
+      querier:
+        # Default is 4, if you have enough memory and CPU you can increase, reduce if OOMing
+        max_concurrent: 2
+    deploymentMode: SingleBinary
+    singleBinary:
+      replicas: 1
+      resources:
+        requests:
+          cpu: 0.2
+          memory: 1Gi
+    chunksCache:
+      # default is 500MB, with limited memory keep this smaller
+      writebackSizeLimit: 50MB
+    write:
+      replicas: 0
+    read:
+      replicas: 0
+    backend:
+      replicas: 0
+    minio:
+      enabled: false
+    test:
+      enabled: false
+    lokiCanary:
+      enabled: false
+    gateway:
+      ingress:
+        enabled: true
+        ingressClassName: "nginx"
+        hosts:
+          - host: *loki_host_url
+            paths:
+              - path: /
+                pathType: Prefix
+        tls:
+          - secretName: loki-gateway-tls
+            hosts:
+              - *loki_host_url
+
+  grafana:
     enabled: false
   node-exporter:
     enabled: false
