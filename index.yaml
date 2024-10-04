@@ -445,6 +445,45 @@ entries:
     version: 0.5.0
   ccxdeps:
   - apiVersion: v2
+    created: "2024-10-04T22:22:52.842760592Z"
+    dependencies:
+    - condition: installOperators
+      name: postgres-operator
+      repository: https://opensource.zalando.com/postgres-operator/charts/postgres-operator
+      version: 1.11.0
+    - condition: ingressController.enabled
+      name: nginx-ingress-controller
+      repository: https://charts.bitnami.com/bitnami
+      version: 9.3.21
+    - condition: nats.enabled
+      name: nats
+      repository: https://nats-io.github.io/k8s/helm/charts/
+      version: 0.19.16
+    - condition: external-dns.enabled
+      name: external-dns
+      repository: oci://registry-1.docker.io/bitnamicharts
+      version: 6.26.3
+    - alias: oracle-mysql-operator
+      condition: oracle-mysql-operator.enabled
+      name: mysql-operator
+      repository: https://mysql.github.io/mysql-operator/
+      version: 2.2.1
+    - condition: mysql-innodbcluster.enabled
+      name: mysql-innodbcluster
+      repository: https://mysql.github.io/mysql-operator/
+      version: 2.2.1
+    - condition: ccx-monitoring.enabled
+      name: ccx-monitoring
+      repository: https://severalnines.github.io/helm-charts/
+      version: 0.5.3
+    description: A Helm chart for deploying CCX dependencies
+    digest: 8a737f731fee6255d08aaa0e57ad4b21d288d39a015ee26a16d53bb694eab918
+    name: ccxdeps
+    type: application
+    urls:
+    - https://github.com/severalnines/helm-charts/releases/download/ccxdeps-0.5.6/ccxdeps-0.5.6.tgz
+    version: 0.5.6
+  - apiVersion: v2
     created: "2024-09-25T12:43:25.187830875Z"
     dependencies:
     - condition: installOperators
@@ -847,6 +886,34 @@ entries:
     version: 0.4.2
   clustercontrol:
   - apiVersion: v2
+    appVersion: 2.2.0
+    created: "2024-10-04T22:22:53.051430949Z"
+    dependencies:
+    - condition: installMysqlOperator
+      name: mysql-operator
+      repository: https://mysql.github.io/mysql-operator/
+      version: 2.0.15
+    - condition: createDatabases
+      name: mysql-innodbcluster
+      repository: https://mysql.github.io/mysql-operator/
+      version: 2.0.15
+    - alias: monitoring
+      condition: monitoring.enabled
+      name: victoria-metrics-single
+      repository: https://victoriametrics.github.io/helm-charts/
+      version: 0.9.16
+    - condition: ingressController.enabled
+      name: nginx-ingress-controller
+      repository: https://charts.bitnami.com/bitnami
+      version: 11.1.0
+    description: A ClusterControl Helm Chart for Kubernetes
+    digest: 48a919ab0833e2a90b4102b3f11e7f71abf3ef03f48f29d6c4e4b0ac7d2f05f9
+    name: clustercontrol
+    type: application
+    urls:
+    - https://github.com/severalnines/helm-charts/releases/download/clustercontrol-2024.10.1/clustercontrol-2024.10.1.tgz
+    version: 2024.10.1
+  - apiVersion: v2
     appVersion: 2.1.0
     created: "2024-08-13T12:51:08.911974017Z"
     dependencies:
@@ -1070,4 +1137,4 @@ entries:
     urls:
     - https://github.com/severalnines/helm-charts/releases/download/clustercontrol-2024.03.1/clustercontrol-2024.03.1.tgz
     version: 2024.03.1
-generated: "2024-09-27T08:59:53.291953481Z"
+generated: "2024-10-04T22:22:53.051551805Z"
