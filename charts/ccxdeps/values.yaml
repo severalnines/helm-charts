@@ -2,8 +2,11 @@
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 
+# createDatabases option will create postgres database
 createDatabases: true
+# installOperators option will install postgres operator
 installOperators: true
+# ingressController option will install nginx ingress controller
 ingressController:
   enabled: false
 
@@ -16,7 +19,7 @@ nginx-ingress-controller:
     enabled: true
   publishService:
     enabled: true
-
+# nats option will install nats streaming
 nats:
   enabled: true
   nameOverride: "ccx-nats"
@@ -31,15 +34,15 @@ nats:
     logging:
       debug: false
       trace: false
-
+# configuration option for postgres operator
 postgres-operator:
   configKubernetes:
     enable_pod_disruption_budget: false
-
+# configuration option for postgres database
 postgresql:
   replicas: 1
   storageClass:
-
+# installation and configuration option for external-dns
 external-dns:
   enabled: false
   watchReleaseNamespace: true
@@ -54,11 +57,11 @@ external-dns:
   # Service source is required
   - service
   txtPrefix: txt-
-
+# installation and configuration option for mysql operator
 oracle-mysql-operator:
   enabled: true
   fullnameOverride: mysql-operator
-
+# installation and configuration option for mysql innodb
 mysql-innodbcluster:
   enabled: true
   credentials:
@@ -79,7 +82,7 @@ mysql-innodbcluster:
       resources:
         requests:
           memory: "2048Mi"
-
+# installation and configuration option for monitoring
 ccx-monitoring:
   enabled: true
   cmon_sd_url: &cmon_sd_url "http://cmon-master:8080"
