@@ -33,8 +33,10 @@ Enjoy!
 
 ### Prerequisites
 
+* image-pull secrets
 * cert-manager (optional) or ssl certificate (wildcard)
 * ingress controller
+* FQDN pointing to your ingress controller (need a public IP to be able to do that) or externaldns (optional)
 
 # Install
 

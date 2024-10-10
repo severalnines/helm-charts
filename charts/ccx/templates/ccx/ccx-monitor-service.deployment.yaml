@@ -6,7 +6,7 @@ metadata:
     app: ccx-monitor-service
     run: ccx-monitor-service
 spec:
-  replicas: {{ .Values.ccx.services.monitor.replicas | default .Values.global.replicas }}
+  replicas: {{ .Values.ccx.services.monitor.replicas | default 1 }}
   selector:
     matchLabels:
       app: ccx-monitor-service

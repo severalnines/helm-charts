@@ -1,0 +1,57 @@
+{{ if .Values.ccx.services.dispatcher.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ccx-alertmgr-dispatcher
+  labels:
+    run: ccx-alertmgr-dispatcher
+    app: ccx-alertmgr-dispatcher
+spec:
+  replicas: {{ .Values.ccx.services.dispatcher.replicas | default 1 }}
+  selector:
+    matchLabels:
+      app: ccx-alertmgr-dispatcher
+      run: ccx-alertmgr-dispatcher
+  template:
+    metadata:
+      labels:
+        app: ccx-alertmgr-dispatcher
+        run: ccx-alertmgr-dispatcher
+      annotations:
+        checksum: {{ include (print $.Template.BasePath "/ccx/secrets.yaml") . | sha256sum }}
+    spec:
+      containers:
+        - name: ccx-alertmgr-dispatcher
+          image: {{ .Values.ccx.services.dispatcher.image | required "No image set for alertmgr-dispatcher" }}
+          command: ["/bin/ccx_alertmgr_dispatcher"]
+          env:
+          {{- range $key, $val := .Values.ccx.services.dispatcher.env }}
+            - name: {{ $key }}
+              value: {{ $val | quote }}
+          {{- end }}
+          envFrom:
+            - secretRef:
+                name: db
+            {{- range $name := .Values.ccx.services.dispatcher.envFrom }}
+            - secretRef:
+                name: {{ $name }}
+            {{- end }}
+          ports:
+            - name: service
+              containerPort: 8083
+              protocol: TCP
+          resources:
+            {{- toYaml .Values.ccx.services.dispatcher.resources | nindent 12 }}
+      {{ with .Values.ccx.services.dispatcher.affinity }}
+      affinity:
+        {{ toYaml . | nindent 8 }}
+      {{ end }}
+      {{ with .Values.ccx.services.dispatcher.nodeSelector }}
+      nodeSelector:
+        {{ toYaml . | nindent 8 }}
+      {{ end }}
+      {{ with .Values.ccx.services.dispatcher.tolerations }}
+      tolerations:
+        {{ toYaml . | nindent 8 }}
+      {{ end }}
+{{ end }}
