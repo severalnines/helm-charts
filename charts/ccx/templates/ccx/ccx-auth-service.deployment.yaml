@@ -6,7 +6,7 @@ metadata:
     app: ccx-auth-service
     run: ccx-auth-service
 spec:
-  replicas: {{ .Values.ccx.services.auth.replicas | default .Values.global.replicas }}
+  replicas: {{ .Values.ccx.services.auth.replicas | default 1 }}
   selector:
     matchLabels:
       app: ccx-auth-service
