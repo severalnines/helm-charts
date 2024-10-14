@@ -23,8 +23,9 @@ autoscaling:
   # datastore storage will be scaled up automatically by adding additional disk and extending logical volume
   # users needs to enable autoscaling in the CCX UI per datastore
   storage:
-    threshold: 75 # threshold in percentage, beyond which the storage will be autoscaled, 0 is disabled
-    percentage: 20 # the percentage by which the storage will be increased, 0 is disabled
+    enabled: true # set to false to disable
+    threshold: 75 # threshold in percentage, beyond which the storage will be autoscaled
+    percentage: 20 # the percentage by which the storage will be increased
 
 
 ## this section allows to deploy a single default cmon instance in the k8s cluster
@@ -42,7 +43,7 @@ cmon:
     name: cmon
     user: cmon
     password: Super$3cr3t
-  image: severalnines/cmon:2.2.0-10584
+  image: severalnines/cmon:2.2.0-10754
   extra_args: # extra arguments for cmon binary
     - -s
     - -b 0.0.0.0
@@ -104,7 +105,7 @@ ccx:
 
   ## default settings for all backend components
   backend:
-    image: europe-docker.pkg.dev/severalnines-public/ccx/ccx-backend:1472
+    image: europe-docker.pkg.dev/severalnines-public/ccx/ccx-backend:1616
 
   ## postgresql server used by all backend components
   db:
@@ -487,7 +488,7 @@ ccx:
           cpu: 1m
           memory: 10Mi
     uiapp:
-      image: europe-docker.pkg.dev/severalnines-public/ccx/ccx-ui-app:137
+      image: europe-docker.pkg.dev/severalnines-public/ccx/ccx-ui-app:202
       resources:
         requests:
           cpu: 1m

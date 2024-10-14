@@ -29,6 +29,12 @@ spec:
             - name: {{ $key }}
               value: {{ $val | quote }}
           {{- end }}
+          {{ if .Values.autoscaling.storage.enabled }}
+            - name: FE_AUTOSCALE_STORAGE_THRESHOLD
+              value: {{ .Values.autoscaling.storage.threshold | quote }}
+            - name: FE_AUTOSCALE_STORAGE_PERCENTAGE
+              value: {{ .Values.autoscaling.storage.percentage | quote }}
+          {{ end }}
             - name: FE_BASE_DOMAIN
               value: {{ include "ccx.ccxFQDN" . }}
           ports:

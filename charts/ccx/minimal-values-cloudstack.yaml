@@ -1,0 +1,106 @@
+sessionDomain: ccx.mycloud.com
+ccxFQDN: ccx.mycloud.com
+ccx:
+  # list of k8s secrets containing cloud credentials
+  # if this is not set, ccx will start but you won't be able to deploy anything
+  cloudSecrets:
+   - mycloud #this have to exist in k8s secrets! - see secrets-template.yaml
+  config:
+    clouds:
+    - code: mycloud
+      name: MyCloud
+      type: cloudstack
+      instance_types:
+      - code: small
+        cpu: 2
+        disk_size: 0
+        name: Small
+        ram: 4
+        type: 00000000-0000-0000-0000-000000000000 # The UUID of the service offering
+      network_types:
+      - code: public
+        in_vpc: false
+        info: All instances will be deployed with public IPs. Access to the public IPs is controlled by a firewall.
+        name: Public
+      volume_types:
+        - code: 848cf2d2-885a-4fca-ae68-50607e544c01 # The UUID of disk offering. It has to support custom disk size.
+          has_iops: false
+          info: Custom Disk
+          name: custom
+          size:
+            default: 40
+            max: 1000
+            min: 20
+      regions:
+      - availability_zones:
+        - code: 00000000-0000-0000-0000-000000000000 # the UUID of the cloudstack zone
+          name: MyAZ
+          network_id: 00000000-0000-0000-0000-000000000000 # the UUID of the network within the zone
+        city: Stockholm
+        code: my-region1
+        continent_code: EU
+        country_code: SE
+        display_code: my-region1
+        name: Stockholm
+  services:
+    deployer:
+      config:
+        cloudstack_vendors:
+          cloudstack:
+            url: "http://<cloudstack_api_url>/client/api"
+            verify_ssl: false
+            no_expunge: false
+            template_id: "00000000-0000-0000-0000-000000000000"
+            network_id: "00000000-0000-0000-0000-000000000000"
+            zone: "00000000-0000-0000-0000-000000000000"
+            database_vendors:
+              - name: mariadb
+                security_groups:
+                  - cidr: cmon_ip/32
+                    from_port: 22
+                    ip_protocol: tcp
+                    to_port: 22
+                  - cidr: cmon_ip/32
+                    from_port: 1000
+                    ip_protocol: tcp
+                    to_port: 65535
+              - name: microsoft
+                security_groups:
+                  - cidr: cmon_ip/32
+                    from_port: 22
+                    ip_protocol: tcp
+                    to_port: 22
+                  - cidr: cmon_ip/32
+                    from_port: 1000
+                    ip_protocol: tcp
+                    to_port: 65535
+              - name: percona
+                security_groups:
+                  - cidr: cmon_ip/32
+                    from_port: 22
+                    ip_protocol: tcp
+                    to_port: 22
+                  - cidr: cmon_ip/32
+                    from_port: 1000
+                    ip_protocol: tcp
+                    to_port: 65535
+              - name: postgres
+                security_groups:
+                  - cidr: cmon_ip/32
+                    from_port: 22
+                    ip_protocol: tcp
+                    to_port: 22
+                  - cidr: 37.30.16.41/32
+                    from_port: 1000
+                    ip_protocol: tcp
+                    to_port: 65535
+              - name: redis
+                security_groups:
+                  - cidr: cmon_ip/32
+                    from_port: 22
+                    ip_protocol: tcp
+                    to_port: 22
+                  - cidr: cmon_ip/32
+                    from_port: 1000
+                    ip_protocol: tcp
+                    to_port: 65535
