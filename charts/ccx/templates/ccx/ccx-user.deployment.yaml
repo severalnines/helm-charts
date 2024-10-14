@@ -6,7 +6,7 @@ metadata:
     app: ccx-user
     run: ccx-user
 spec:
-  replicas: {{ .Values.ccx.services.user.replicas | default .Values.global.replicas }}
+  replicas: {{ .Values.ccx.services.user.replicas | default 1 }}
   selector:
     matchLabels:
       app: ccx-user

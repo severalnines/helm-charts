@@ -1,0 +1,80 @@
+# Compatibility for old services, might be required during upgrade
+apiVersion: v1
+kind: Service
+metadata:
+  name: ccx-backup-storage-svc
+  labels:
+    app: ccx-backup-storage
+    run: ccx-backup-storage
+spec:
+  type: ClusterIP
+  selector:
+    app: ccx-stores-service
+  ports:
+    - protocol: TCP
+      port: 19000
+      targetPort: 20002
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ccx-controller-storage-svc
+  labels:
+    app: ccx-controller-storage
+    run: ccx-controller-storage
+spec:
+  type: ClusterIP
+  selector:
+    app: ccx-stores-service
+  ports:
+    - protocol: TCP
+      port: 19002
+      targetPort: 20002
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ccx-datastore-storage-svc
+  labels:
+    app: ccx-datastore-storage
+    run: ccx-datastore-storage
+spec:
+  type: ClusterIP
+  selector:
+    app: ccx-stores-service
+  ports:
+    - protocol: TCP
+      port: 19786
+      targetPort: 20002
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ccx-deployer-service-svc
+  labels:
+    app: ccx-deployer-service
+    run: ccx-deployer-service
+spec:
+  type: ClusterIP
+  selector:
+    app: ccx-stores-service
+  ports:
+    - protocol: TCP
+      port: 19309
+      targetPort: 20002
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ccx-vpc-storage-svc
+  labels:
+    app: ccx-vpc-storage
+    run: ccx-vpc-storage
+spec:
+  type: ClusterIP
+  selector:
+    app: ccx-stores-service
+  ports:
+    - protocol: TCP
+      port: 19789
+      targetPort: 20002
