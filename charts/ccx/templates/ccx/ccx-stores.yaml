@@ -336,10 +336,12 @@ spec:
               value: "0.0.0.0:18097"
             - name: PROMETHEUS_URL
               value: http://{{ include "ccx.prometheusHostname" . }}:9090
+            {{ if .Values.autoscaling.storage.enabled }}
             - name: AUTOSCALE_STORAGE_THRESHOLD
-              value: {{ .Values.autoscaling.storage.threshold | default 85 | quote }}
+              value: {{ .Values.autoscaling.storage.threshold | quote }}
             - name: AUTOSCALE_STORAGE_PERCENTAGE
-              value: {{ .Values.autoscaling.storage.percentage | default 15 | quote }}
+              value: {{ .Values.autoscaling.storage.percentage | quote }}
+            {{ end }}
           {{- range $key, $val := .Values.ccx.services.stores_listener.env }}
             - name: {{ $key }}
               value: {{ $val | quote }}
