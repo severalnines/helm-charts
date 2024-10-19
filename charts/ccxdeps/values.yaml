@@ -229,6 +229,15 @@ ccx-monitoring:
     rbac:
       namespaced: true
     loki:
+      compactor:
+        compaction_interval: 10m
+        delete_request_store: filesystem
+        retention_delete_delay: 1h
+        retention_delete_worker_count: 50
+        retention_enabled: true
+        working_directory: /var/loki/compactor
+      limits_config:
+        retention_period: 240h
       commonConfig:
         replication_factor: 1
       storage:
