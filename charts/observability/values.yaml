@@ -571,6 +571,14 @@ victoria-metrics-alert:
             annotations:
               summary: Container {{ $labels.container }} in Pod {{ $labels.namespace }}/{{ $labels.pod }} restarting more than once times during ten minutes.
               description: "Pod {{ $labels.pod }} restarting more than once during last ten minutes.\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+          - alert: PVCVolumeUsage
+            expr: (kubelet_volume_stats_used_bytes / kubelet_volume_stats_capacity_bytes) > 0.90
+            for: 5m
+            labels:
+              severity: critical
+            annotations:
+              summary: "PVC {{ $labels.persistentvolumeclaim }} on {{ $labels.namespace }} is almost full"
+              description: "PVC {{ $labels.persistentvolumeclaim }} on {{ $labels.namespace }} is using more than 90% of its capacity. Usage: {{ $value | humanizePercentage }}."
 
         - name: Hosts alerts
           rules:
