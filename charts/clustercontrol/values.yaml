@@ -5,6 +5,7 @@
 # REQUIRED fqdn for cluster control instance provided with this cc instance.
 fqdn: &fqdn localhost
 
+# ClusterControl helm chart will ship victoria metrics for monitoring by default
 # host of your prometheus/victoria metrics instance, MUST be available on port 9090
 # REQUIRED, if not provided, metrics and dashboards won't be available
 prometheusHostname: # defaults to .Release.name-monitoring-server
@@ -41,7 +42,7 @@ cmon:
     name: cmon
     user: cmon
     password: cmon
-  image: severalnines/cmon:2.2.0-10707
+  image: severalnines/cmon:2.2.0-10916
   extra_args: # extra arguments for ClusterControl binary
     - -s
     - --no-log-db
