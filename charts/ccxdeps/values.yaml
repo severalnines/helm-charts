@@ -70,6 +70,10 @@ mysql-innodbcluster:
       password: Super$3cr3t
       host: "%"
   serverInstances: 1
+  serverConfig:
+    mycnf: |-
+      [mysqld]
+      binlog_expire_logs_seconds=604800
   tls:
     useSelfSigned: true
   datadirVolumeClaimTemplate:
