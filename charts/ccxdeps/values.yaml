@@ -96,8 +96,6 @@ ccx-monitoring:
   # by default this sets to release.name-alertmanager
   # change if necessary
   alertmanager_url: &alertmanager_url "http://alertmanager:9093"
-  #change the namespace in webhook config url to trigger email notifications. By default it sets to production namespace
-  webhook_config_url: &webhook_config_url "http://ccx-stores-listener-svc:18097/alert-manager"
 
   victoria-metrics-single:
     #set enabled to false to disable this app
@@ -162,9 +160,6 @@ ccx-monitoring:
       namespaced: true
     server:
       fullnameOverride: victoria-metrics-alert
-      podAnnotations:
-        prometheus.io/scrape: 'true'
-        prometheus.io/port: '8880'
 
       # vmalert reads metrics from source, next section represents its configuration. It can be any service which supports
       # MetricsQL or PromQL.
@@ -177,54 +172,11 @@ ccx-monitoring:
 
       replicaCount: 1
 
-      # vmalert alert rules configuration configuration:
-      # use existing configmap if specified
-      # otherwise .config values will be used
-      config:
-        alerts:
-          groups:
-          - name: Hosts alerts
-            rules:
-            - alert: HostOutOfDiskSpace
-              expr: (node_filesystem_avail_bytes * 100) / node_filesystem_size_bytes < 10 and ON (instance, device, mountpoint) node_filesystem_readonly == 0
-              for: 5m
-              labels:
-                severity: critical
-                alert_category: webhook-alerts
-              annotations:
-                summary: Host out of disk space (instance {{ $labels.instance }})
-                description: "Disk is almost full (< 10% left)\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
-
   alertmanager:
     #set enabled to false to disable this app
     enabled: true
     replicaCount: 1
     fullnameOverride: alertmanager
-
-    config:
-      global:
-        resolve_timeout: 15m
-
-      route:
-        receiver: 'webhook-alerts'
-        routes:
-          - receiver: webhook-alerts
-            group_by: [ClusterName, instance, alertname]
-            matchers:
-              - alert_category="webhook-alerts"
-        repeat_interval: 24h
-
-      receivers:
-        - name: webhook-alerts
-          webhook_configs:
-          - url: *webhook_config_url
-            send_resolved: false
-
-      templates:
-        - '/etc/alertmanager/*.tmpl'
-
-    templates: {}
-    #   alertmanager.tmpl: |-
 
   loki:
     enabled: true
