@@ -37,15 +37,15 @@ dependencies:
     version: 6.26.3
     condition: external-dns.enabled
   - name: mysql-operator
-    version: 2.2.1
+    version: 2.2.2
     repository: https://mysql.github.io/mysql-operator/
     condition: oracle-mysql-operator.enabled
     alias: oracle-mysql-operator
   - name: mysql-innodbcluster
-    version: 2.2.1
+    version: 2.2.2
     repository: https://mysql.github.io/mysql-operator/
     condition: mysql-innodbcluster.enabled
   - name: ccx-monitoring
     repository: https://severalnines.github.io/helm-charts/
-    version: 0.5.3
+    version: 0.5.8
     condition: ccx-monitoring.enabled
