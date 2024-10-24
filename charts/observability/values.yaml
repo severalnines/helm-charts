@@ -8,8 +8,8 @@ victoria_metrics_url: &victoria_metrics_url "http://ccx-monitoring-victoria-metr
 # by default this sets to release.name-alertmanager
 # change if necessary
 alertmanager_url: &alertmanager_url "http://ccx-monitoring-alertmanager:9093"
-#change the namespace in webhook config url to trigger email notifications. By default it sets to production namespace
-webhook_config_url: &webhook_config_url "http://ccx-stores-listener-svc.production.svc:18097/alert-manager"
+#change the namespace in webhook config url to trigger email notifications.
+webhook_config_url: &webhook_config_url "http://ccx-stores-listener-svc:18097/alert-manager"
 
 victoria-metrics-single:
   #set enabled to false to disable this app
@@ -571,6 +571,14 @@ victoria-metrics-alert:
             annotations:
               summary: Container {{ $labels.container }} in Pod {{ $labels.namespace }}/{{ $labels.pod }} restarting more than once times during ten minutes.
               description: "Pod {{ $labels.pod }} restarting more than once during last ten minutes.\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+          - alert: PVCVolumeUsage
+            expr: (kubelet_volume_stats_used_bytes / kubelet_volume_stats_capacity_bytes) > 0.90
+            for: 5m
+            labels:
+              severity: critical
+            annotations:
+              summary: "PVC {{ $labels.persistentvolumeclaim }} on {{ $labels.namespace }} is almost full"
+              description: "PVC {{ $labels.persistentvolumeclaim }} on {{ $labels.namespace }} is using more than 90% of its capacity. Usage: {{ $value | humanizePercentage }}."
 
         - name: Hosts alerts
           rules:
@@ -608,13 +616,13 @@ victoria-metrics-alert:
               description: "Disk is probably writing too much data (> 50 MB/s)\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
           - alert: HostAutoScaleDiskSpaceReached
             expr: (1 - (node_filesystem_avail_bytes{mountpoint ="/data"} / node_filesystem_size_bytes{mountpoint ="/data"})) * 100 > 70
-            for: 5m
+            for: 2m
             labels:
               severity: warning
               alert_category: webhook-alerts
             annotations:
                 summary: "Disk autoscale threshold has been reached on instance {{ $labels.instance }} {{ $value }}%"
-                description: "Disk usage on instance {{ $labels.instance }} is above the autoscale threshold of 70%. Current usage: {{ $value }}%"
+                description: "Disk usage on instance {{ $labels.instance }} is above the autoscale threshold. Current usage: {{ $value }}%"
           # Please add ignored mountpoints in node_exporter parameters like
           # "--collector.filesystem.ignored-mount-points=^/(sys|proc|dev|run)($|/)".
           # Same rule using "node_filesystem_free_bytes" will fire when disk fills for non-root users.
