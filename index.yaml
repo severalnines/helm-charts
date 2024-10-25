@@ -278,6 +278,53 @@ entries:
     version: 1.47.1
   ccx-monitoring:
   - apiVersion: v2
+    appVersion: 0.5.8
+    created: "2024-10-25T07:55:04.119025602Z"
+    dependencies:
+    - condition: victoria-metrics-single.enabled
+      name: victoria-metrics-single
+      repository: https://victoriametrics.github.io/helm-charts/
+      version: 0.9.14
+    - condition: victoria-metrics-alert.enabled
+      name: victoria-metrics-alert
+      repository: https://victoriametrics.github.io/helm-charts/
+      version: 0.8.6
+    - condition: victoria-metrics-agent.enabled
+      name: victoria-metrics-agent
+      repository: https://victoriametrics.github.io/helm-charts/
+      version: 0.9.15
+    - condition: kube-state-metrics.enabled
+      name: kube-state-metrics
+      repository: https://prometheus-community.github.io/helm-charts
+      version: 5.16.0
+    - condition: alertmanager.enabled
+      name: alertmanager
+      repository: https://prometheus-community.github.io/helm-charts
+      version: 1.7.0
+    - condition: grafana.enabled
+      name: grafana
+      repository: https://grafana.github.io/helm-charts
+      version: 7.0.1
+    - condition: loki.enabled
+      name: loki
+      repository: https://grafana.github.io/helm-charts
+      version: 6.5.2
+    - condition: node-exporter.enabled
+      name: prometheus-node-exporter
+      repository: https://prometheus-community.github.io/helm-charts
+      version: 4.23.2
+    - condition: prometheus-blackbox-exporter.enabled
+      name: prometheus-blackbox-exporter
+      repository: https://prometheus-community.github.io/helm-charts
+      version: 8.4.0
+    description: An Umbrella Chart for observability components in CCX
+    digest: 59c6ada1bcf954034b18caf5c58c0e3efdba785053aa5cf89a2153b034fb83c2
+    name: ccx-monitoring
+    type: application
+    urls:
+    - https://github.com/severalnines/helm-charts/releases/download/ccx-monitoring-0.5.8/ccx-monitoring-0.5.8.tgz
+    version: 0.5.8
+  - apiVersion: v2
     appVersion: 0.5.5
     created: "2024-09-27T08:59:53.291796991Z"
     dependencies:
@@ -948,6 +995,34 @@ entries:
   clustercontrol:
   - apiVersion: v2
     appVersion: 2.2.0
+    created: "2024-10-25T07:55:04.341836657Z"
+    dependencies:
+    - condition: installMysqlOperator
+      name: mysql-operator
+      repository: https://mysql.github.io/mysql-operator/
+      version: 2.0.16
+    - condition: createDatabases
+      name: mysql-innodbcluster
+      repository: https://mysql.github.io/mysql-operator/
+      version: 2.0.16
+    - alias: monitoring
+      condition: monitoring.enabled
+      name: victoria-metrics-single
+      repository: https://victoriametrics.github.io/helm-charts/
+      version: 0.9.16
+    - condition: ingressController.enabled
+      name: nginx-ingress-controller
+      repository: https://charts.bitnami.com/bitnami
+      version: 11.1.0
+    description: A ClusterControl Helm Chart for Kubernetes
+    digest: 48736d14f301801b5123f5e262fcc32eaa1849eca8d62f52e2d5b55dd5c8b64c
+    name: clustercontrol
+    type: application
+    urls:
+    - https://github.com/severalnines/helm-charts/releases/download/clustercontrol-2024.10.2/clustercontrol-2024.10.2.tgz
+    version: 2024.10.2
+  - apiVersion: v2
+    appVersion: 2.2.0
     created: "2024-10-04T22:22:53.051430949Z"
     dependencies:
     - condition: installMysqlOperator
@@ -1198,4 +1273,4 @@ entries:
     urls:
     - https://github.com/severalnines/helm-charts/releases/download/clustercontrol-2024.03.1/clustercontrol-2024.03.1.tgz
     version: 2024.03.1
-generated: "2024-10-18T18:11:58.850742648Z"
+generated: "2024-10-25T07:55:04.342283211Z"
