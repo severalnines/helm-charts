@@ -9,11 +9,11 @@ appVersion: "2.2.0"
 
 dependencies:
   - name: mysql-operator
-    version: 2.0.15
+    version: 2.0.16
     repository: https://mysql.github.io/mysql-operator/
     condition: installMysqlOperator
   - name: mysql-innodbcluster
-    version: 2.0.15
+    version: 2.0.16
     repository: https://mysql.github.io/mysql-operator/
     condition: createDatabases
   - name: victoria-metrics-single
