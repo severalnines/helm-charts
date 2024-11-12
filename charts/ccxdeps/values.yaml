@@ -240,6 +240,7 @@ ccx-monitoring:
     gateway:
       ingress:
         enabled: true
+        annotations: {}
         ingressClassName: "nginx"
         hosts:
           - host: *loki_host_url
