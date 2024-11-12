@@ -300,6 +300,53 @@ entries:
     version: 1.47.1
   ccx-monitoring:
   - apiVersion: v2
+    appVersion: 0.5.9
+    created: "2024-11-12T05:01:56.241225852Z"
+    dependencies:
+    - condition: victoria-metrics-single.enabled
+      name: victoria-metrics-single
+      repository: https://victoriametrics.github.io/helm-charts/
+      version: 0.9.14
+    - condition: victoria-metrics-alert.enabled
+      name: victoria-metrics-alert
+      repository: https://victoriametrics.github.io/helm-charts/
+      version: 0.8.6
+    - condition: victoria-metrics-agent.enabled
+      name: victoria-metrics-agent
+      repository: https://victoriametrics.github.io/helm-charts/
+      version: 0.9.15
+    - condition: kube-state-metrics.enabled
+      name: kube-state-metrics
+      repository: https://prometheus-community.github.io/helm-charts
+      version: 5.16.0
+    - condition: alertmanager.enabled
+      name: alertmanager
+      repository: https://prometheus-community.github.io/helm-charts
+      version: 1.7.0
+    - condition: grafana.enabled
+      name: grafana
+      repository: https://grafana.github.io/helm-charts
+      version: 7.0.1
+    - condition: loki.enabled
+      name: loki
+      repository: https://grafana.github.io/helm-charts
+      version: 6.5.2
+    - condition: node-exporter.enabled
+      name: prometheus-node-exporter
+      repository: https://prometheus-community.github.io/helm-charts
+      version: 4.23.2
+    - condition: prometheus-blackbox-exporter.enabled
+      name: prometheus-blackbox-exporter
+      repository: https://prometheus-community.github.io/helm-charts
+      version: 8.4.0
+    description: An Umbrella Chart for observability components in CCX
+    digest: 500bfd37cba9401969e91eccb46370bcad3b754649f6956c200861524d027392
+    name: ccx-monitoring
+    type: application
+    urls:
+    - https://github.com/severalnines/helm-charts/releases/download/ccx-monitoring-0.5.9/ccx-monitoring-0.5.9.tgz
+    version: 0.5.9
+  - apiVersion: v2
     appVersion: 0.5.8
     created: "2024-10-25T07:55:04.119025602Z"
     dependencies:
@@ -535,6 +582,45 @@ entries:
     - https://github.com/severalnines/helm-charts/releases/download/ccx-monitoring-0.5.0/ccx-monitoring-0.5.0.tgz
     version: 0.5.0
   ccxdeps:
+  - apiVersion: v2
+    created: "2024-11-12T05:01:56.516585078Z"
+    dependencies:
+    - condition: installOperators
+      name: postgres-operator
+      repository: https://opensource.zalando.com/postgres-operator/charts/postgres-operator
+      version: 1.11.0
+    - condition: ingressController.enabled
+      name: nginx-ingress-controller
+      repository: https://charts.bitnami.com/bitnami
+      version: 9.3.21
+    - condition: nats.enabled
+      name: nats
+      repository: https://nats-io.github.io/k8s/helm/charts/
+      version: 0.19.16
+    - condition: external-dns.enabled
+      name: external-dns
+      repository: oci://registry-1.docker.io/bitnamicharts
+      version: 6.26.3
+    - alias: oracle-mysql-operator
+      condition: oracle-mysql-operator.enabled
+      name: mysql-operator
+      repository: https://mysql.github.io/mysql-operator/
+      version: 2.2.2
+    - condition: mysql-innodbcluster.enabled
+      name: mysql-innodbcluster
+      repository: https://mysql.github.io/mysql-operator/
+      version: 2.2.2
+    - condition: ccx-monitoring.enabled
+      name: ccx-monitoring
+      repository: https://severalnines.github.io/helm-charts/
+      version: 0.5.8
+    description: A Helm chart for deploying CCX dependencies
+    digest: 86e9eea99fc4f007038b224bc5cbcef7c535c4aafdcad244223ef22ae908308e
+    name: ccxdeps
+    type: application
+    urls:
+    - https://github.com/severalnines/helm-charts/releases/download/ccxdeps-0.6.0/ccxdeps-0.6.0.tgz
+    version: 0.6.0
   - apiVersion: v2
     created: "2024-10-25T07:58:20.809097997Z"
     dependencies:
@@ -1334,4 +1420,4 @@ entries:
     urls:
     - https://github.com/severalnines/helm-charts/releases/download/clustercontrol-2024.03.1/clustercontrol-2024.03.1.tgz
     version: 2024.03.1
-generated: "2024-10-30T09:12:09.206436915Z"
+generated: "2024-11-12T05:01:56.516756348Z"
