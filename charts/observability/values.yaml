@@ -949,7 +949,7 @@ loki:
   gateway:
     ingress:
       enabled: true
-      annotations: 
+      annotations: {}
       hosts:
         - host: loki.local
           paths:
