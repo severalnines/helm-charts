@@ -1,5 +1,9 @@
 ## Default values for ccx.
+## This is a YAML-formatted file.
+## Declare variables to be passed into your templates.
 
+## REQUIRED this is used across the app to identify your instance. Use something like "apple.com" or "fbi.gov".
+sessionDomain: localhost
 ## REQUIRED fqdn of this ccx instance, for example "ccx.example.com".
 ccxFQDN: ccx.localhost
 ## REQUIRED fqdn for cluster control instance provided with this ccx instance.
@@ -8,25 +12,9 @@ ccFQDN: cc.localhost
 crossOrigins:
   #- https://not.ccx.local
 ## host of your prometheus/victoria metrics instance, must be available on port 9090
-prometheusHostname:
+prometheusHostname: ccx-monitoring-victoria-metrics-single-server.victoriametrics
 ## k8s storage class used for PVs across CCX. This is a global variable applied to all PVCs/PVs to simplify things.
 storageClassName:
-
-# shared configuration across all units
-global:
-  # default number of replicas for normal service units - this should be set to more than 1 in a production environment
-  # NB. this does not apply to all units, e.g. some units will be run with a single replica always
-  replicas: 1
-
-## Autoscaling configuration for the ccx
-autoscaling:
-  # datastore storage will be scaled up automatically by adding additional disk and extending logical volume
-  # users needs to enable autoscaling in the CCX UI per datastore
-  storage:
-    enabled: true # set to false to disable
-    threshold: 75 # threshold in percentage, beyond which the storage will be autoscaled
-    percentage: 20 # the percentage by which the storage will be increased
-
 
 ## this section allows to deploy a single default cmon instance in the k8s cluster
 cmon:
@@ -43,7 +31,7 @@ cmon:
     name: cmon
     user: cmon
     password: Super$3cr3t
-  image: severalnines/cmon:2.2.0-10855
+  image: severalnines/cmon:2.2.0-10584
   extra_args: # extra arguments for cmon binary
     - -s
     - -b 0.0.0.0
@@ -54,7 +42,7 @@ cmon:
       cpu: 100m
       memory: 1Gi
   sd:
-    image: severalnines/cmon-sd:build-40
+    image: severalnines/cmon-sd:build-26
     resources:
       requests:
         cpu: 10m
@@ -105,7 +93,7 @@ ccx:
 
   ## default settings for all backend components
   backend:
-    image: europe-docker.pkg.dev/severalnines-public/ccx/ccx-backend:1740
+    image: europe-docker.pkg.dev/severalnines-public/ccx/ccx-backend:1556
 
   ## postgresql server used by all backend components
   db:
@@ -134,14 +122,11 @@ ccx:
 
   ## common environment variables
   env:
-    INIT_HOST_WAIT_CONFIG: "60x15s"
     USE_PUBLIC_IPS: "true"
     ## Change below to set desired TTL on ExternalDNS created records
     EXTERNAL_DNS_TTL: 15
     ## Change below to the current date to trigger the servers upgrade described in "Lifecycle Management". The format is RFC 3339.
     LATEST_SERVER_CONFIG: "2006-01-02T15:04:05Z"
-    ## Frontend Theme
-    FE_THEME: "ccx"
 
   ## common settings for all k8s ingresses
   ingress:
@@ -212,44 +197,43 @@ ccx:
           cpu: 1m
           memory: 5Mi
     deployer:
-      ## Set deployer config to match your infrastructure
-      ## By default aws_vendor is enabled and configured as shown in commented example below
+      ## REQUIRED to set deployer config to match your infrastructure
       config:
-        #aws_vendor:
-        #  regions:
-        #    eu-north-1:
-        #      image_id: ami-05baaef454dd96656
-        #  database_vendors:
-        #    - name: mariadb
-        #      security_groups:
-        #        - cidr: 0.0.0.0/0
-        #          from_port: 1
-        #          ip_protocol: tcp
-        #          to_port: 65535
-        #    - name: microsoft
-        #      security_groups:
-        #        - cidr: 0.0.0.0/0
-        #          from_port: 1
-        #          ip_protocol: tcp
-        #          to_port: 65535
-        #    - name: percona
-        #      security_groups:
-        #        - cidr: 0.0.0.0/0
-        #          from_port: 1
-        #          ip_protocol: tcp
-        #          to_port: 65535
-        #    - name: postgres
-        #      security_groups:
-        #        - cidr: 0.0.0.0/0
-        #          from_port: 1
-        #          ip_protocol: tcp
-        #          to_port: 65535
-        #    - name: redis
-        #      security_groups:
-        #        - cidr: 0.0.0.0/0
-        #          from_port: 1
-        #          ip_protocol: tcp
-        #          to_port: 65535
+        aws_vendor:
+          regions:
+            eu-north-1:
+              image_id: ami-05baaef454dd96656
+          database_vendors:
+            - name: mariadb
+              security_groups:
+                - cidr: 0.0.0.0/0
+                  from_port: 1
+                  ip_protocol: tcp
+                  to_port: 65535
+            - name: microsoft
+              security_groups:
+                - cidr: 0.0.0.0/0
+                  from_port: 1
+                  ip_protocol: tcp
+                  to_port: 65535
+            - name: percona
+              security_groups:
+                - cidr: 0.0.0.0/0
+                  from_port: 1
+                  ip_protocol: tcp
+                  to_port: 65535
+            - name: postgres
+              security_groups:
+                - cidr: 0.0.0.0/0
+                  from_port: 1
+                  ip_protocol: tcp
+                  to_port: 65535
+            - name: redis
+              security_groups:
+                - cidr: 0.0.0.0/0
+                  from_port: 1
+                  ip_protocol: tcp
+                  to_port: 65535
         #openstack_vendors:
         #  vendor_name:
         #    REQUIRED auth_url refers to an URL of the authentication service endpoint.
@@ -295,74 +279,16 @@ ccx:
         #    root_volume:
         #      enabled: true
         #      size: 30
-        # gcp_vendor:
-        #   project: gcp-project # replace with created project name
-        #   image_id: projects/ubuntu-os-cloud/global/images/ubuntu-2204-jammy-v20240614 # replace with the image id
-        #   network: default # replace with the network name if created, otherwise will fallback to default
-        #   s3:
-        #     enabled: true # needed for backups
-        #   regions:
-        #     europe-west1:
-        #       azs:
-        #       - europe-west1-b
-        #       - europe-west1-c
-        #       - europe-west1-d
-        #   database_vendors: # replace `x.x.x.x/x` with the CIDR of the IP address that the CCX cluster will use to access the database nodes.
-        #     - name: mariadb
-        #       security_groups:
-        #         - cidr: x.x.x.x/x
-        #           from_port: 22
-        #           ip_protocol: tcp
-        #           to_port: 22
-        #         - cidr: x.x.x.x/x
-        #           from_port: 1000
-        #           ip_protocol: tcp
-        #           self: true
-        #           to_port: 65535
-        #     - name: microsoft
-        #       security_groups:
-        #         - cidr: x.x.x.x/x
-        #           from_port: 22
-        #           ip_protocol: tcp
-        #           to_port: 22
-        #         - cidr: x.x.x.x/x
-        #           from_port: 1000
-        #           ip_protocol: tcp
-        #           self: true
-        #           to_port: 65535
-        #     - name: percona
-        #       security_groups:
-        #         - cidr: x.x.x.x/x
-        #           from_port: 22
-        #           ip_protocol: tcp
-        #           to_port: 22
-        #         - cidr: x.x.x.x/x
-        #           from_port: 1000
-        #           ip_protocol: tcp
-        #           self: true
-        #           to_port: 65535
-        #     - name: postgres
-        #       security_groups:
-        #         - cidr: x.x.x.x/x
-        #           from_port: 22
-        #           ip_protocol: tcp
-        #           to_port: 22
-        #         - cidr: x.x.x.x/x
-        #           from_port: 1000
-        #           ip_protocol: tcp
-        #           self: true
-        #           to_port: 65535
-        #     - name: redis
-        #       security_groups:
-        #         - cidr: x.x.x.x/x
-        #           from_port: 22
-        #           ip_protocol: tcp
-        #           to_port: 22
-        #         - cidr: x.x.x.x/x
-        #           from_port: 1000
-        #           ip_protocol: tcp
-        #           self: true
-        #           to_port: 65535
+    dispatcher:
+      # please do not try to enable this
+      enabled: false
+      image: europe-docker.pkg.dev/severalnines-public/ccx/ccx-alertmgr-dispatcher:latest
+      env:
+        CCX_SENDER_EMAIL: CHANGE_ME
+      resources:
+        requests:
+          cpu: 1m
+          memory: 5Mi
     hook:
       # please talk to severalnines for information about hooks
       env:
@@ -396,18 +322,6 @@ ccx:
           cpu: 1m
           memory: 5Mi
     notify_worker:
-      email_template: |
-        <h2>{{ .AlertName }}</h2>
-
-        <p>{{ .Summary }}</p>
-        <p>{{ .Description }}</p>
-        <p>Click the link to check on the datastore: <a
-                href="{{ .AppURL }}/projects/default/data-stores/{{ .StoreID }}/overview">{{ .StoreName }}</a>
-        </p>
-        <hr/>
-        <p style="color: gray; font-size: small;">You can change your notification settings <a
-                href="{{ .AppURL }}/projects/default/data-stores/{{ .StoreID }}/settings">here</a>.</p>
-
       env:
         ## to enable/disable all outgoing email
         ENABLE_EMAIL: "false"
@@ -488,20 +402,13 @@ ccx:
           cpu: 1m
           memory: 10Mi
     uiapp:
-      image: europe-docker.pkg.dev/severalnines-public/ccx/ccx-ui-app:276
+      image: europe-docker.pkg.dev/severalnines-public/ccx/ccx-ui-app:build-2863
       resources:
         requests:
           cpu: 1m
           memory: 10Mi
     uiauth:
-      image: europe-docker.pkg.dev/severalnines-public/ccx/ccx-ui-auth:build-38
-      resources:
-        requests:
-          cpu: 1m
-          memory: 5Mi
-    uiadmin:
-      image: europe-docker.pkg.dev/severalnines-public/ccx/ccx-ui-admin:29
-      env:
+      image: europe-docker.pkg.dev/severalnines-public/ccx/ccx-ui-auth:build-33
       resources:
         requests:
           cpu: 1m
@@ -560,7 +467,6 @@ ccx:
     # | postgresql |       11    | postgres_streaming
     # | postgresql |       14    | postgres_streaming
     # | postgresql |       15    | postgres_streaming
-    # | postgresql |       16    | postgres_streaming
     # | redis      |       7     | redis
     #
     databases:
@@ -615,9 +521,9 @@ ccx:
       - code: postgres
         name: PostgreSQL
         versions:
+          - "11"
           - "14"
           - "15"
-          - "16"
         num_nodes:
           - 1
           - 2
@@ -802,72 +708,32 @@ ccx:
     # - "mariadb::10.6" matches all mariadb 10.6
 
     parameters:
-      - name: sql_mode
-        description: "Specifies the sql_mode"
-        type: "text"
-        default_value: "ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION"
-        vendors:
-          - "percona"
-      - name: sql_mode
-        description: "Specifies the sql_mode"
-        type: "text"
-        default_value: "STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION"
-        vendors:
-          - "mariadb"
-      - name: timeout
-        description: Close the connection after a client is idle for N seconds (0 to disable)
-        type: number
-        default_value: 0
-        validation_options: "min=0,max=10800"
-        vendors:
-          - "redis"
-      - name: statement_timeout
-        description: Sets the time to wait (in milliseconds) on a lock before checking for deadlock
-        type: number
-        default_value: 0
-        validation_options: "min=0,max=10800"
-        vendors:
-          - "postgres"
-      - name: group_concat_max_len
-        description: The maximum permitted result length in bytes for the GROUP_CONCAT() function
-        type: "number"
-        default_value: 1024
-        validation_options: "min=1024,max=104857600"
-        vendors:
-          - percona
-          - mariadb
-      - name: table_open_cache
-        description: The number of open tables for all threads
-        type: "number"
-        default_value: 4000
-        validation_options: "min=4000,max=10000"
-        vendors:
-          - percona
-          - mariadb
-      - name: wait_timeout
-        description: The number of seconds the server waits for activity on a noninteractive connection before closing it.
-        type: "number"
-        default_value: 28800
-        validation_options: "min=3000,max=28800"
-        vendors:
-          - percona
-          - mariadb
-      - name: interactive_timeout
-        description: The number of seconds the server waits for activity on an interactive connection before closing it. An interactive client is defined as a client that uses the CLIENT_INTERACTIVE option to mysql_real_connect(). See also wait_timeout.
-        type: "number"
-        default_value: 28800
-        validation_options: "min=3000,max=28800"
-        vendors:
-          - percona
-          - mariadb
-      - name: max_allowed_packet
-        description: The maximum size of one packet or any generated/intermediate string, or any parameter sent by the mysql_stmt_send_long_data() C API function.
-        type: "number"
-        default_value: 536870912
-        validation_options: "min=536870912,max=1073741824"
-        vendors:
-          - percona
-          - mariadb
+    - name: sql_mode
+      description: "Specifies the sql_mode"
+      type: "text"
+      default_value: "ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION"
+      vendors:
+        - "percona"
+    - name: sql_mode
+      description: "Specifies the sql_mode"
+      type: "text"
+      default_value: "STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION"
+      vendors:
+        - "mariadb"
+    - name: timeout
+      description: Close the connection after a client is idle for N seconds (0 to disable)
+      type: number
+      default_value: 0
+      validation_options: "min=0,max=10800"
+      vendors:
+        - "redis"
+    - name: statement_timeout
+      description: Sets the time to wait (in milliseconds) on a lock before checking for deadlock
+      type: number
+      default_value: 0
+      validation_options: "min=0,max=10800"
+      vendors:
+        - "postgres"
 
 fluentbit:
   enabled: false

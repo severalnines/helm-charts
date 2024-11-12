@@ -3,7 +3,7 @@
 OUTPUT_FILE="ccx-logs.tar.gz"
 NAMESPACE=""
 
-services="ccx-admin-service ccx-auth-service ccx-backup-storage ccx-billing-rest-service ccx-billing-service ccx-controller-storage ccx-datastores-maintenance ccx-datastore-storage ccx-datastore-storage-status-update ccx-deployer-service ccx-hook-service ccx-job-storage ccx-monitor-service ccx-notification-service ccx-notify-worker ccx-rbac-service ccx-rest-service ccx-runner-notifications ccx-runner-service ccx-stores-listener ccx-stores-service ccx-stores-worker ccx-ui-app ccx-ui-auth ccx-user ccx-vpc-storage cmon-master cmon-proxy"
+services="ccx-alertmgr-dispatcher ccx-auth-service ccx-backup-storage ccx-billing-service ccx-controller-storage ccx-datastore-storage ccx-datastores-maintenance ccx-deployer-service ccx-hook-service ccx-monitor-service ccx-notify-worker ccx-rest-admin-service ccx-rest-user-service ccx-runner-service ccx-state-worker ccx-stores-listener ccx-stores-service ccx-stores-worker ccx-ui-app ccx-ui-auth ccx-user ccx-vpc-storage cmon-master cmon-proxy"
 
 help() {
     echo "Usage: $0 [-n namespace] [-o output] [-h]"
@@ -56,7 +56,7 @@ kubectl ${NAMESPACE} get statefulset -o wide > ${dir}/k8s.statefulsets.txt 2>&1
 for i in ${services}
 do
     echo Gathering logs for ${i}...
-    kubectl ${NAMESPACE} logs -l app=${i} --all-containers=true --tail=-1 > ${dir}/${i}.log.txt 2>&1
+    kubectl ${NAMESPACE} logs -l app=${i} --timestamps=true --max-log-requests=25 --prefix=true --all-containers=true --tail=-1 > ${dir}/${i}.log.txt 2>&1
 done
 
 echo Gathering s9s info...
@@ -68,7 +68,7 @@ kubectl ${NAMESPACE} exec -ti cmon-master-0 -c cmon-master -- s9s node --list --
 kubectl ${NAMESPACE} exec -ti cmon-master-0 -c cmon-master -- s9s node --list --long --print-json > ${dir}/s9s.node.list.json 2>&1
 
 echo Gathering last 10 failed job logs if any...
-jobs=$(kubectl ${NAMESPACE} exec -ti cmon-master-0 -c cmon-master -- s9s job --list --show-failed --limit=10 | head -n -2 | tail -n +2 | awk '{print $1}')
+jobs=$(kubectl ${NAMESPACE} exec -ti cmon-master-0 -c cmon-master -- s9s job --list --show-failed | grep -v "Total" | tail -n +2 | awk '{print $1}')
 
 for i in ${jobs}
 do
@@ -91,4 +91,3 @@ kill -9 %1 2>/dev/null
 
 echo Done.
 echo Logs available at ${OUTPUT_FILE}
-

@@ -75,6 +75,10 @@ spec:
             - name: {{ $key }}
               value: {{ $val | quote }}
           {{- end }}
+          {{- range $key, $val := .Values.ccx.services.controllerstorage.env }}
+            - name: {{ $key }}
+              value: {{ $val | quote }}
+          {{- end }}
           {{- range $key, $val := .Values.ccx.services.datastorestorage.env }}
             - name: {{ $key }}
               value: {{ $val | quote }}
@@ -131,17 +135,38 @@ spec:
         - name: conf-growfs
           configMap:
             name: ccx-config-growfs
+      {{ if .Values.ccx.services.stores_service.affinity }}
       {{ with .Values.ccx.services.stores_service.affinity }}
       affinity:
         {{ toYaml . | nindent 8 }}
       {{ end }}
+      {{ else }}
+      {{ with .Values.ccx.services.datastorestorage.affinity }}
+      affinity:
+        {{ toYaml . | nindent 8 }}
+      {{ end }}
+      {{ end }}
+      {{ if .Values.ccx.services.stores_service.nodeSelector }}
       {{ with .Values.ccx.services.stores_service.nodeSelector }}
       nodeSelector:
         {{ toYaml . | nindent 8 }}
       {{ end }}
+      {{ else }}
+      {{ with .Values.ccx.services.datastorestorage.nodeSelector }}
+      nodeSelector:
+        {{ toYaml . | nindent 8 }}
+      {{ end }}
+      {{ end }}
+      {{ if .Values.ccx.services.stores_service.tolerations }}
       {{ with .Values.ccx.services.stores_service.tolerations }}
       tolerations:
         {{ toYaml . | nindent 8 }}
+      {{ end }}
+      {{ else }}
+      {{ with .Values.ccx.services.datastorestorage.tolerations }}
+      tolerations:
+        {{ toYaml . | nindent 8 }}
+      {{ end }}
       {{ end }}
 ---
 # service for service
@@ -238,6 +263,22 @@ spec:
             - name: {{ $key }}
               value: {{ $val | quote }}
           {{- end }}
+          {{- range $key, $val := .Values.ccx.services.backupstorage.env }}
+            - name: {{ $key }}
+              value: {{ $val | quote }}
+          {{- end }}
+          {{- range $key, $val := .Values.ccx.services.controllerstorage.env }}
+            - name: {{ $key }}
+              value: {{ $val | quote }}
+          {{- end }}
+          {{- range $key, $val := .Values.ccx.services.datastorestorage.env }}
+            - name: {{ $key }}
+              value: {{ $val | quote }}
+          {{- end }}
+          {{- range $key, $val := .Values.ccx.services.deployer.env }}
+            - name: {{ $key }}
+              value: {{ $val | quote }}
+          {{- end }}
           envFrom:
             - configMapRef:
                 name: ccx
@@ -283,17 +324,38 @@ spec:
         - name: conf-growfs
           configMap:
             name: ccx-config-growfs
+      {{ if .Values.ccx.services.stores_worker.affinity }}
       {{ with .Values.ccx.services.stores_worker.affinity }}
       affinity:
         {{ toYaml . | nindent 8 }}
       {{ end }}
+      {{ else }}
+      {{ with .Values.ccx.services.datastorestorage.affinity }}
+      affinity:
+        {{ toYaml . | nindent 8 }}
+      {{ end }}
+      {{ end }}
+      {{ if .Values.ccx.services.stores_worker.nodeSelector }}
       {{ with .Values.ccx.services.stores_worker.nodeSelector }}
       nodeSelector:
         {{ toYaml . | nindent 8 }}
       {{ end }}
+      {{ else }}
+      {{ with .Values.ccx.services.datastorestorage.nodeSelector }}
+      nodeSelector:
+        {{ toYaml . | nindent 8 }}
+      {{ end }}
+      {{ end }}
+      {{ if .Values.ccx.services.stores_worker.tolerations }}
       {{ with .Values.ccx.services.stores_worker.tolerations }}
       tolerations:
         {{ toYaml . | nindent 8 }}
+      {{ end }}
+      {{ else }}
+      {{ with .Values.ccx.services.datastorestorage.tolerations }}
+      tolerations:
+        {{ toYaml . | nindent 8 }}
+      {{ end }}
       {{ end }}
 ---
 # deployment for listener
@@ -334,15 +396,27 @@ spec:
                   fieldPath: metadata.namespace
             - name: ADDR
               value: "0.0.0.0:18097"
-            - name: PROMETHEUS_URL
-              value: http://{{ include "ccx.prometheusHostname" . }}:9090
-            {{ if .Values.autoscaling.storage.enabled }}
-            - name: AUTOSCALE_STORAGE_THRESHOLD
-              value: {{ .Values.autoscaling.storage.threshold | quote }}
-            - name: AUTOSCALE_STORAGE_PERCENTAGE
-              value: {{ .Values.autoscaling.storage.percentage | quote }}
-            {{ end }}
+          {{- with .Values.cmon.id }}
+            - name: DEFAULT_CONTROLLER_ID
+              value: {{ . }}
+          {{- end }}
           {{- range $key, $val := .Values.ccx.services.stores_listener.env }}
+            - name: {{ $key }}
+              value: {{ $val | quote }}
+          {{- end }}
+          {{- range $key, $val := .Values.ccx.services.backupstorage.env }}
+            - name: {{ $key }}
+              value: {{ $val | quote }}
+          {{- end }}
+          {{- range $key, $val := .Values.ccx.services.controllerstorage.env }}
+            - name: {{ $key }}
+              value: {{ $val | quote }}
+          {{- end }}
+          {{- range $key, $val := .Values.ccx.services.datastorestorage.env }}
+            - name: {{ $key }}
+              value: {{ $val | quote }}
+          {{- end }}
+          {{- range $key, $val := .Values.ccx.services.deployer.env }}
             - name: {{ $key }}
               value: {{ $val | quote }}
           {{- end }}
@@ -364,17 +438,38 @@ spec:
               protocol: TCP
           resources:
             {{- toYaml .Values.ccx.services.stores_listener.resources | nindent 12 }}
+      {{ if .Values.ccx.services.stores_listener.affinity }}
       {{ with .Values.ccx.services.stores_listener.affinity }}
       affinity:
         {{ toYaml . | nindent 8 }}
       {{ end }}
+      {{ else }}
+      {{ with .Values.ccx.services.datastorestorage.affinity }}
+      affinity:
+        {{ toYaml . | nindent 8 }}
+      {{ end }}
+      {{ end }}
+      {{ if .Values.ccx.services.stores_listener.nodeSelector }}
       {{ with .Values.ccx.services.stores_listener.nodeSelector }}
       nodeSelector:
         {{ toYaml . | nindent 8 }}
       {{ end }}
+      {{ else }}
+      {{ with .Values.ccx.services.datastorestorage.nodeSelector }}
+      nodeSelector:
+        {{ toYaml . | nindent 8 }}
+      {{ end }}
+      {{ end }}
+      {{ if .Values.ccx.services.stores_listener.tolerations }}
       {{ with .Values.ccx.services.stores_listener.tolerations }}
       tolerations:
         {{ toYaml . | nindent 8 }}
+      {{ end }}
+      {{ else }}
+      {{ with .Values.ccx.services.datastorestorage.tolerations }}
+      tolerations:
+        {{ toYaml . | nindent 8 }}
+      {{ end }}
       {{ end }}
 ---
 # service for listener

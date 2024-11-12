@@ -6,7 +6,7 @@ metadata:
     app: ccx-billing-service
     run: ccx-billing-service
 spec:
-  replicas: {{ .Values.ccx.services.billing.replicas | default .Values.global.replicas }}
+  replicas: {{ .Values.ccx.services.billing.replicas | default 1 }}
   selector:
     matchLabels:
       app: ccx-billing-service
@@ -25,7 +25,7 @@ spec:
       containers:
         - name: ccx-billing-service
           image: {{ .Values.ccx.services.billing.image | default .Values.ccx.backend.image | required "No image set for billing" }}
-          command: ["/bin/ccx-billing", "serve"]
+          command: ["/bin/ccx-billing-service"]
           env:
           {{- range $key, $val := .Values.ccx.services.billing.env }}
             - name: {{ $key }}
@@ -52,7 +52,7 @@ spec:
           {{ end }}
           ports:
             - name: service
-              containerPort: 20003
+              containerPort: 18077
               protocol: TCP
             - name: metrics
               containerPort: 9090

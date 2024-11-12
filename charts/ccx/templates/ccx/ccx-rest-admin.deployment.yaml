@@ -6,7 +6,7 @@ metadata:
     app: ccx-rest-admin-service
     run: ccx-rest-admin-service
 spec:
-  replicas: {{ .Values.ccx.services.admin.replicas | default .Values.global.replicas }}
+  replicas: {{ .Values.ccx.services.admin.replicas | default 1 }}
   selector:
     matchLabels:
       app: ccx-rest-admin-service
