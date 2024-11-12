@@ -6,7 +6,7 @@ metadata:
     app: ccx-ui-app
     run: ccx-ui-app
 spec:
-  replicas: {{ .Values.ccx.services.uiapp.replicas | default .Values.global.replicas }}
+  replicas: {{ .Values.ccx.services.uiapp.replicas | default 1 }}
   selector:
     matchLabels:
       app: ccx-ui-app
@@ -29,14 +29,8 @@ spec:
             - name: {{ $key }}
               value: {{ $val | quote }}
           {{- end }}
-          {{ if .Values.autoscaling.storage.enabled }}
-            - name: FE_AUTOSCALE_STORAGE_THRESHOLD
-              value: {{ .Values.autoscaling.storage.threshold | quote }}
-            - name: FE_AUTOSCALE_STORAGE_PERCENTAGE
-              value: {{ .Values.autoscaling.storage.percentage | quote }}
-          {{ end }}
             - name: FE_BASE_DOMAIN
-              value: {{ include "ccx.ccxFQDN" . }}
+              value: {{ include "ccx.sessionDomain" . }}
           ports:
             - name: service
               containerPort: 8080
