@@ -263,7 +263,7 @@ ccx-monitoring:
 
 keycloak:
   fullnameOverride: "keycloak"
-  enabled: true
+  enabled: false
   httpRelativePath: /keycloak/
   proxyHeaders: "xforwarded"
   auth:
@@ -279,4 +279,4 @@ keycloak:
     existingSecretPasswordKey: password
   resources:
     requests:
-      memory: 512Mi
+      memory: 100Mi
