@@ -240,6 +240,7 @@ ccx-monitoring:
     gateway:
       ingress:
         enabled: true
+        annotations: {}
         ingressClassName: "nginx"
         hosts:
           - host: *loki_host_url
@@ -259,3 +260,23 @@ ccx-monitoring:
     enabled: false
   kube-state-metrics:
     enabled: false
+
+keycloak:
+  fullnameOverride: "keycloak"
+  enabled: true
+  httpRelativePath: /keycloak/
+  proxyHeaders: "xforwarded"
+  auth:
+    adminPassword: Super$3cr3t
+  postgresql:
+    enabled: false
+  externalDatabase:
+    host: "acid-ccx"
+    port: 5432
+    user: ccx
+    database: ccx_keycloak
+    existingSecret: ccx.acid-ccx.credentials.postgresql.acid.zalan.do
+    existingSecretPasswordKey: password
+  resources:
+    requests:
+      memory: 512Mi
