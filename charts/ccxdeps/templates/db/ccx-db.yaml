@@ -30,6 +30,7 @@ spec:
     ccx_vpc: ccx
     ccx_stores: ccx
     ccx_cloud: ccx
+    ccx_keycloak: ccx
 
   patroni:
     initdb:

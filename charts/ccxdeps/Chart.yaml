@@ -16,7 +16,8 @@ type: application
 # to the chart and its templates, including the app version.
 # Versions are expected to follow Semantic Versioning (https://semver.org/)
 
-version: 0.6.0
+
+version: 0.6.3
 
 
 dependencies:
@@ -47,5 +48,10 @@ dependencies:
     condition: mysql-innodbcluster.enabled
   - name: ccx-monitoring
     repository: https://severalnines.github.io/helm-charts/
-    version: 0.5.8
+    version: 0.5.9
     condition: ccx-monitoring.enabled
+  - name: keycloak
+    repository: oci://registry-1.docker.io/bitnamicharts
+    version: 24.1.0
+    condition: keycloak.enabled
+
