@@ -1,0 +1,15 @@
+dependencies:
+- name: mysql-operator
+  repository: https://mysql.github.io/mysql-operator/
+  version: 2.0.16
+- name: mysql-innodbcluster
+  repository: https://mysql.github.io/mysql-operator/
+  version: 2.0.16
+- name: victoria-metrics-single
+  repository: https://victoriametrics.github.io/helm-charts/
+  version: 0.9.16
+- name: nginx-ingress-controller
+  repository: https://charts.bitnami.com/bitnami
+  version: 11.1.0
+digest: sha256:5968e3a6aa7d2b5940aa1fe54a794c5db0d2d09311158a7f3d85876d568e5dd2
+generated: "2024-11-26T12:44:59.56963+01:00"
