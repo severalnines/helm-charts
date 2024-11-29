@@ -164,3 +164,45 @@ Create the name of the service account to use
 {{- $secretData := (get $secretObj "data") | default dict }}
 {{- or (get $secretData "ADMIN_USERS" | b64dec) (printf "%s:%s" (include "ccx.admin.email" .) (include "ccx.admin.password" .)) }}
 {{- end -}}
+
+{{- define "ccx.cidr" -}}
+{{ $cidrList := list }}
+{{- if .Values.ccx.cidr }}
+{{ $cidrList = append $cidrList .Values.ccx.cidr }}
+{{- else }}
+{{- $nodes := lookup "v1" "Node" "" "" -}}
+{{- $found := false -}}
+{{- if $nodes.items -}}
+{{- range $node := $nodes.items }}
+  {{- $addresses := $node.status.addresses -}}
+  {{- range $address := $addresses }}
+    {{- if eq $address.type "ExternalIP" }}
+      {{- $found = true -}}
+      {{ $cidrList = append $cidrList (printf "%s/32" $address.address) }}
+    {{- end }}
+  {{- end }}
+{{- end }}
+{{- end }}
+{{- if not $found }}
+{{ $cidrList = append $cidrList "0.0.0.0/0" }}
+{{- end }}
+{{- end }}
+{{ toJson $cidrList }}
+{{- end }}
+
+{{- define "ccx.checkSecrets" -}}
+{{- $cloudSecrets := .Values.ccx.cloudSecrets -}}
+{{- $allSecretsExist := true -}}
+{{- if $cloudSecrets }}
+  {{- range $secret := $cloudSecrets }}
+    {{- $lookupResult := lookup "v1" "Secret" $.Release.Namespace $secret -}}
+    {{- if not $lookupResult }}
+      {{- $allSecretsExist = false -}}
+      {{- fail (printf "Missing secret defined in .Values.ccx.cloudSecrets - %s" $secret ) }}
+    {{- end }}
+  {{- end }}
+{{- else }}
+  {{- fail "No secrets defined in .Values.ccx.cloudSecrets" }}
+{{- end }}
+{{- $allSecretsExist -}}
+{{- end }}
