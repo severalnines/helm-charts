@@ -32,34 +32,54 @@ data:
         database_vendors:
           - name: mariadb
             security_groups:
-              - cidr: 0.0.0.0/0
+            {{- with include "ccx.cidr" . | fromJsonArray }}
+            {{- range . }}
+              - cidr: {{ . }}
                 from_port: 1
                 ip_protocol: tcp
                 to_port: 65535
+            {{- end }}
+            {{- end }}
           - name: microsoft
             security_groups:
-              - cidr: 0.0.0.0/0
+            {{- with include "ccx.cidr" . | fromJsonArray }}
+            {{- range . }}
+              - cidr: {{ . }}
                 from_port: 1
                 ip_protocol: tcp
                 to_port: 65535
+            {{- end }}
+            {{- end }}
           - name: percona
             security_groups:
-              - cidr: 0.0.0.0/0
+            {{- with include "ccx.cidr" . | fromJsonArray }}
+            {{- range . }}
+              - cidr: {{ . }}
                 from_port: 1
                 ip_protocol: tcp
                 to_port: 65535
+            {{- end }}
+            {{- end }}
           - name: postgres
             security_groups:
-              - cidr: 0.0.0.0/0
+            {{- with include "ccx.cidr" . | fromJsonArray }}
+            {{- range . }}
+              - cidr: {{ . }}
                 from_port: 1
                 ip_protocol: tcp
                 to_port: 65535
+            {{- end }}
+            {{- end }}
           - name: redis
             security_groups:
-              - cidr: 0.0.0.0/0
+            {{- with include "ccx.cidr" . | fromJsonArray }}
+            {{- range . }}
+              - cidr: {{ . }}
                 from_port: 1
                 ip_protocol: tcp
                 to_port: 65535
+            {{- end }}
+            {{- end }}
       {{- end }}
       copy_files:
         - target: "/home/ubuntu/ccx_growfs"

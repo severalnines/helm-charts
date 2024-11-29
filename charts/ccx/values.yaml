@@ -72,6 +72,10 @@ cmon:
 
 ## this section is for configuring specifics of the CCX system
 ccx:
+  ## REQUIRED: list of k8s secrets containing cloud credentials
+  cloudSecrets:
+    - aws
+
   ## affiliation allows enabling custom functionality for a customer, if applicable
   affiliation: ccx
 
@@ -90,10 +94,6 @@ ccx:
   ## where to send user feedback emails
   emailFeedback: ""
 
-  ## REQUIRED: list of k8s secrets containing cloud credentials
-  ## Technically, CCX will start with this empty, however, you won't be able to deploy anything
-  cloudSecrets: []
-
   ## do not enable these
   preferNewStores: false
   migrateStores: false
@@ -105,7 +105,7 @@ ccx:
 
   ## default settings for all backend components
   backend:
-    image: europe-docker.pkg.dev/severalnines-public/ccx/ccx-backend:1877
+    image: europe-docker.pkg.dev/severalnines-public/ccx/ccx-backend:1964
 
   ## postgresql server used by all backend components
   db:
@@ -160,6 +160,8 @@ ccx:
   ## allowing DNS records to be created automatically.
   ## However, if you have configured your roles externaly, you can set this to false.
   createRBAC: true
+
+  cidr: # the OUTBOUND IP/MASK address of the CCX instance
 
   ## individual configuration for k8s units
   ## please talk to severalnines about these settings

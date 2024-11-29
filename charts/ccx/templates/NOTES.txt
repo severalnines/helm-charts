@@ -8,14 +8,33 @@
 
 3. ClusterControl V2 can be accessed on https://{{ .Values.ccFQDN }} 
 
+{{ if and (not .Values.ccx.services.deployer.config) (not .Values.ccx.cidr) }}
+***********************************WARNING*********************************************
+                         Using default AWS config.
+            This setup is for demo and development purposes ONLY! 
+
+Allowing {{ include "ccx.cidr" . | fromJsonArray }} on default AWS Security Groups.
+You can override above CIDR by setting 
+```
+ccx:
+  cidr: 1.1.1.1/24
+```
+in your values.yaml or adding it directly to your helm command
+
+--set ccx.cidr=1.1.1.1/32
+
+We recommend that you follow your selected cloud provider config here - https://severalnines.github.io/ccx-docs/docs/admin/Installation/Cloud-Providers/
+
+***************************************************************************************
+{{ end }}
+
 {{ if not .Values.ccx.cloudSecrets }}
 ***********************************WARNING*********************************************
 It seems that you DO NOT have any Cloud secrets set!
 .Values.ccx.cloudSecrets is empty!
 Please make sure to create a k8s secret matching your configuration (AWS by default).
 Set it in `ccx.cloudSecrets` value.
-Check `secrets-template.yaml` on how to create one and how it should look like.
-You can still access CCX and CC, however you won't be able to create any datastores!
+Please see https://severalnines.github.io/ccx-docs/docs/admin/Installation/#providing-cloud-credentials on how to do that.
+You can still access CCX however, you won't be able to create any datastores!
 ***************************************************************************************
-
 {{ end }}
