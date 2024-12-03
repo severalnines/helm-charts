@@ -38,6 +38,7 @@ data:
                 from_port: 1
                 ip_protocol: tcp
                 to_port: 65535
+                self: true
             {{- end }}
             {{- end }}
           - name: microsoft
@@ -48,6 +49,7 @@ data:
                 from_port: 1
                 ip_protocol: tcp
                 to_port: 65535
+                self: true
             {{- end }}
             {{- end }}
           - name: percona
@@ -58,6 +60,7 @@ data:
                 from_port: 1
                 ip_protocol: tcp
                 to_port: 65535
+                self: true
             {{- end }}
             {{- end }}
           - name: postgres
@@ -68,6 +71,7 @@ data:
                 from_port: 1
                 ip_protocol: tcp
                 to_port: 65535
+                self: true
             {{- end }}
             {{- end }}
           - name: redis
@@ -78,6 +82,7 @@ data:
                 from_port: 1
                 ip_protocol: tcp
                 to_port: 65535
+                self: true
             {{- end }}
             {{- end }}
       {{- end }}
