@@ -819,14 +819,15 @@ alertmanager:
     route:
       receiver: 'slack-notifications'
       routes:
-        - receiver: slack-notifications
         - receiver: webhook-alerts
           group_by: [ClusterName, instance, alertname]
           group_interval: 1m
           repeat_interval: 10m
           group_wait: 30s
+          continue: true
           matchers:
             - alert_category="webhook-alerts"
+        - receiver: slack-notifications
       repeat_interval: 24h
 
     receivers:

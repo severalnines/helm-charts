@@ -5,8 +5,8 @@ description: An Umbrella Chart for observability components in CCX
 type: application
 
 ## version
-version: 0.5.9
-appVersion: "0.5.9"
+version: 0.6.0
+appVersion: "0.6.0"
 
 dependencies:
   - name: victoria-metrics-single
