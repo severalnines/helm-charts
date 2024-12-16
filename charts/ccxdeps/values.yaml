@@ -237,20 +237,6 @@ ccx-monitoring:
       enabled: false
     lokiCanary:
       enabled: false
-    gateway:
-      ingress:
-        enabled: true
-        annotations: {}
-        ingressClassName: "nginx"
-        hosts:
-          - host: *loki_host_url
-            paths:
-              - path: /
-                pathType: Prefix
-        tls:
-          - secretName: loki-gateway-tls
-            hosts:
-              - *loki_host_url
 
   grafana:
     enabled: false
