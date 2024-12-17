@@ -95,19 +95,23 @@ data:
           source: "/conf/fluent-bit.conf"
           owner: "root:root"
           perms: "0644"
+        - target: "/etc/fluent-bit/parsers-multiline.conf"
+          source: "/conf/parsers-multiline.conf"
+          owner: "root:root"
+          perms: "0644"
       {{- end }}
-{{- if .Values.fluentbit.enabled }}
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: ccx-config-fluentbit
-data:
-  # fluent bit config
-  {{- $fluentbit_conf := .Values.fluentbit.config | default (printf "%v" (.Files.Get "files/fluent-bit.conf")) }}
-  fluent-bit.conf: |
-{{ $fluentbit_conf | indent 4 }}
-{{- end }}
+      {{- if and .Values.fluentbit.enabled .Values.fluentbit.extraOutputConfig }}
+        - target: "/etc/fluent-bit/extra_output.conf"
+          source: "/conf/extra_output.conf"
+          owner: "root:root"
+          perms: "0644"
+      {{- end }}
+      {{- range .Values.ccx.services.deployer.extraCopyFiles }}
+        - target: {{ .target }}
+          source: {{ .source }}
+          owner: {{ .owner }}
+          perms: {{ .perms }}
+      {{- end }}
 ---
 apiVersion: v1
 kind: ConfigMap

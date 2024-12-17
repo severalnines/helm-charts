@@ -17,8 +17,6 @@ data:
   NATS_SERVER: {{ .Values.ccx.nats.server | default "ccx-nats" | quote }}
   NATS_CLUSTER_ID: {{ .Values.ccx.nats.clusterID | default "test-cluster" | quote }}
   GIN_MODE: release
-  CCX_BILLING_NETWORK: "true"
-  CCX_BILLING_STORAGE: "true"
   # billing service and billing updater
   {{- if .Values.ccx.services.billing.stripe }}
   BILLING_IMPLIED_SUBSCRIPTION: "0"
@@ -38,3 +36,6 @@ data:
   {{- if .Values.ccx.useK8sSecrets }}
   SECRETS_USE_K8S: "true"
   {{- end }}
+  INGRESS_HOST: {{ include "ccx.ccxFQDN" . }}
+  INGRESS_SECRETNAME: {{ .Values.ccx.ingress.ssl.secretName | default "ccx-ingress-cert" }}
+  INGRESS_CLASSNAME: {{ .Values.ccx.ingress.ingressClassName | default "nginx" }}

@@ -1,0 +1,139 @@
+{{- if .Values.fluentbit.enabled -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ccx-configmap-fluentbit
+data:
+{{ include "ccx.checkFluentBitConfig" . }}
+  fluent-bit.conf: |
+    [SERVICE]
+        Flush                     5
+        Log_Level                 info
+        Daemon                    off
+        Parsers_File              parsers-multiline.conf
+        HTTP_Server               On
+        HTTP_Listen               0.0.0.0
+        HTTP_Port                 2020
+        storage.path              /var/fluent-bit/state/flb-storage/
+        storage.sync              normal
+        storage.checksum          off
+        storage.backlog.mem_limit 5M
+
+    [INPUT]
+        Name                tail
+        Tag                 ccx.mysql
+        Path                /var/log/mysql/mysqld.log, /var/log/mysql/error.log
+        DB                  /var/fluent-bit/state/flb_mysql.db
+        Mem_Buf_Limit       5MB
+        Skip_Long_Lines     On
+        Refresh_Interval    10
+        Read_from_Head      false
+        Path_Key            log_path
+
+    [INPUT]
+        Name                tail
+        Tag                 slowquery
+        Path                /var/log/mysql/mysql-slow.log
+        DB                  /var/fluent-bit/state/flb_mysql_slow.db
+        multiline.parser    mysql_slow_query
+        Mem_Buf_Limit       5MB
+        Buffer_Chunk_Size   512KB
+        Buffer_Max_Size     5MB
+        Skip_Long_Lines     On
+        Refresh_Interval    10
+        Read_from_Head      false
+        Path_Key            log_path
+
+    [INPUT]
+        Name                tail
+        Tag                 cloudinitlog
+        Path                /var/log/cloud-init-output.log
+        DB                  /var/fluent-bit/state/flb_system.db
+        Mem_Buf_Limit       5MB
+        Skip_Long_Lines     On
+        Refresh_Interval    10
+        Read_from_Head      false
+        Path_Key            log_path
+
+    [INPUT]
+        Name                tail
+        Tag                 systemdlog
+        Path                /var/log/syslog
+        DB                  /var/fluent-bit/state/flb_systemd.db
+        Mem_Buf_Limit       5MB
+        Skip_Long_Lines     On
+        Refresh_Interval    10
+        Read_from_Head      false
+        Path_Key            log_path
+
+    [INPUT]
+        Name                tail
+        Tag                 ccx.pg
+        Path                /var/log/postgresql/postgresql-11-main.log, /var/log/postgresql/postgresql-14-main.log, /var/log/postgresql/postgresql-15-main.log, /var/log/postgresql/postgresql-16-main.log, /data/postgres/log/postgresql-*.log
+        DB                  /var/fluent-bit/state/flb_pg.db
+        Mem_Buf_Limit       5MB
+        Skip_Long_Lines     On
+        Refresh_Interval    10
+        Read_from_Head      false
+        Path_Key            log_path
+
+    [INPUT]
+        Name                tail
+        Tag                 ccx.redis
+        Path                /var/log/redis/redis-server.log, /var/log/redis/redis-sentinel.log
+        DB                  /var/fluent-bit/state/flb_redis.db
+        Mem_Buf_Limit       5MB
+        Skip_Long_Lines     On
+        Refresh_Interval    10
+        Read_from_Head      false
+        Path_Key            log_path
+
+    [INPUT]
+        Name                tail
+        Tag                 ccx.mssql
+        Path                /var/opt/mssql/log/errorlog
+        DB                  /var/fluent-bit/state/flb_redis.db
+        Mem_Buf_Limit       5MB
+        Skip_Long_Lines     On
+        Refresh_Interval    10
+        Read_from_Head      false
+        Path_Key            log_path
+
+    [FILTER]
+        Name record_modifier
+        Match *
+        Record hostname ${HOSTNAME}
+        Record datastoreid ${CLUSTER_UUID}
+
+    [OUTPUT]
+        Name        loki
+        Match       *
+        Host        {{ .Values.fluentbit.host }}
+        port        {{ .Values.fluentbit.port | default 443 }}
+        tenant_id   ccx
+        labels      job="fluent-bit"
+        label_keys  $log_path, $hostname, $datastoreid
+        line_format json
+        tls         on
+        tls.verify  off
+    {{- if .Values.fluentbit.extraOutputConfig }}
+    @INCLUDE extra_output.conf
+    {{- end }}
+  parsers-multiline.conf: |
+    [MULTILINE_PARSER]
+        name          mysql_slow_query
+        type          regex
+        flush_timeout 1000
+        rule      "start_state" "/^SET timestamp=/" "cont"
+        rule      "cont" "/^#/" "cont"
+        rule      "cont" "/^SELECT/" "cont"
+        rule      "cont" "/^$/"
+  {{- with .Values.fluentbit.extraOutputConfig }}
+  extra-output.conf: |
+    {{ . | nindent 4 }}
+  {{- end }}
+  {{- with .Values.fluentbit.extraSecretMounts }}
+  credentials: |
+    {{ . | nindent 4 }}
+  {{- end }}
+{{- end }}
