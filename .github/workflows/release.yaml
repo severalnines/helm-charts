@@ -1,6 +1,11 @@
 name: Release Charts
 
 on:
+  push:
+    paths:
+      - '**/Chart.yaml'
+    branches:
+      - main
   workflow_dispatch:
 
 jobs:
