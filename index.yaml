@@ -2,6 +2,17 @@ apiVersion: v1
 entries:
   ccx:
   - apiVersion: v2
+    appVersion: 1.51.0
+    created: "2024-12-19T07:50:30.233672846Z"
+    description: A Helm chart for CCX
+    digest: de6e5a0670e36f0096e29cbafcb3d2031f01f10a92d4578b847eaea9659dccaa
+    icon: https://st.s9s.io/ccx/logo/ccx-purple.svg
+    name: ccx
+    type: application
+    urls:
+    - https://github.com/severalnines/helm-charts/releases/download/ccx-1.51.0/ccx-1.51.0.tgz
+    version: 1.51.0
+  - apiVersion: v2
     appVersion: 1.50.9
     created: "2024-12-16T14:48:21.975949719Z"
     description: A Helm chart for CCX
@@ -684,6 +695,49 @@ entries:
     - https://github.com/severalnines/helm-charts/releases/download/ccx-monitoring-0.5.0/ccx-monitoring-0.5.0.tgz
     version: 0.5.0
   ccxdeps:
+  - apiVersion: v2
+    created: "2024-12-19T07:50:30.492176553Z"
+    dependencies:
+    - condition: installOperators
+      name: postgres-operator
+      repository: https://opensource.zalando.com/postgres-operator/charts/postgres-operator
+      version: 1.11.0
+    - condition: ingressController.enabled
+      name: nginx-ingress-controller
+      repository: https://charts.bitnami.com/bitnami
+      version: 9.3.21
+    - condition: nats.enabled
+      name: nats
+      repository: https://nats-io.github.io/k8s/helm/charts/
+      version: 0.19.16
+    - condition: external-dns.enabled
+      name: external-dns
+      repository: oci://registry-1.docker.io/bitnamicharts
+      version: 6.26.3
+    - alias: oracle-mysql-operator
+      condition: oracle-mysql-operator.enabled
+      name: mysql-operator
+      repository: https://mysql.github.io/mysql-operator/
+      version: 2.2.2
+    - condition: mysql-innodbcluster.enabled
+      name: mysql-innodbcluster
+      repository: https://mysql.github.io/mysql-operator/
+      version: 2.2.2
+    - condition: ccx-monitoring.enabled
+      name: ccx-monitoring
+      repository: https://severalnines.github.io/helm-charts/
+      version: 0.6.0
+    - condition: keycloak.enabled
+      name: keycloak
+      repository: oci://registry-1.docker.io/bitnamicharts
+      version: 24.1.0
+    description: A Helm chart for deploying CCX dependencies
+    digest: fbdbb31c143d52a3d3d2f0646cdf15b5314c4e69c92cd3ea72508f9c73497568
+    name: ccxdeps
+    type: application
+    urls:
+    - https://github.com/severalnines/helm-charts/releases/download/ccxdeps-0.6.5/ccxdeps-0.6.5.tgz
+    version: 0.6.5
   - apiVersion: v2
     created: "2024-11-26T14:57:14.182091457Z"
     dependencies:
@@ -1593,4 +1647,4 @@ entries:
     urls:
     - https://github.com/severalnines/helm-charts/releases/download/clustercontrol-2024.03.1/clustercontrol-2024.03.1.tgz
     version: 2024.03.1
-generated: "2024-12-16T14:48:21.976221156Z"
+generated: "2024-12-19T07:50:30.4926619Z"
