@@ -1,15 +1,3 @@
-secgroups: &secgroups
-  security_groups:
-    - cidr: ip_of_k8s_nodes_where_ccx_is_runnig/32
-      from_port: 22
-      ip_protocol: tcp
-      to_port: 22
-    - cidr: ip_of_k8s_nodes_where_ccx_is_runnig/32
-      from_port: 1000
-      ip_protocol: tcp
-      self: true
-      to_port: 65535
-
 sessionDomain: ccx.mycloud.com
 ccxFQDN: ccx.mycloud.com
 ccx:
@@ -67,12 +55,52 @@ ccx:
             zone: "00000000-0000-0000-0000-000000000000"
             database_vendors:
               - name: mariadb
-                <<: *secgroups
+                security_groups:
+                  - cidr: cmon_ip/32
+                    from_port: 22
+                    ip_protocol: tcp
+                    to_port: 22
+                  - cidr: cmon_ip/32
+                    from_port: 1000
+                    ip_protocol: tcp
+                    to_port: 65535
               - name: microsoft
-                <<: *secgroups
+                security_groups:
+                  - cidr: cmon_ip/32
+                    from_port: 22
+                    ip_protocol: tcp
+                    to_port: 22
+                  - cidr: cmon_ip/32
+                    from_port: 1000
+                    ip_protocol: tcp
+                    to_port: 65535
               - name: percona
-                <<: *secgroups
+                security_groups:
+                  - cidr: cmon_ip/32
+                    from_port: 22
+                    ip_protocol: tcp
+                    to_port: 22
+                  - cidr: cmon_ip/32
+                    from_port: 1000
+                    ip_protocol: tcp
+                    to_port: 65535
               - name: postgres
-                <<: *secgroups
+                security_groups:
+                  - cidr: cmon_ip/32
+                    from_port: 22
+                    ip_protocol: tcp
+                    to_port: 22
+                  - cidr: 37.30.16.41/32
+                    from_port: 1000
+                    ip_protocol: tcp
+                    to_port: 65535
               - name: redis
-                <<: *secgroups
+                security_groups:
+                  - cidr: cmon_ip/32
+                    from_port: 22
+                    ip_protocol: tcp
+                    to_port: 22
+                  - cidr: cmon_ip/32
+                    from_port: 1000
+                    ip_protocol: tcp
+                    to_port: 65535

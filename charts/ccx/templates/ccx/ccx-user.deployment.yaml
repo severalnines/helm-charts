@@ -31,13 +31,6 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.namespace
-            {{ if (include "checkKeycloakServiceExists" . | eq "true") }}
-            - name: KEYCLOAK_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: keycloak
-                  key: admin-password
-            {{ end }}
           {{- range $key, $val := .Values.ccx.services.auth.env }}
             - name: {{ $key }}
               value: {{ $val | quote }}

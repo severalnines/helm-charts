@@ -138,36 +138,15 @@ Create the name of the service account to use
 {{- end }}
 {{- end }}
 
-{{- define "ccx.checkFluentBitConfig" -}}
-{{- if and .Values.fluentbit.enabled (not .Values.fluentbit.hostSet) }}
-  {{- if not .Values.fluentbit.host }}
-    {{- $_ := set .Values.fluentbit "host" (printf "%s" (include "ccx.ccxFQDN" .)) }}
-    {{- $_ := set .Values.fluentbit "hostSet" true }}
-  {{- else if ne .Values.fluentbit.host "loki.local" }}
-    {{- $_ := set .Values.fluentbit "hostSet" true }}
-  {{- else }}
-    {{- $_ := set .Values.fluentbit "host" (printf "%s" (include "ccx.ccxFQDN" .)) }}
-  {{- end }}
-{{- end }}
-{{- end }}
-
-{{- define "checkKeycloakServiceExists" -}}
-{{- $keycloak := (lookup "v1" "Service" .Release.Namespace "keycloak") }}
-{{- if $keycloak }}
-{{- "true" }}
-{{- else -}}
-{{- "false" }}
-{{- end -}}
-{{- end -}}
 
 {{- define "ccx.services.admin.basicauth.username" -}}
-{{- $secretObj := (lookup "v1" "Secret" .Release.Namespace "admin-basic-auth") | default dict }}
+{{- $secretObj := (lookup "v1" "Secret" .Release.Namespace "admin-basicauth") | default dict }}
 {{- $secretData := (get $secretObj "data") | default dict }}
 {{- or (get $secretData "ADMIN_AUTH_USERNAME" | b64dec) .Values.ccx.services.admin.basicauth.username | default "admin" }}
 {{- end -}}
 
 {{- define "ccx.services.admin.basicauth.password" -}}
-{{- $secretObj := (lookup "v1" "Secret" .Release.Namespace "admin-basic-auth") | default dict }}
+{{- $secretObj := (lookup "v1" "Secret" .Release.Namespace "admin-basicauth") | default dict }}
 {{- $secretData := (get $secretObj "data") | default dict }}
 {{- or (get $secretData "ADMIN_AUTH_PASSWORD" | b64dec) .Values.ccx.services.admin.basicauth.password | default (randAlphaNum 16) }}
 {{- end -}}

@@ -27,13 +27,6 @@ spec:
           image: {{ .Values.ccx.services.auth.image | default .Values.ccx.backend.image | required "No image set for auth" }}
           command: ["/bin/ccx-auth-service"]
           env:
-            {{ if (include "checkKeycloakServiceExists" . | eq "true") }}
-            - name: KEYCLOAK_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: keycloak
-                  key: admin-password
-            {{ end }}
           {{- range $key, $val := .Values.ccx.services.auth.env }}
             - name: {{ $key }}
               value: {{ $val | quote }}

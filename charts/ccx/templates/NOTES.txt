@@ -38,24 +38,3 @@ Please see https://severalnines.github.io/ccx-docs/docs/admin/Installation/#prov
 You can still access CCX however, you won't be able to create any datastores!
 ***************************************************************************************
 {{ end }}
-
-{{- if .Values.fluentbit.enabled }}
-  {{- if eq .Values.fluentbit.host (include "ccx.ccxFQDN" .) }}
-    {{- $service := lookup "v1" "Service" .Release.Namespace "ccxdeps-loki-gateway" -}}
-    {{- if not $service }}
-***********************************WARNING***************************************************************
-                  Service 'ccxdeps-loki-gateway' was not found!
-
-Please ensure you have updated and deployed ccxdeps else logging feature will be disabled for you.
-*********************************************************************************************************
-    {{- end }}
-  {{- end }}
-{{- end }}
-
-{{- if (include "checkKeycloakServiceExists" . | eq "false") }}
-***********************************WARNING***************************************************************
-                        Service 'keycloak' was not found!
-
-Please ensure you have updated and deployed ccxdeps else 'SSO' feature will be disabled for you.
-*********************************************************************************************************
-{{- end }}
