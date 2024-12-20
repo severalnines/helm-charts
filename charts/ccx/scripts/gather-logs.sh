@@ -93,4 +93,3 @@ kill -9 %1 2>/dev/null
 
 echo Done.
 echo Logs available at ${OUTPUT_FILE}
-

@@ -21,7 +21,6 @@ spec:
         prometheus.io/port: "9090"
         checksum: {{ include (print $.Template.BasePath "/ccx/secrets.yaml") . | sha256sum }}
         checksum/config: {{ include (print $.Template.BasePath "/ccx/config.yaml") . | sha256sum }}
-        checksum/fluentbit: {{ include (print $.Template.BasePath "/ccx/ccx-fluentbit-config.yaml") . | sha256sum }}
     spec:
       initContainers:
         - name: ccx-stores-init
@@ -37,17 +36,6 @@ spec:
           env:
             - name: CONFIG_FILE
               value: "/conf/ccx.yaml"
-            - name: INGRESS_ANNOTATIONS
-              value: |
-                {{- $annotations := dict }}
-                {{- if .Values.ccx.ingress.ssl.clusterIssuer }}
-                {{- $_ := set $annotations "kubernetes.io/tls-acme" "true" }}
-                {{- $_ := set $annotations "cert-manager.io/cluster-issuer" .Values.ccx.ingress.ssl.clusterIssuer }}
-                {{- end }}
-                {{- with .Values.ccx.ingress.annotations }}
-                {{- $_ := merge $annotations . }}
-                {{- end }}
-                {{ $annotations | toJson }}
             - name: POD_NAME
               valueFrom:
                 fieldRef:
@@ -125,23 +113,10 @@ spec:
             - name: conf-fluentbit
               mountPath: "/conf/fluent-bit.conf"
               subPath: "fluent-bit.conf"
-            - name: conf-fluentbit
-              mountPath: "/conf/parsers-multiline.conf"
-              subPath: "parsers-multiline.conf"
-            {{- end }}
-            {{- if and .Values.fluentbit.enabled .Values.fluentbit.extraOutputConfig }}
-            - name: conf-fluentbit
-              mountPath: "/conf/extra_output.conf"
-              subPath: "extra-output.conf"
             {{- end }}
             - name: conf-growfs
               mountPath: "/conf/ccx_growfs.sh"
               subPath: ccx_growfs.sh
-            {{- range .Values.ccx.services.stores_service.extraVolumeMounts }}
-            - name: {{ .name }}
-              mountPath: {{ .mountPath }}
-              subPath: {{ .subPath }}
-            {{- end }}
           resources:
             {{- toYaml .Values.ccx.services.stores_service.resources | nindent 12 }}
       volumes:
@@ -151,7 +126,7 @@ spec:
         {{- if .Values.fluentbit.enabled }}
         - name: conf-fluentbit
           configMap:
-            name: ccx-configmap-fluentbit
+            name: ccx-config-fluentbit
         {{- end }}
         - name: conf-growfs
           configMap:
@@ -214,7 +189,6 @@ spec:
         prometheus.io/port: "9090"
         checksum: {{ include (print $.Template.BasePath "/ccx/secrets.yaml") . | sha256sum }}
         checksum/config: {{ include (print $.Template.BasePath "/ccx/config.yaml") . | sha256sum }}
-        checksum/fluentbit: {{ include (print $.Template.BasePath "/ccx/ccx-fluentbit-config.yaml") . | sha256sum }}
     spec:
       terminationGracePeriodSeconds: 120
       initContainers:
@@ -291,23 +265,10 @@ spec:
             - name: conf-fluentbit
               mountPath: "/conf/fluent-bit.conf"
               subPath: "fluent-bit.conf"
-            - name: conf-fluentbit
-              mountPath: "/conf/parsers-multiline.conf"
-              subPath: "parsers-multiline.conf"
-            {{- end }}
-            {{- if and .Values.fluentbit.enabled .Values.fluentbit.extraOutputConfig }}
-            - name: conf-fluentbit
-              mountPath: "/conf/extra_output.conf"
-              subPath: "extra-output.conf"
             {{- end }}
             - name: conf-growfs
               mountPath: "/conf/ccx_growfs.sh"
               subPath: ccx_growfs.sh
-            {{- range .Values.ccx.services.stores_worker.extraVolumeMounts }}
-            - name: {{ .name }}
-              mountPath: {{ .mountPath }}
-              subPath: {{ .subPath }}
-           {{- end }}
           resources:
             {{- toYaml .Values.ccx.services.stores_worker.resources | nindent 12 }}
       volumes:
@@ -317,7 +278,7 @@ spec:
         {{- if .Values.fluentbit.enabled }}
         - name: conf-fluentbit
           configMap:
-            name: ccx-configmap-fluentbit
+            name: ccx-config-fluentbit
         {{- end }}
         - name: conf-growfs
           configMap:
