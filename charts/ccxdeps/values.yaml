@@ -10,15 +10,20 @@ installOperators: true
 ingressController:
   enabled: false
 
-nginx-ingress-controller:
-  config:
-    allow-backend-server-header: "true"
-    allow-snippet-annotations: "true"
-  kind: DaemonSet
-  metrics:
-    enabled: true
-  publishService:
-    enabled: true
+ingress-nginx:
+  controller:
+    config:
+      allow-backend-server-header: "true"
+      allow-snippet-annotations: "true"
+      use-forwarded-headers: "true"
+    kind: DaemonSet
+    metrics:
+      enabled: true
+    publishService:
+      enabled: true
+    service:
+#      loadBalancerIP: xxx.xxx.xxx.xxx
+      externalTrafficPolicy: "Local"
 # nats option will install nats streaming
 nats:
   enabled: true
@@ -248,11 +253,13 @@ ccx-monitoring:
     enabled: false
 
 keycloak:
-  fullnameOverride: "keycloak"
-  enabled: false
+  fullnameOverride: "ccxdeps-keycloak"
+  enabled: true
+  production: true #set to false for development
   httpRelativePath: /keycloak/
   proxyHeaders: "xforwarded"
   auth:
+    adminUser: admin
     adminPassword: Super$3cr3t
   postgresql:
     enabled: false
