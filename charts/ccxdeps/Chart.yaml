@@ -17,7 +17,7 @@ type: application
 # Versions are expected to follow Semantic Versioning (https://semver.org/)
 
 
-version: 0.6.5
+version: 0.6.6
 
 
 dependencies:
@@ -26,8 +26,8 @@ dependencies:
     version: 1.11.0
     condition: installOperators
   - name: nginx-ingress-controller
-    repository: https://charts.bitnami.com/bitnami
-    version: 9.3.21
+    repository: https://kubernetes.github.io/ingress-nginx
+    version: 4.11.3
     condition: ingressController.enabled
   - name: nats
     repository: https://nats-io.github.io/k8s/helm/charts/
