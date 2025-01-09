@@ -42,7 +42,7 @@ cmon:
     name: cmon
     user: cmon
     password: cmon
-  image: severalnines/cmon:2.3.0-11299
+  image: severalnines/cmon:2.3.0-11678
   extra_args: # extra arguments for ClusterControl binary
     - -s
     - --no-log-db
@@ -66,7 +66,7 @@ cmon:
 #        cpu: 100m
 #        memory: 1Gi
   ccv2:
-    image: severalnines/cc-frontend:2.2.5
+    image: severalnines/cc-frontend:2.3.0
 #    resources:
 #      requests:
 #        cpu: 100m
@@ -151,11 +151,17 @@ monitoring:
               replacement: true
         ### END CMON SERVICE DISCOVERY
 
-# https://artifacthub.io/packages/helm/bitnami/nginx-ingress-controller
-nginx-ingress-controller:
-  kind: DaemonSet
-  publishService:
-    enabled: true
-  config:
-    allow-backend-server-header: "true"
-    allow-snippet-annotations: "true"
+ingress-nginx:
+  controller:
+    config:
+      allow-backend-server-header: "true"
+      allow-snippet-annotations: "true"
+      use-forwarded-headers: "true"
+    kind: DaemonSet
+    metrics:
+      enabled: true
+    publishService:
+      enabled: true
+    service:
+#      loadBalancerIP: xxx.xxx.xxx.xxx
+      externalTrafficPolicy: "Local"

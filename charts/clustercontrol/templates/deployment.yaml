@@ -202,10 +202,12 @@ spec:
       - name: ssh-keys
         secret:
           secretName: ssh-keys
+          defaultMode: 0600
       {{- with .Values.cmon.sshKeysSecretName }}
       - name: ssh-keys-user
         secret:
           secretName: {{ . }}
+          defaultMode: 0600
       {{- end }}
       - name: config-js-cfg
         configMap:
