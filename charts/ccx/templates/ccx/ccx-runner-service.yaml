@@ -22,7 +22,7 @@ spec:
         checksum: {{ include (print $.Template.BasePath "/ccx/secrets.yaml") . | sha256sum }}
         checksum/config: {{ include (print $.Template.BasePath "/ccx/config.yaml") . | sha256sum }}
     spec:
-      terminationGracePeriodSeconds: 86400
+      terminationGracePeriodSeconds: 3600
       containers:
         - name: ccx-runner-service
           image: {{ .Values.ccx.services.runner.image | default .Values.ccx.backend.image | required "No image set for runner" }}
