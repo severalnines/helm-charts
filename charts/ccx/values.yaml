@@ -43,7 +43,7 @@ cmon:
     name: cmon
     user: cmon
     password: Super$3cr3t
-  image: severalnines/cmon:2.2.0-11542
+  image: severalnines/cmon:2.2.0-11704
   extra_args: # extra arguments for cmon binary
     - -s
     - -b 0.0.0.0
@@ -105,7 +105,7 @@ ccx:
 
   ## default settings for all backend components
   backend:
-    image: europe-docker.pkg.dev/severalnines-public/ccx/ccx-backend:2227
+    image: europe-docker.pkg.dev/severalnines-public/ccx/ccx-backend:2305
 
   ## postgresql server used by all backend components
   db:
@@ -365,6 +365,13 @@ ccx:
         #           ip_protocol: tcp
         #           self: true
         #           to_port: 65535
+      extraCopyFiles:
+        #Example below to copy the files to deployer node
+        # - target: "/etc/fluent-bit/credentials"
+        #   source: "/conf/credentials"
+        #   owner: "root:root"
+        #   perms: "0644"
+
     hook:
       # please talk to severalnines for information about hooks
       env:
@@ -478,6 +485,11 @@ ccx:
         requests:
           cpu: 1m
           memory: 5Mi
+      extraVolumeMounts:
+        #Example below for volume mount
+        # - name: conf-fluentbit
+        #   mountPath: "/conf/credentials"
+        #   subPath: "credentials"
     stores_worker:
       # IMPORTANT stores_service and stores_worker should always have the same configuration
       # these values should not normally be changed
@@ -489,14 +501,19 @@ ccx:
         requests:
           cpu: 1m
           memory: 10Mi
+      extraVolumeMounts:
+        #Example below for volume mount
+        # - name: conf-fluentbit
+        #   mountPath: "/conf/credentials"
+        #   subPath: "credentials"
     uiapp:
-      image: europe-docker.pkg.dev/severalnines-public/ccx/ccx-ui-app:366
+      image: europe-docker.pkg.dev/severalnines-public/ccx/ccx-ui-app:459
       resources:
         requests:
           cpu: 1m
           memory: 10Mi
     uiauth:
-      image: europe-docker.pkg.dev/severalnines-public/ccx/ccx-ui-auth:build-38
+      image: europe-docker.pkg.dev/severalnines-public/ccx/ccx-ui-auth:2
       resources:
         requests:
           cpu: 1m
@@ -722,6 +739,7 @@ ccx:
     clouds:
       - code: aws
         name: Amazon Web Services
+        has_vpcs: true
         regions:
           - code: eu-north-1
             display_code: EU North 1
@@ -823,13 +841,6 @@ ccx:
         validation_options: "min=0,max=10800"
         vendors:
           - "redis"
-      - name: statement_timeout
-        description: Sets the time to wait (in milliseconds) on a lock before checking for deadlock
-        type: number
-        default_value: 0
-        validation_options: "min=0,max=10800"
-        vendors:
-          - "postgres"
       - name: group_concat_max_len
         description: The maximum permitted result length in bytes for the GROUP_CONCAT() function
         type: "number"
@@ -870,7 +881,145 @@ ccx:
         vendors:
           - percona
           - mariadb
-
+      - name: old_mode
+        description: "Used for getting MariaDB to emulate behavior from an old version of MySQL or MariaDB. See https://mariadb.com/kb/en/old-mode/ for the full list."
+        type: "text"
+        default_value: "UTF8_IS_UTF8MB3"
+        vendors:
+          - mariadb
+      - name: time_zone
+        description: "The current time zone. This variable is used to initialize the time zone for each client that connects."
+        type: "text"
+        default_value: "SYSTEM"
+        validation_options: "min=-13:59,max=+14:00"
+        vendors:
+          - mariadb
+          - percona
+      - name: require_secure_transport
+        description: "The current time zone. This variable is used to initialize the time zone for each client that connects."
+        type: "text"
+        default_value: "OFF"
+        vendors:
+          - mariadb
+          - percona
+# postgresql
+      - name: statement_timeout
+        description: Sets the time to wait (in milliseconds) on a lock before checking for deadlock
+        type: number
+        default_value: 0
+        validation_options: "min=0,max=10800"
+        vendors:
+          - "postgres"
+      - name: wal_keep_size
+        description: Specifies the minimum size of past WAL files kept in the pg_wal directory.
+        type: "number"
+        default_value: 1024
+        validation_options: "min=1024,max=8192"
+        vendors:
+          - postgres
+      - name: max_wal_senders
+        description: Specifies the maximum number of concurrent connections from standby servers or streaming base backup clients.
+        type: "number"
+        default_value: 16
+        validation_options: "min=16,max=32"
+        vendors:
+          - postgres
+      - name: max_wal_size
+        description: Maximum size to let the WAL grow during automatic checkpoints.
+        type: "number"
+        default_value: 1024
+        validation_options: "min=1024,max=8192"
+        vendors:
+          - postgres
+      - name: checkpoint_timeout
+        description: Sets the maximum time between automatic WAL checkpoints.
+        type: "number"
+        default_value: 300
+        validation_options: "min=300,max=3600"
+        vendors:
+          - postgres
+      - name: deadlock_timeout
+        description: Sets the time to wait on a lock before checking for deadlock.
+        type: "number"
+        default_value: 1000
+        validation_options: "min=1,max=2147483647"
+        vendors:
+          - postgres
+      - name: lock_timeout
+        description: Sets the maximum allowed duration of any wait for a lock.
+        type: "number"
+        default_value: 0
+        validation_options: "min=0,max=2147483647"
+        vendors:
+          - postgres
+      - name: autovacuum
+        description: Controls whether the server should run the autovacuum launcher daemon.
+        type: "boolean"
+        default_value: true
+        vendors:
+          - postgres
+      - name: autovacuum_naptime
+        description: Time to sleep between autovacuum runs.
+        type: "number"
+        default_value: 60
+        validation_options: "min=1,max=86400"
+        vendors:
+          - postgres
+      - name: log_min_duration_statement
+        description: "Causes the duration of each completed statement to be logged if the statement ran for at least the specified amount of time."
+        type: "number"
+        default_value: "-1"
+        validation_options: "min=-1,max=2147483647"
+        vendors:
+          - postgres
+      - name: log_statement
+        description: "Controls which SQL statements are logged. Valid values are none (off), ddl, mod, and all (all statements)." 
+        type: "text"
+        default_value: "none"
+        vendors:
+          - postgres      
+      - name: max_parallel_workers_per_gather
+        description: "Sets the maximum number of workers that can be started by a single Gather or Gather Merge node."
+        type: "number"
+        default_value: "2"
+        validation_options: "min=0,max=1024"
+        vendors:
+          - postgres
+      - name: effective_io_concurrency
+        description: "Sets the number of concurrent disk I/O operations that PostgreSQL expects can be executed simultaneously. The allowed range is 1 to 1000, or zero to disable issuance of asynchronous I/O requests."
+        type: "number"
+        default_value: "1"
+        validation_options: "min=0,max=1000"
+        vendors:
+          - postgres
+      - name: parallel_setup_cost
+        description: "Sets the number of concurrent disk I/O operations that PostgreSQL expects can be executed simultaneously.  The allowed range is 1 to 1000, or zero to disable issuance of asynchronous I/O requests."
+        type: "number"
+        default_value: "1000"
+        validation_options: "min=0,max=1000000000000000000000"
+        vendors:
+          - postgres
+      - name: parallel_tuple_cost
+        description: "Sets the planner's estimate of the cost of transferring one tuple from a parallel worker process to another process. The default is 0.1."
+        type: "number"
+        default_value: "0.1"
+        validation_options: "min=0,max=1000000000000000000000"
+        vendors:
+          - postgres
+    backup:
+      # OPTIONAL. This section is optional. If not set the Backup schedule will not be randomized.
+      randomize_schedule:
+        enabled: true # enable/disable randomization
+        start_hour: 0 # start hour, 0-23
+        end_hour: 6 # end hour, 0-23. Must be greater than start_hour
+        interval_minutes: 15 # randomize interval in minutes, 0-60
 fluentbit:
-  enabled: false
-  config:
+  enabled: true
+  # Provide Ingress hostname of loki from ccxdeps ,If not set it will automatically preconfigure from ccxdeps.
+  host: 
+  port: 443
+  # Provide Fluent-bit extra output config to forward logs to another logging tool
+  extraOutputConfig: |
+
+  # Provide Credentials incase if needed for output plugins 
+  extraSecretMounts:  |
