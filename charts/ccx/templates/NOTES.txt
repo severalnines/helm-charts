@@ -46,16 +46,18 @@ You can still access CCX however, you won't be able to create any datastores!
 ***********************************WARNING***************************************************************
                   Service 'ccxdeps-loki-gateway' was not found!
 
-Please ensure you have updated and deployed ccxdeps else logging feature will be disabled for you.
+Please ensure you have updated and deployed ccxdeps helm chart!
+Otherwise logging feature will be disabled for you.
 *********************************************************************************************************
     {{- end }}
   {{- end }}
 {{- end }}
 
-{{- if (include "checkKeycloakServiceExists" . | eq "false") }}
+{{- if not (include "ccx.KeycloakService" .) }}
 ***********************************WARNING***************************************************************
-                        Service 'keycloak' was not found!
+                        Keycloak Service was not found!
 
-Please ensure you have updated and deployed ccxdeps else 'SSO' feature will be disabled for you.
+Please ensure you have updated and deployed ccxdeps helm chart!
+Otherwise SSO and Organizations will not be available.
 *********************************************************************************************************
 {{- end }}
