@@ -21,6 +21,7 @@ spec:
         prometheus.io/port: "9090"
         checksum: {{ include (print $.Template.BasePath "/ccx/secrets.yaml") . | sha256sum }}
         checksum/config: {{ include (print $.Template.BasePath "/ccx/config.yaml") . | sha256sum }}
+        checksum/core: {{ include (print $.Template.BasePath "/ccx/ccx-config-core.yaml") . | sha256sum }}
     spec:
       terminationGracePeriodSeconds: 3600
       containers:

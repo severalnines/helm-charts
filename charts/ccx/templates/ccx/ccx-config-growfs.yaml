@@ -1,0 +1,10 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ccx-config-growfs
+data:
+  # lvm script NB don't indent the template, something odd happens re. #!
+  {{- $ccx_growfs_sh := (printf "%v" (.Files.Get "files/ccx_growfs.sh")) }}
+  ccx_growfs.sh: |-
+{{ $ccx_growfs_sh | indent 4 }}

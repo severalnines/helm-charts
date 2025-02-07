@@ -161,6 +161,9 @@ spec:
                 name: cmon-credentials
                 key: cmon-password
                 optional: false
+        volumeMounts:
+        - mountPath: /etc/cmon.d/
+          name: cmon-master-pv
         resources:
           {{- toYaml .Values.cmon.exporter.resources | nindent 10 }}
       - name: ccv2
