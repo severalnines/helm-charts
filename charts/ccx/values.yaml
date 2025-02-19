@@ -105,7 +105,7 @@ ccx:
 
   ## default settings for all backend components
   backend:
-    image: europe-docker.pkg.dev/severalnines-public/ccx/ccx-backend:2721
+    image: europe-docker.pkg.dev/severalnines-public/ccx/ccx-backend:2810
 
   ## postgresql server used by all backend components
   db:
@@ -517,7 +517,7 @@ ccx:
         #   mountPath: "/conf/credentials"
         #   subPath: "credentials"
     uiapp:
-      image: europe-docker.pkg.dev/severalnines-public/ccx/ccx-ui-app:559
+      image: europe-docker.pkg.dev/severalnines-public/ccx/ccx-ui-app:625
       resources:
         requests:
           cpu: 1m
@@ -529,7 +529,7 @@ ccx:
           cpu: 1m
           memory: 5Mi
     uiadmin:
-      image: europe-docker.pkg.dev/severalnines-public/ccx/ccx-ui-admin:29
+      image: europe-docker.pkg.dev/severalnines-public/ccx/ccx-ui-admin:68
       env:
       resources:
         requests:
