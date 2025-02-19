@@ -61,6 +61,21 @@ do
     kubectl ${NAMESPACE} logs -l app=${i} --timestamps=true --max-log-requests=25 --prefix=true --all-containers=true --tail=-1 > ${dir}/${i}.log.txt 2>&1
 done
 
+## get logs from dependencies
+deployments="$(kubectl ${NAMESPACE} get deployments -o=jsonpath='{.items[*].metadata.name}')"
+for i in ${deployments}
+do
+    echo Gathering logs for ${i}...
+    kubectl ${NAMESPACE} logs deployment/${i} --timestamps=true --max-log-requests=25 --prefix=true --all-containers=true --all-pods=true --tail=-1 > ${dir}/deployment-${i}.log.txt 2>&1
+done
+
+statefulsets="$(kubectl ${NAMESPACE} get statefulsets -o=jsonpath='{.items[*].metadata.name}')"
+for i in ${statefulsets}
+do
+    echo Gathering logs for ${i}...
+    kubectl ${NAMESPACE} logs statefulset/${i} --timestamps=true --max-log-requests=25 --prefix=true --all-containers=true --all-pods=true --tail=-1 > ${dir}/statefulset-${i}.log.txt 2>&1
+done
+
 echo Gathering s9s info...
 kubectl ${NAMESPACE} exec -ti cmon-master-0 -c cmon-master -- s9s job --list --print-json > ${dir}/s9s.job.list.json 2>&1
 kubectl ${NAMESPACE} exec -ti cmon-master-0 -c cmon-master -- s9s job --list > ${dir}/s9s.job.list.txt 2>&1
@@ -75,22 +90,22 @@ jobs=$(kubectl ${NAMESPACE} exec -ti cmon-master-0 -c cmon-master -- s9s job --l
 for i in ${jobs}
 do
     echo Gathering logs for job ${i}...
-    kubectl ${NAMESPACE} exec -ti cmon-master-0 -c cmon-master -- s9s job --log --job-id ${i} > ${dir}/s9s.job.${i}.log.txt 2>&1
-    kubectl ${NAMESPACE} exec -ti cmon-master-0 -c cmon-master -- s9s job --log --job-id ${i} --print-json > ${dir}/s9s.job.${i}.log.json 2>&1
+    kubectl ${NAMESPACE} exec -ti cmon-master-0 -c cmon-master -- s9s job --log --print-request --color=never --job-id ${i} > ${dir}/s9s.job.${i}.log.txt 2>&1
+    kubectl ${NAMESPACE} exec -ti cmon-master-0 -c cmon-master -- s9s job --log --color=never --job-id ${i} --print-json > ${dir}/s9s.job.${i}.log.json 2>&1
 done
 
 echo Dumping CCX tables...
 export DB_DSN=$(kubectl ${NAMESPACE} get secret db -o jsonpath='{.data.DB_DSN}' | base64 --decode)
-kubectl ${NAMESPACE} run -it --rm psql --image=postgres:15-alpine --restart=Never -- pg_dump ${DB_DSN} -x -O -t cluster_config_parameters -t cluster_firewalls -t cluster_hosts -t clusters -t controllers -t databases -t darwin_migrations -t vpc -t vpc_subnets > ${dir}/ccx_tables_dump.sql
+export DEPLOYER_DB_DSN=$(kubectl ${NAMESPACE} get secret db-deployer -o jsonpath='{.data.DB_DSN}' | base64 --decode)
+kubectl ${NAMESPACE} run -it --rm psql --image=postgres:15-alpine --restart=Never -- pg_dump ${DB_DSN} -x -O -t backups -t cmons -t cluster_config_parameters -t cluster_firewalls -t cluster_hosts -t clusters -t controllers -t databases -t darwin_migrations -t locks -t organizations -t parameter_group -t vpc -t vpc_subnets > ${dir}/ccx_tables_dump.sql
 kubectl ${NAMESPACE} run -it --rm psql --image=postgres:15-alpine --restart=Never -- pg_dump ${DB_DSN} -x -O -t job_messages -t jobs > ${dir}/ccx_jobs_dump.sql
+kubectl ${NAMESPACE} run -it --rm psql --image=postgres:15-alpine --restart=Never -- pg_dump ${DEPLOYER_DB_DSN} -x -O > ${dir}/ccx_deployer_tables_dump.sql
 
 echo Archiving logs...
 tar -zcf ${OUTPUT_FILE} -C ${dir} .
 
 echo Cleaning up...
 rm -rf ${dir}
-kill -9 %1 2>/dev/null
 
 echo Done.
 echo Logs available at ${OUTPUT_FILE}
-
