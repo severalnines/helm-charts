@@ -8,7 +8,7 @@ data:
   fluent-bit.conf: |
     [SERVICE]
         Flush                     5
-        Log_Level                 warn
+        Log_Level                 info
         Daemon                    off
         Parsers_File              parsers-multiline.conf
         HTTP_Server               On

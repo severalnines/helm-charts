@@ -43,7 +43,7 @@ cmon:
     name: cmon
     user: cmon
     password: Super$3cr3t
-  image: severalnines/cmon:2.2.0-11879
+  image: severalnines/cmon:2.2.0-11889
   extra_args: # extra arguments for cmon binary
     - -s
     - -b 0.0.0.0
@@ -105,7 +105,7 @@ ccx:
 
   ## default settings for all backend components
   backend:
-    image: europe-docker.pkg.dev/severalnines-public/ccx/ccx-backend:2810
+    image: europe-docker.pkg.dev/severalnines-public/ccx/ccx-backend:2768
 
   ## postgresql server used by all backend components
   db:
@@ -154,16 +154,6 @@ ccx:
   nats:
     server: ccxdeps-ccx-nats # your nats server name/address
     clusterID: test-cluster # nats cluster ID
-
-  # keycloak is used to manage organizations, configure SSO, RBAC and plenty more
-  # It is a required component for CCX
-  # You can either use built in, or you can configure your own keycloak and point CCX to it
-  # Please refer to CCX documentation for more information
-  keycloak:
-    url: # TODO: keycloak url, if set that will be used instead of embedded keycloak
-    secretName: # TODO: name of the secret containing the keycloak admin password
-    ingress:
-      enabled: false # enable/disable keycloak ingress
 
   ## Create role and rolebinding for ExternalName service management.
   ## Please not that this is REQUIRED for CCX to be able to create ExternalName services and
@@ -517,7 +507,7 @@ ccx:
         #   mountPath: "/conf/credentials"
         #   subPath: "credentials"
     uiapp:
-      image: europe-docker.pkg.dev/severalnines-public/ccx/ccx-ui-app:625
+      image: europe-docker.pkg.dev/severalnines-public/ccx/ccx-ui-app:628
       resources:
         requests:
           cpu: 1m
@@ -529,7 +519,7 @@ ccx:
           cpu: 1m
           memory: 5Mi
     uiadmin:
-      image: europe-docker.pkg.dev/severalnines-public/ccx/ccx-ui-admin:68
+      image: europe-docker.pkg.dev/severalnines-public/ccx/ccx-ui-admin:29
       env:
       resources:
         requests:
@@ -1048,10 +1038,10 @@ ccx:
 fluentbit:
   enabled: true
   # Provide Ingress hostname of loki from ccxdeps ,If not set it will automatically preconfigure from ccxdeps.
-  host:
+  host: 
   port: 443
   # Provide Fluent-bit extra output config to forward logs to another logging tool
   extraOutputConfig: |
 
-  # Provide Credentials incase if needed for output plugins
+  # Provide Credentials incase if needed for output plugins 
   extraSecretMounts:  |
