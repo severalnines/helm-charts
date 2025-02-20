@@ -21,23 +21,12 @@ spec:
         prometheus.io/port: "9090"
         checksum: {{ include (print $.Template.BasePath "/ccx/secrets.yaml") . | sha256sum }}
         checksum/config: {{ include (print $.Template.BasePath "/ccx/config.yaml") . | sha256sum }}
-        checksum/core: {{ include (print $.Template.BasePath "/ccx/ccx-config-core.yaml") . | sha256sum }}
     spec:
       containers:
         - name: ccx-billing-service
           image: {{ .Values.ccx.services.billing.image | default .Values.ccx.backend.image | required "No image set for billing" }}
-          command: [ "/bin/ccx-billing", "serve" ]
+          command: ["/bin/ccx-billing", "serve"]
           env:
-            - name: CONFIG_FILE
-              value: "/conf/ccx.yaml"
-            - name: POD_NAME
-              valueFrom:
-                fieldRef:
-                  fieldPath: metadata.name
-            - name: POD_NAMESPACE
-              valueFrom:
-                fieldRef:
-                  fieldPath: metadata.namespace
           {{- range $key, $val := .Values.ccx.services.billing.env }}
             - name: {{ $key }}
               value: {{ $val | quote }}
@@ -55,19 +44,12 @@ spec:
             {{ end }}
             - secretRef:
                 name: db
-            {{- range $name := .Values.ccx.cloudSecrets }}
-            - secretRef:
-                name: {{ $name }}
-            {{- end }}
-          volumeMounts:
           {{ if .Values.ccx.services.billing.stripe }}
+          volumeMounts:
             - name: prices-volume
               mountPath: /etc/prices.yaml
               subPath: prices.yaml
           {{ end }}
-            - name: conf-core
-              mountPath: "/conf/ccx.yaml"
-              subPath: "ccx.yaml"
           ports:
             - name: service
               containerPort: 20003
@@ -77,11 +59,8 @@ spec:
               protocol: TCP
           resources:
             {{- toYaml .Values.ccx.services.billing.resources | nindent 12 }}
-      volumes:
-        - name: conf-core
-          configMap:
-            name: ccx-config-core
       {{ if .Values.ccx.services.billing.stripe }}
+      volumes:
         - name: prices-volume
           configMap:
             name: prices
