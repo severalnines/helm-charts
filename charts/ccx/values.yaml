@@ -586,7 +586,8 @@ ccx:
       - code: mariadb
         name: MariaDB
         versions:
-          - "10.6"
+          - "10.11"
+          - "11.4"
         num_nodes:
           - 1
           - 2
