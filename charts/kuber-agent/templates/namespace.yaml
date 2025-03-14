@@ -1,0 +1,12 @@
+{{- if .Values.createNamespace }}
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ include "agent-operator.namespace" . }}
+  annotations:
+    "helm.sh/hook": pre-install
+    "helm.sh/hook-weight": "-9"
+    "helm.sh/hook-delete-policy": before-hook-creation
+  labels:
+    {{- include "agent-operator.labels" . | nindent 4 }}
+{{- end }} 

@@ -1,0 +1,6 @@
+apiVersion: v2
+name: kuber-agent
+description: A Helm chart for ClusterControl Kubernetes Agent Operator
+type: application
+version: 0.1.0
+appVersion: "1.0.0" 

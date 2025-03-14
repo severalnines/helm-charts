@@ -1,0 +1,268 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.15.0
+  name: databasebackupschedules.agent.severalnines.com
+spec:
+  group: agent.severalnines.com
+  names:
+    kind: DatabaseBackupSchedule
+    listKind: DatabaseBackupScheduleList
+    plural: databasebackupschedules
+    singular: databasebackupschedule
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .spec.target.operatorType
+      name: Operator
+      type: string
+    - jsonPath: .spec.target.name
+      name: Target
+      type: string
+    - jsonPath: .spec.schedule
+      name: Schedule
+      type: string
+    - jsonPath: .status.active
+      name: Active
+      type: boolean
+    - jsonPath: .status.lastSuccessfulBackup
+      name: Last Backup
+      type: string
+    - jsonPath: .status.nextScheduled
+      name: Next Backup
+      type: string
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: DatabaseBackupSchedule is the Schema for the databasebackupschedules
+          API
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: DatabaseBackupScheduleSpec defines the desired state of DatabaseBackupSchedule
+            properties:
+              options:
+                description: Options contains backup-specific options
+                properties:
+                  compress:
+                    description: Compress indicates whether the backup should be compressed
+                    type: boolean
+                  encrypted:
+                    description: Encrypted indicates whether the backup should be
+                      encrypted
+                    type: boolean
+                type: object
+              retention:
+                description: Retention defines the retention policy for backups
+                properties:
+                  count:
+                    description: Count is the number of backups to keep
+                    type: integer
+                  days:
+                    description: Days is the number of days to keep backups
+                    type: integer
+                type: object
+              schedule:
+                description: Schedule in cron format
+                type: string
+              storage:
+                description: Storage defines where the backup should be stored
+                properties:
+                  azureBlob:
+                    description: AzureBlob contains Azure Blob storage configuration
+                    properties:
+                      container:
+                        description: Container is the Azure Blob container name
+                        type: string
+                      credentialsSecretRef:
+                        description: CredentialsSecretRef references a secret containing
+                          Azure credentials
+                        properties:
+                          name:
+                            description: Name is the name of the secret
+                            type: string
+                          namespace:
+                            description: Namespace is the namespace of the secret
+                            type: string
+                        required:
+                        - name
+                        type: object
+                    required:
+                    - container
+                    - credentialsSecretRef
+                    type: object
+                  gcs:
+                    description: GCS contains Google Cloud Storage configuration
+                    properties:
+                      bucket:
+                        description: Bucket is the GCS bucket name
+                        type: string
+                      credentialsSecretRef:
+                        description: CredentialsSecretRef references a secret containing
+                          GCS credentials
+                        properties:
+                          name:
+                            description: Name is the name of the secret
+                            type: string
+                          namespace:
+                            description: Namespace is the namespace of the secret
+                            type: string
+                        required:
+                        - name
+                        type: object
+                    required:
+                    - bucket
+                    - credentialsSecretRef
+                    type: object
+                  local:
+                    description: Local contains local storage configuration
+                    properties:
+                      path:
+                        description: Path is the local path where backups should be
+                          stored
+                        type: string
+                    required:
+                    - path
+                    type: object
+                  s3:
+                    description: S3 contains S3 storage configuration
+                    properties:
+                      bucket:
+                        description: Bucket is the S3 bucket name
+                        type: string
+                      credentialsSecretRef:
+                        description: CredentialsSecretRef references a secret containing
+                          S3 credentials
+                        properties:
+                          name:
+                            description: Name is the name of the secret
+                            type: string
+                          namespace:
+                            description: Namespace is the namespace of the secret
+                            type: string
+                        required:
+                        - name
+                        type: object
+                      endpoint:
+                        description: Endpoint is the S3 endpoint URL
+                        type: string
+                      pathStyle:
+                        description: PathStyle indicates whether to use path-style
+                          URLs
+                        type: boolean
+                      region:
+                        description: Region is the S3 region
+                        type: string
+                    required:
+                    - bucket
+                    - credentialsSecretRef
+                    type: object
+                  type:
+                    description: Type defines the storage type (s3, gcs, azureblob,
+                      local)
+                    type: string
+                required:
+                - type
+                type: object
+              target:
+                description: Target contains information about the database to back
+                  up
+                properties:
+                  name:
+                    description: Name is the name of the database cluster
+                    type: string
+                  namespace:
+                    description: Namespace is the namespace where the database cluster
+                      is located
+                    type: string
+                  operatorType:
+                    description: OperatorType is the type of database operator (pxc,
+                      cnpg, moco, stackgres, eck)
+                    type: string
+                required:
+                - name
+                - operatorType
+                type: object
+            required:
+            - schedule
+            - storage
+            - target
+            type: object
+          status:
+            description: DatabaseBackupScheduleStatus defines the observed state of
+              DatabaseBackupSchedule
+            properties:
+              active:
+                description: Active indicates whether the schedule is active
+                type: boolean
+              conditions:
+                description: Conditions represent the latest available observations
+                  of the schedule's state
+                items:
+                  description: DatabaseBackupScheduleCondition contains details about
+                    the state of the schedule
+                  properties:
+                    lastTransitionTime:
+                      description: LastTransitionTime is the last time the condition
+                        transitioned from one status to another
+                      format: date-time
+                      type: string
+                    message:
+                      description: Message is a human-readable message indicating
+                        details about the transition
+                      type: string
+                    reason:
+                      description: Reason is a unique, one-word, CamelCase reason
+                        for the condition's last transition
+                      type: string
+                    status:
+                      description: Status of the condition, one of True, False, Unknown
+                      type: string
+                    type:
+                      description: Type of the condition
+                      type: string
+                  required:
+                  - status
+                  - type
+                  type: object
+                type: array
+              lastScheduled:
+                description: LastScheduled is when the last backup was scheduled
+                format: date-time
+                type: string
+              lastSuccessfulBackup:
+                description: LastSuccessfulBackup is when the last successful backup
+                  completed
+                format: date-time
+                type: string
+              message:
+                description: Message provides additional information about the schedule
+                type: string
+              nextScheduled:
+                description: NextScheduled is when the next backup is scheduled
+                format: date-time
+                type: string
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
