@@ -1828,4 +1828,15 @@ entries:
     urls:
     - https://github.com/severalnines/helm-charts/releases/download/clustercontrol-2024.03.1/clustercontrol-2024.03.1.tgz
     version: 2024.03.1
-generated: "2025-02-25T12:28:30.54781355Z"
+  kuber-agent:
+  - apiVersion: v2
+    appVersion: 1.0.0
+    created: "2025-03-14T09:24:42.231349185Z"
+    description: A Helm chart for ClusterControl Kubernetes Agent Operator
+    digest: 18bdc862cd4cf37a48978da2e2d7b3d5f71e339fa7b9b3eec3c6303d3f4d0e22
+    name: kuber-agent
+    type: application
+    urls:
+    - https://github.com/severalnines/helm-charts/releases/download/kuber-agent-0.1.0/kuber-agent-0.1.0.tgz
+    version: 0.1.0
+generated: "2025-03-14T09:24:42.231566419Z"
