@@ -4,6 +4,10 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.15.0
+    meta.helm.sh/release-name: '{{ .Release.Name }}'
+    meta.helm.sh/release-namespace: '{{ .Release.Namespace }}'
+  labels:
+    app.kubernetes.io/managed-by: Helm
   name: databaseoperators.agent.severalnines.com
 spec:
   group: agent.severalnines.com

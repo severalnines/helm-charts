@@ -4,6 +4,10 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.15.0
+    meta.helm.sh/release-name: '{{ .Release.Name }}'
+    meta.helm.sh/release-namespace: '{{ .Release.Namespace }}'
+  labels:
+    app.kubernetes.io/managed-by: Helm
   name: databasebackupschedules.agent.severalnines.com
 spec:
   group: agent.severalnines.com
@@ -15,24 +19,18 @@ spec:
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
-    - jsonPath: .spec.target.operatorType
-      name: Operator
-      type: string
-    - jsonPath: .spec.target.name
-      name: Target
+    - jsonPath: .status.phase
+      name: Status
       type: string
     - jsonPath: .spec.schedule
       name: Schedule
       type: string
-    - jsonPath: .status.active
-      name: Active
-      type: boolean
-    - jsonPath: .status.lastSuccessfulBackup
-      name: Last Backup
-      type: string
-    - jsonPath: .status.nextScheduled
-      name: Next Backup
-      type: string
+    - jsonPath: .status.lastBackupTime
+      name: LastBackup
+      type: date
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
     name: v1alpha1
     schema:
       openAPIV3Schema:
@@ -102,12 +100,7 @@ spec:
                           namespace:
                             description: Namespace is the namespace of the secret
                             type: string
-                        required:
-                        - name
                         type: object
-                    required:
-                    - container
-                    - credentialsSecretRef
                     type: object
                   gcs:
                     description: GCS contains Google Cloud Storage configuration
@@ -125,12 +118,7 @@ spec:
                           namespace:
                             description: Namespace is the namespace of the secret
                             type: string
-                        required:
-                        - name
                         type: object
-                    required:
-                    - bucket
-                    - credentialsSecretRef
                     type: object
                   local:
                     description: Local contains local storage configuration
@@ -139,8 +127,6 @@ spec:
                         description: Path is the local path where backups should be
                           stored
                         type: string
-                    required:
-                    - path
                     type: object
                   s3:
                     description: S3 contains S3 storage configuration
@@ -158,8 +144,6 @@ spec:
                           namespace:
                             description: Namespace is the namespace of the secret
                             type: string
-                        required:
-                        - name
                         type: object
                       endpoint:
                         description: Endpoint is the S3 endpoint URL
@@ -171,16 +155,11 @@ spec:
                       region:
                         description: Region is the S3 region
                         type: string
-                    required:
-                    - bucket
-                    - credentialsSecretRef
                     type: object
                   type:
                     description: Type defines the storage type (s3, gcs, azureblob,
                       local)
                     type: string
-                required:
-                - type
                 type: object
               target:
                 description: Target contains information about the database to back
@@ -197,14 +176,7 @@ spec:
                     description: OperatorType is the type of database operator (pxc,
                       cnpg, moco, stackgres, eck)
                     type: string
-                required:
-                - name
-                - operatorType
                 type: object
-            required:
-            - schedule
-            - storage
-            - target
             type: object
           status:
             description: DatabaseBackupScheduleStatus defines the observed state of
@@ -239,9 +211,6 @@ spec:
                     type:
                       description: Type of the condition
                       type: string
-                  required:
-                  - status
-                  - type
                   type: object
                 type: array
               lastScheduled:

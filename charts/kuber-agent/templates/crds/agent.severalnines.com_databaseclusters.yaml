@@ -4,6 +4,10 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.15.0
+    meta.helm.sh/release-name: '{{ .Release.Name }}'
+    meta.helm.sh/release-namespace: '{{ .Release.Namespace }}'
+  labels:
+    app.kubernetes.io/managed-by: Helm
   name: databaseclusters.agent.severalnines.com
 spec:
   group: agent.severalnines.com
@@ -144,8 +148,6 @@ spec:
                         maxItems: 10
                         minItems: 0
                         type: array
-                    required:
-                    - enabled
                     type: object
                   nodePort:
                     description: NodePort configures a NodePort service for external
@@ -212,8 +214,6 @@ spec:
                         maxItems: 10
                         minItems: 0
                         type: array
-                    required:
-                    - enabled
                     type: object
                 type: object
               namespace:
@@ -378,10 +378,6 @@ spec:
                       description: Type indicates the endpoint type (primary, read,
                         etc.)
                       type: string
-                  required:
-                  - host
-                  - port
-                  - type
                   type: object
                 type: array
               externalEndpoints:
@@ -402,10 +398,6 @@ spec:
                       description: Type indicates the endpoint type (primary, read,
                         etc.)
                       type: string
-                  required:
-                  - host
-                  - port
-                  - type
                   type: object
                 type: array
               instances:
@@ -430,10 +422,6 @@ spec:
                       description: StartTime is when the instance was created
                       format: date-time
                       type: string
-                  required:
-                  - name
-                  - phase
-                  - role
                   type: object
                 type: array
               observedGeneration:

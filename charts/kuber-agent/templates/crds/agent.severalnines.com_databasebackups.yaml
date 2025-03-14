@@ -4,6 +4,10 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.15.0
+    meta.helm.sh/release-name: '{{ .Release.Name }}'
+    meta.helm.sh/release-namespace: '{{ .Release.Namespace }}'
+  labels:
+    app.kubernetes.io/managed-by: Helm
   name: databasebackups.agent.severalnines.com
 spec:
   group: agent.severalnines.com
@@ -78,12 +82,7 @@ spec:
                           namespace:
                             description: Namespace is the namespace of the secret
                             type: string
-                        required:
-                        - name
                         type: object
-                    required:
-                    - container
-                    - credentialsSecretRef
                     type: object
                   gcs:
                     description: GCS contains Google Cloud Storage configuration
@@ -101,12 +100,7 @@ spec:
                           namespace:
                             description: Namespace is the namespace of the secret
                             type: string
-                        required:
-                        - name
                         type: object
-                    required:
-                    - bucket
-                    - credentialsSecretRef
                     type: object
                   local:
                     description: Local contains local storage configuration
@@ -115,8 +109,6 @@ spec:
                         description: Path is the local path where backups should be
                           stored
                         type: string
-                    required:
-                    - path
                     type: object
                   s3:
                     description: S3 contains S3 storage configuration
@@ -134,8 +126,6 @@ spec:
                           namespace:
                             description: Namespace is the namespace of the secret
                             type: string
-                        required:
-                        - name
                         type: object
                       endpoint:
                         description: Endpoint is the S3 endpoint URL
@@ -147,16 +137,11 @@ spec:
                       region:
                         description: Region is the S3 region
                         type: string
-                    required:
-                    - bucket
-                    - credentialsSecretRef
                     type: object
                   type:
                     description: Type defines the storage type (s3, gcs, azureblob,
                       local)
                     type: string
-                required:
-                - type
                 type: object
               target:
                 description: Target contains information about the database that was
@@ -173,13 +158,7 @@ spec:
                     description: OperatorType is the type of database operator (pxc,
                       cnpg, moco, stackgres, eck)
                     type: string
-                required:
-                - name
-                - operatorType
                 type: object
-            required:
-            - storage
-            - target
             type: object
           status:
             description: DatabaseBackupStatus defines the observed state of DatabaseBackup
@@ -214,9 +193,6 @@ spec:
                     type:
                       description: Type of the condition
                       type: string
-                  required:
-                  - status
-                  - type
                   type: object
                 type: array
               location:
