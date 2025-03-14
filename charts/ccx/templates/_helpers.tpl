@@ -151,12 +151,15 @@ Create the name of the service account to use
 {{- end }}
 {{- end }}
 
-{{- define "checkKeycloakServiceExists" -}}
+{{- define "ccx.KeycloakService" -}}
 {{- $keycloak := (lookup "v1" "Service" .Release.Namespace "keycloak") }}
 {{- if $keycloak }}
-{{- "true" }}
+{{- "keycloak" }}
 {{- else -}}
-{{- "false" }}
+{{- $keycloak := (lookup "v1" "Service" .Release.Namespace "ccxdeps-keycloak") }}
+{{- if $keycloak }}
+{{- "ccxdeps-keycloak" }}
+{{- end -}}
 {{- end -}}
 {{- end -}}
 

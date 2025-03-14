@@ -43,7 +43,7 @@ cmon:
     name: cmon
     user: cmon
     password: Super$3cr3t
-  image: severalnines/cmon:2.2.0-11889
+  image: severalnines/cmon:2.2.0-12178
   extra_args: # extra arguments for cmon binary
     - -s
     - -b 0.0.0.0
@@ -105,7 +105,7 @@ ccx:
 
   ## default settings for all backend components
   backend:
-    image: europe-docker.pkg.dev/severalnines-public/ccx/ccx-backend:2768
+    image: europe-docker.pkg.dev/severalnines-public/ccx/ccx-backend:2905
 
   ## postgresql server used by all backend components
   db:
@@ -154,6 +154,16 @@ ccx:
   nats:
     server: ccxdeps-ccx-nats # your nats server name/address
     clusterID: test-cluster # nats cluster ID
+
+  # keycloak is used to manage organizations, configure SSO, RBAC and plenty more
+  # It is a required component for CCX
+  # You can either use built in, or you can configure your own keycloak and point CCX to it
+  # Please refer to CCX documentation for more information
+  keycloak:
+    url: # TODO: keycloak url, if set that will be used instead of embedded keycloak
+    secretName: # TODO: name of the secret containing the keycloak admin password
+    ingress:
+      enabled: false # enable/disable keycloak ingress
 
   ## Create role and rolebinding for ExternalName service management.
   ## Please not that this is REQUIRED for CCX to be able to create ExternalName services and
@@ -507,7 +517,7 @@ ccx:
         #   mountPath: "/conf/credentials"
         #   subPath: "credentials"
     uiapp:
-      image: europe-docker.pkg.dev/severalnines-public/ccx/ccx-ui-app:628
+      image: europe-docker.pkg.dev/severalnines-public/ccx/ccx-ui-app:666
       resources:
         requests:
           cpu: 1m
@@ -519,7 +529,7 @@ ccx:
           cpu: 1m
           memory: 5Mi
     uiadmin:
-      image: europe-docker.pkg.dev/severalnines-public/ccx/ccx-ui-admin:29
+      image: europe-docker.pkg.dev/severalnines-public/ccx/ccx-ui-admin:80
       env:
       resources:
         requests:
@@ -828,12 +838,26 @@ ccx:
         type: "text"
         default_value: "ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION"
         allowed_values:
-          - ONLY_FULL_GROUP_BY
-          - STRICT_TRANS_TABLES
-          - NO_ZERO_IN_DATE
-          - NO_ZERO_DATE
+          - ALLOW_INVALID_DATES
+          - ANSI_QUOTES
           - ERROR_FOR_DIVISION_BY_ZERO
+          - HIGH_NOT_PRECEDENCE
+          - IGNORE_SPACE
+          - NO_AUTO_CREATE_USER
+          - NO_AUTO_VALUE_ON_ZERO
+          - NO_BACKSLASH_ESCAPES
           - NO_ENGINE_SUBSTITUTION
+          - NO_FIELD_OPTIONS
+          - NO_KEY_OPTIONS
+          - NO_TABLE_OPTIONS
+          - NO_UNSIGNED_SUBTRACTION
+          - NO_ZERO_DATE
+          - NO_ZERO_IN_DATE
+          - ONLY_FULL_GROUP_BY
+          - PIPES_AS_CONCAT
+          - REAL_AS_FLOAT
+          - STRICT_ALL_TABLES
+          - STRICT_TRANS_TABLES
         vendors:
           - "percona"
       - name: sql_mode
@@ -841,10 +865,41 @@ ccx:
         type: "text"
         default_value: "STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION"
         allowed_values:
-          - STRICT_TRANS_TABLES
+          - ALLOW_INVALID_DATES
+          - ANSI
+          - ANSI_QUOTES
+          - DB2
+          - EMPTY_STRING_IS_NULL
           - ERROR_FOR_DIVISION_BY_ZERO
+          - HIGH_NOT_PRECEDENCE
+          - IGNORE_BAD_TABLE_OPTIONS
+          - IGNORE_SPACE
+          - MAXDB
+          - MSSQL
+          - MYSQL323
+          - MYSQL40
           - NO_AUTO_CREATE_USER
+          - NO_AUTO_VALUE_ON_ZERO
+          - NO_BACKSLASH_ESCAPES
+          - NO_DIR_IN_CREATE
           - NO_ENGINE_SUBSTITUTION
+          - NO_FIELD_OPTIONS
+          - NO_KEY_OPTIONS
+          - NO_TABLE_OPTIONS
+          - NO_UNSIGNED_SUBTRACTION
+          - NO_ZERO_DATE
+          - NO_ZERO_IN_DATE
+          - ONLY_FULL_GROUP_BY
+          - ORACLE
+          - PAD_CHAR_TO_FULL_LENGTH
+          - PIPES_AS_CONCAT
+          - POSTGRESQL
+          - REAL_AS_FLOAT
+          - SIMULTANEOUS_ASSIGNMENT
+          - STRICT_ALL_TABLES
+          - STRICT_TRANS_TABLES
+          - TIME_ROUND_FRACTIONAL
+          - TRADITIONAL
         vendors:
           - "mariadb"
       - name: timeout
@@ -1039,10 +1094,10 @@ ccx:
 fluentbit:
   enabled: true
   # Provide Ingress hostname of loki from ccxdeps ,If not set it will automatically preconfigure from ccxdeps.
-  host: 
+  host:
   port: 443
   # Provide Fluent-bit extra output config to forward logs to another logging tool
   extraOutputConfig: |
 
-  # Provide Credentials incase if needed for output plugins 
+  # Provide Credentials incase if needed for output plugins
   extraSecretMounts:  |
