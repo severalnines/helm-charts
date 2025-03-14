@@ -21,6 +21,7 @@ spec:
         prometheus.io/port: "9090"
         checksum: {{ include (print $.Template.BasePath "/ccx/secrets.yaml") . | sha256sum }}
         checksum/config: {{ include (print $.Template.BasePath "/ccx/config.yaml") . | sha256sum }}
+        checksum/core: {{ include (print $.Template.BasePath "/ccx/ccx-config-core.yaml") . | sha256sum }}
     spec:
       containers:
         - name: ccx-rest-user-service
@@ -35,6 +36,15 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.namespace
+          {{- if (include "ccx.KeycloakService" . ) }}
+            - name: KEYCLOAK_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "ccx.KeycloakService" . }}
+                  key: admin-password
+            - name: KEYCLOAK_URL
+              value: http://{{ include "ccx.KeycloakService" . }}/keycloak
+          {{- end }}
           {{- range $key, $val := .Values.ccx.services.rest_service.env }}
             - name: {{ $key }}
               value: {{ $val | quote }}
