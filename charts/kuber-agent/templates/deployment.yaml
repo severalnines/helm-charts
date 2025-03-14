@@ -1,0 +1,63 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "agent-operator.fullname" . }}-controller-manager
+  namespace: {{ include "agent-operator.namespace" . }}
+  labels:
+    control-plane: controller-manager
+    {{- include "agent-operator.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.controllerManager.replicas }}
+  selector:
+    matchLabels:
+      control-plane: controller-manager
+      {{- include "agent-operator.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        control-plane: controller-manager
+        {{- include "agent-operator.selectorLabels" . | nindent 8 }}
+      annotations:
+        kubectl.kubernetes.io/default-container: manager
+    spec:
+      securityContext:
+        runAsNonRoot: true
+      containers:
+      - name: manager
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - "ALL"
+        args:
+        - "--health-probe-bind-address=:{{ .Values.controllerManager.healthProbe.port }}"
+        - "--metrics-bind-address=0"
+        - "--leader-elect"
+        {{- if .Values.debug.enabled }}
+        - "--zap-log-level={{ .Values.debug.logLevel }}"
+        {{- end }}
+        env:
+        - name: PROXY_GRPC_ADDRESS
+          value: "{{ .Values.proxy.grpcAddress }}"
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: {{ .Values.controllerManager.healthProbe.port }}
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: {{ .Values.controllerManager.healthProbe.port }}
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        resources:
+          {{- toYaml .Values.controllerManager.manager.resources | nindent 10 }}
+      serviceAccountName: {{ include "agent-operator.serviceAccountName" . }}
+      terminationGracePeriodSeconds: 10

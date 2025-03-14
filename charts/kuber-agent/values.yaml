@@ -1,0 +1,71 @@
+# Default values for agent-operator
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+# Operator image configuration
+image:
+  repository: europe-docker.pkg.dev/severalnines-public/clustercontrol/kuber-agent
+  tag: latest
+  pullPolicy: Always
+
+# Image pull secrets configuration for private registry 
+imagePullSecrets:
+  # Name of existing secret to use
+  secretName: "gcr-json-key"
+
+# Agent configuration
+agent:
+  # Public key for agent authentication
+  publicKey: ""
+
+# Namespace configuration
+nameOverride: ""
+fullnameOverride: ""
+namespaceOverride: "severalnines-system"
+createNamespace: true
+
+# Controller manager configuration
+controllerManager:
+  replicas: 1
+  manager:
+    resources:
+      limits:
+        cpu: 500m
+        memory: 256Mi
+      requests:
+        cpu: 100m
+        memory: 128Mi
+  # Health probe configuration
+  healthProbe:
+    port: 8081
+
+# CRDs configuration
+crds:
+  # Whether to install all CRDs
+  install: true
+  # Keep CRDs on chart uninstall
+  keepOnDelete: true
+  # Individual CRD control
+  databaseCluster: true
+  databaseBackup: true
+  databaseOperator: true
+  databaseBackupSchedule: true
+
+# RBAC Configuration
+rbac:
+  create: true
+
+# Service Account Configuration
+serviceAccount:
+  create: true
+  name: "agent-operator-controller-manager"
+  annotations: {}
+
+# Proxy configuration for connecting to ClusterControl server
+proxy:
+  grpcAddress: "host.docker.internal:50051"
+
+# Debug settings
+debug:
+  enabled: false
+  logLevel: "info" # debug, info, warn, error 
