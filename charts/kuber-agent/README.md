@@ -11,10 +11,9 @@ This Helm chart deploys the ClusterControl Kubernetes Agent Operator, which mana
 You can install the chart directly from the Git repository:
 
 ```bash
-
-helm install kuber-agent --repo https://severalnines.github.io/helm-charts/
+helm install kuber-agent kuber-agent --repo https://severalnines.github.io/helm-charts/ \
   --set agent.publicKey="mock-public-key" \
-  --set proxy.grpcAddress="host.docker.internal:50051
+  --set proxy.grpcAddress="host.docker.internal:50051"
 ```
 
 ## Values
@@ -66,7 +65,7 @@ helm install kuber-agent ./agent-operator/chart
 The operator requires a public key for agent authentication. You can provide it during installation:
 
 ```bash
-helm install kuber-agent ./agent-operator/chart \
+helm install kuber-agent ./kuber-agent \
   --set agent.publicKey="mock-public-key" \
   --set proxy.grpcAddress="host.docker.internal:50051"
 ```
