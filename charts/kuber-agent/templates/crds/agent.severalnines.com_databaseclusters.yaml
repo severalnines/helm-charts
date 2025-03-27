@@ -66,6 +66,14 @@ spec:
                   Advanced contains operator-specific configuration options
                   Use this field to specify configurations unique to a particular database operator
                 type: object
+              bootstrap:
+                description: Bootstrap contains configuration for initializing cluster
+                  from a backup
+                properties:
+                  backupName:
+                    description: BackupName refers to a DatabaseBackup resource name
+                    type: string
+                type: object
               externalAccess:
                 description: |-
                   ExternalAccess defines how the database can be accessed from outside the Kubernetes cluster

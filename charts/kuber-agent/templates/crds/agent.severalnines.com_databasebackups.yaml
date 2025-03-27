@@ -56,93 +56,13 @@ spec:
           spec:
             description: DatabaseBackupSpec defines the desired state of DatabaseBackup
             properties:
-              backupID:
-                description: BackupID is a unique identifier for this backup
+              backupName:
+                description: BackupName is a unique identifier for this backup
                 type: string
               scheduleName:
                 description: ScheduleName is the name of the DatabaseBackupSchedule
                   that triggered this backup
                 type: string
-              storage:
-                description: Storage defines where the backup is stored
-                properties:
-                  azureBlob:
-                    description: AzureBlob contains Azure Blob storage configuration
-                    properties:
-                      container:
-                        description: Container is the Azure Blob container name
-                        type: string
-                      credentialsSecretRef:
-                        description: CredentialsSecretRef references a secret containing
-                          Azure credentials
-                        properties:
-                          name:
-                            description: Name is the name of the secret
-                            type: string
-                          namespace:
-                            description: Namespace is the namespace of the secret
-                            type: string
-                        type: object
-                    type: object
-                  gcs:
-                    description: GCS contains Google Cloud Storage configuration
-                    properties:
-                      bucket:
-                        description: Bucket is the GCS bucket name
-                        type: string
-                      credentialsSecretRef:
-                        description: CredentialsSecretRef references a secret containing
-                          GCS credentials
-                        properties:
-                          name:
-                            description: Name is the name of the secret
-                            type: string
-                          namespace:
-                            description: Namespace is the namespace of the secret
-                            type: string
-                        type: object
-                    type: object
-                  local:
-                    description: Local contains local storage configuration
-                    properties:
-                      path:
-                        description: Path is the local path where backups should be
-                          stored
-                        type: string
-                    type: object
-                  s3:
-                    description: S3 contains S3 storage configuration
-                    properties:
-                      bucket:
-                        description: Bucket is the S3 bucket name
-                        type: string
-                      credentialsSecretRef:
-                        description: CredentialsSecretRef references a secret containing
-                          S3 credentials
-                        properties:
-                          name:
-                            description: Name is the name of the secret
-                            type: string
-                          namespace:
-                            description: Namespace is the namespace of the secret
-                            type: string
-                        type: object
-                      endpoint:
-                        description: Endpoint is the S3 endpoint URL
-                        type: string
-                      pathStyle:
-                        description: PathStyle indicates whether to use path-style
-                          URLs
-                        type: boolean
-                      region:
-                        description: Region is the S3 region
-                        type: string
-                    type: object
-                  type:
-                    description: Type defines the storage type (s3, gcs, azureblob,
-                      local)
-                    type: string
-                type: object
               target:
                 description: Target contains information about the database that was
                   backed up
@@ -163,6 +83,9 @@ spec:
           status:
             description: DatabaseBackupStatus defines the observed state of DatabaseBackup
             properties:
+              backupId:
+                description: BackupID is the ID of the backup
+                type: string
               completionTime:
                 description: CompletionTime is when the backup completed
                 format: date-time
