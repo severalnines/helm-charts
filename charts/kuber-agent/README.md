@@ -44,6 +44,7 @@ kubectl delete databaseoperators.agent.severalnines.com --all -A
 kubectl delete databaseclusters.agent.severalnines.com --all -A
 kubectl delete databasebackups.agent.severalnines.com --all -A
 kubectl delete databasebackupschedules.agent.severalnines.com --all -A
+kubectl delete configversions.agent.severalnines.com --all -A
 
 # Uninstall the operator
 helm uninstall kuber-agent
@@ -65,7 +66,7 @@ helm install kuber-agent ./agent-operator/chart
 The operator requires a public key for agent authentication. You can provide it during installation:
 
 ```bash
-helm install kuber-agent ./kuber-agent \
+helm install kuber-agent ./agent-operator/chart \
   --set agent.publicKey="mock-public-key" \
   --set proxy.grpcAddress="host.docker.internal:50051"
 ```

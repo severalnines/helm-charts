@@ -8,10 +8,6 @@ image:
   tag: latest
   pullPolicy: Always
 
-# Image pull secrets configuration for private registry 
-imagePullSecrets:
-  # Name of existing secret to use
-  secretName: "gcr-json-key"
 
 # Agent configuration
 agent:
