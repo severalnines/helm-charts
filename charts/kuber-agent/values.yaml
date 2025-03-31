@@ -17,7 +17,7 @@ agent:
 # Namespace configuration
 nameOverride: ""
 fullnameOverride: ""
-namespaceOverride: "severalnines-system"
+namespaceOverride: ""
 createNamespace: true
 
 # Controller manager configuration
