@@ -13,11 +13,13 @@ image:
 agent:
   # Public key for agent authentication
   publicKey: ""
+  # Name for the agent (defaults to the node name if not set)
+  name: ""
 
 # Namespace configuration
 nameOverride: ""
 fullnameOverride: ""
-namespaceOverride: "severalnines-system"
+namespaceOverride: ""
 createNamespace: true
 
 # Controller manager configuration
