@@ -12,8 +12,10 @@ You can install the chart directly from the Git repository:
 
 ```bash
 helm install kuber-agent kuber-agent --repo https://severalnines.github.io/helm-charts/ \
-  --set agent.publicKey="mock-public-key" \
-  --set proxy.grpcAddress="host.docker.internal:50051"
+  --create-namespace \
+  --namespace severalnines-system
+  --set agent.publicKey="<public-key>" \
+  --set proxy.grpcAddress="host.docker.internal:50051" \
 ```
 
 ## Values
@@ -24,7 +26,8 @@ helm install kuber-agent kuber-agent --repo https://severalnines.github.io/helm-
 | `image.tag` | Operator image tag | `latest` |
 | `image.pullPolicy` | Image pull policy | `Always` |
 | `agent.publicKey` | Public key for agent authentication | `""` |
-| `namespaceOverride` | Override the namespace for resources | `severalnines-system` |
+| `agent.name` | Name for the agent (if not set, uses the first node name in the cluster) | `""` |
+| `namespaceOverride` | Override the namespace for resources | `""` |
 | `createNamespace` | Create the namespace | `true` |
 | `controllerManager.replicas` | Number of operator replicas | `1` |
 | `crds.install` | Whether to install CRDs | `true` |
@@ -66,7 +69,9 @@ helm install kuber-agent ./agent-operator/chart
 The operator requires a public key for agent authentication. You can provide it during installation:
 
 ```bash
-helm install kuber-agent ./agent-operator/chart \
-  --set agent.publicKey="mock-public-key" \
+helm install kuber-agent ./charts/kuber-agent \
+  --create-namespace \
+  --namespace severalnines-system
+  --set agent.publicKey="<public-key>" \
   --set proxy.grpcAddress="host.docker.internal:50051"
 ```
