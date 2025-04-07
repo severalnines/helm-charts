@@ -31,6 +31,10 @@ spec:
       jsonPath: .status.installedVersion
       name: Version
       type: string
+    - description: Lifecycle Managed by Controller
+      jsonPath: .spec.manageLifecycle
+      name: Managed
+      type: boolean
     - jsonPath: .metadata.creationTimestamp
       name: Age
       type: date
@@ -59,6 +63,13 @@ spec:
           spec:
             description: DatabaseOperatorSpec defines the desired state of DatabaseOperator
             properties:
+              manageLifecycle:
+                default: true
+                description: |-
+                  ManageLifecycle specifies whether the controller should manage the operator's lifecycle (install/uninstall).
+                  If false, the controller will only observe the operator and update status.
+                  Defaults to true.
+                type: boolean
               manifestUrls:
                 description: |-
                   ManifestURLs specifies custom manifest URLs to use for installation
