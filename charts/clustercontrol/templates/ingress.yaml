@@ -79,11 +79,7 @@ metadata:
     nginx.ingress.kubernetes.io/ssl-redirect: "true"
     nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
     nginx.ingress.kubernetes.io/allow-snippet-annotations: "true"
-    nginx.ingress.kubernetes.io/configuration-snippet: |
-      proxy_pass_header Server;
-      add_header Server $upstream_http_server;
-      more_set_headers "Set-Cookie: $sent_http_set_cookie; Path=/";
-
+    nginx.ingress.kubernetes.io/proxy-pass-headers: "Server"
 spec:
   ingressClassName: {{ .Values.cmon.ingress.ingressClassName | default "nginx" }}
   tls:
