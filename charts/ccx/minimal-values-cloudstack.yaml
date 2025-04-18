@@ -10,8 +10,6 @@ secgroups: &secgroups
       self: true
       to_port: 65535
 
-sessionDomain: ccx.mycloud.com
-ccxFQDN: ccx.mycloud.com
 ccx:
   # list of k8s secrets containing cloud credentials
   # if this is not set, ccx will start but you won't be able to deploy anything

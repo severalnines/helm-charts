@@ -44,8 +44,6 @@ spec:
                 name: cmon-credentials
             - secretRef:
                 name: db
-            - secretRef:
-                name: vault
           {{- range $name := .Values.ccx.cloudSecrets }}
             - secretRef:
                 name: {{ $name }}

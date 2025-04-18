@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: store-metrics-sd
+  labels:
+    app: store-metrics-sd
+    run: store-metrics-sd
+spec:
+  replicas: {{ .Values.global.replicas | default 1 }}
+  selector:
+    matchLabels:
+      app: store-metrics-sd
+      run: store-metrics-sd
+  template:
+    metadata:
+      labels:
+        app: store-metrics-sd
+        run: store-metrics-sd
+    spec:
+      containers:
+        - name: store-metrics-sd
+          image: {{ .Values.ccx.backend.image | required "No image set for backend" }}
+          command: [ "/bin/metrics-sd" ]
+          env:
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: INGRESS_HOST
+              value: {{ include "ccx.ccxFQDN" . }}
+          envFrom:
+            - secretRef:
+                name: db
+          ports:
+            - name: service
+              containerPort: 8080
+              protocol: TCP

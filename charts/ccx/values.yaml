@@ -43,7 +43,7 @@ cmon:
     name: cmon
     user: cmon
     password: Super$3cr3t
-  image: severalnines/cmon:2.2.0-12379
+  image: severalnines/cmon:2.3.1-12516
   extra_args: # extra arguments for cmon binary
     - -s
     - -b 0.0.0.0
@@ -54,7 +54,7 @@ cmon:
       cpu: 100m
       memory: 1Gi
   sd:
-    image: severalnines/cmon-sd:build-40
+    image: severalnines/cmon-sd:build-49
     resources:
       requests:
         cpu: 10m
@@ -105,7 +105,7 @@ ccx:
 
   ## default settings for all backend components
   backend:
-    image: europe-docker.pkg.dev/severalnines-public/ccx/ccx-backend:2905
+    image: europe-docker.pkg.dev/severalnines-public/ccx/ccx-backend:2983
 
   ## postgresql server used by all backend components
   db:
@@ -116,25 +116,9 @@ ccx:
     #username: ccx
     #password: ccx
 
-  # if true, then CCX will use k8s secrets for cloud credentials
-  # if true, no need to configure vault below
-  # if true, vault will NOT be used
-  # if false, then CCX will use vault for cloud credentials
-  useK8sSecrets: true
-
-  ## vault server used by all backend components
-  # no need for vault if useK8sSecrets is true - default
-  # if both are true (useK8sSecrets and vault) ccx-migrate-secrets job will be run and will copy secrets from vault to k8s
-  vault: #this is set for default ccxdeps vault, CHANGE FOR YOUR VAULT
-    addr: #YOUR VAULT ADDRESS example - http://my-vault:8200/
-    token: #YOUR VAULT TOKEN
-    env: #additional environment variables stored in vault secret that will be passed to vault clients
-      VAULT_BASE_PATH: "kv" # vault prefix used by CCX
-      #VAULT_SKIP_VERIFY: true #example
-
   ## common environment variables
   env:
-    INIT_HOST_WAIT_CONFIG: "60x15s"
+    INIT_HOST_WAIT_CONFIG: "60x30s"
     USE_PUBLIC_IPS: "true"
     ## Change below to set desired TTL on ExternalDNS created records
     EXTERNAL_DNS_TTL: 15
@@ -517,7 +501,7 @@ ccx:
         #   mountPath: "/conf/credentials"
         #   subPath: "credentials"
     uiapp:
-      image: europe-docker.pkg.dev/severalnines-public/ccx/ccx-ui-app:666
+      image: europe-docker.pkg.dev/severalnines-public/ccx/ccx-ui-app:725
       resources:
         requests:
           cpu: 1m
@@ -548,8 +532,6 @@ ccx:
         requests:
           cpu: 1m
           memory: 5Mi
-    initVault:
-      env:
 
   # REQUIRED primary config file for CCX
   config:
@@ -576,10 +558,10 @@ ccx:
     # supported configurations:
     # | code       | version     | type.code
     # |------------|-------------|--------------------
-    # | mariadb    |       10.6  | replication
-    # | mariadb    |       10.6  | galera
     # | mariadb    |       10.11 | replication
     # | mariadb    |       10.11 | galera
+    # | mariadb    |       11.4  | replication
+    # | mariadb    |       11.4  | galera
     # | percona    |       8     | replication
     # | percona    |       8     | galera
     # | microsoft  |       2019  | mssql_single
@@ -909,6 +891,7 @@ ccx:
         validation_options: "min=0,max=10800"
         vendors:
           - "redis"
+          - "valkey_sentinel"
       - name: group_concat_max_len
         description: The maximum permitted result length in bytes for the GROUP_CONCAT() function
         type: "number"
@@ -975,6 +958,12 @@ ccx:
         vendors:
           - mariadb
           - percona
+      - name: collation_server
+        description: "Specifies the collation_server"
+        type: "text"
+        default_value: "utf8mb4_0900_ai_ci"
+        vendors:
+          - "percona"
 # postgresql
       - name: statement_timeout
         description: Sets the time to wait (in milliseconds) on a lock before checking for deadlock

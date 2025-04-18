@@ -33,9 +33,6 @@ data:
   {{- range $key, $val := .Values.ccx.env }}
   {{ $key }} : {{ $val | quote }}
   {{- end }}
-  {{- if .Values.ccx.useK8sSecrets }}
-  SECRETS_USE_K8S: "true"
-  {{- end }}
   INGRESS_HOST: {{ include "ccx.ccxFQDN" . }}
   INGRESS_SECRETNAME: {{ .Values.ccx.ingress.ssl.secretName | default "ccx-ingress-cert" }}
   INGRESS_CLASSNAME: {{ .Values.ccx.ingress.ingressClassName | default "nginx" }}
