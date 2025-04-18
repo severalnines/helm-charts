@@ -27,6 +27,12 @@ spec:
           image: {{ .Values.ccx.services.auth.image | default .Values.ccx.backend.image | required "No image set for auth" }}
           command: ["/bin/ccx-auth-service"]
           env:
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: S9S_LICENSE_SERVER_URL
+              value: "https://severalnines.com/service/lic.php"
             {{- if (include "ccx.KeycloakService" . ) }}
             - name: KEYCLOAK_PASSWORD
               valueFrom:

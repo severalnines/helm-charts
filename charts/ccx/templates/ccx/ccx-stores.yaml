@@ -104,10 +104,6 @@ spec:
                 name: cmon-credentials
             - secretRef:
                 name: db
-          {{ if not .Values.ccx.useK8sSecrets }}
-            - secretRef:
-                name: vault
-          {{ end }}
           {{- range $name := .Values.ccx.cloudSecrets }}
             - secretRef:
                 name: {{ $name }}
@@ -275,10 +271,6 @@ spec:
                 name: cmon-credentials
             - secretRef:
                 name: db
-          {{ if not .Values.ccx.useK8sSecrets }}
-            - secretRef:
-                name: vault
-          {{ end }}
           {{- range $name := .Values.ccx.cloudSecrets }}
             - secretRef:
                 name: {{ $name }}
@@ -394,10 +386,6 @@ spec:
                 name: ccx
             - secretRef:
                 name: db
-          {{ if not .Values.ccx.useK8sSecrets }}
-            - secretRef:
-                name: vault
-          {{ end }}
           ports:
             - name: service
               containerPort: 18097
