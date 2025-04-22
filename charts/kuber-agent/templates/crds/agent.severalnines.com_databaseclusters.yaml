@@ -60,12 +60,10 @@ spec:
             description: DatabaseClusterSpec defines the desired state of DatabaseCluster
             properties:
               advanced:
-                additionalProperties:
-                  type: string
                 description: |-
                   Advanced contains operator-specific configuration options
                   Use this field to specify configurations unique to a particular database operator
-                type: object
+                x-kubernetes-preserve-unknown-fields: true
               bootstrap:
                 description: Bootstrap contains configuration for initializing cluster
                   from a backup
