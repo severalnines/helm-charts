@@ -24,7 +24,7 @@ spec:
         runAsNonRoot: true
       containers:
       - name: manager
-        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
         imagePullPolicy: {{ .Values.image.pullPolicy }}
         securityContext:
           allowPrivilegeEscalation: false
@@ -40,14 +40,14 @@ spec:
         {{- end }}
         env:
         - name: PROXY_GRPC_ADDRESS
-          value: "{{ .Values.proxy.grpcAddress }}"
+          value: {{ .Values.proxy.grpcAddress }}
         - name: POD_NAMESPACE
           valueFrom:
             fieldRef:
               fieldPath: metadata.namespace
         {{- if .Values.agent.name }}
         - name: AGENT_NAME
-          value: "{{ .Values.agent.name }}"
+          value: {{ .Values.agent.name }}
         {{- end }}
         livenessProbe:
           httpGet:
