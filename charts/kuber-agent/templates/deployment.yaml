@@ -51,14 +51,6 @@ spec:
         - name: AGENT_NAME
           value: {{ .Values.agent.name }}
         {{- end }}
-        {{- if .Values.agent.caCertSecretName }}
-        - name: AGENT_CA_SECRET_NAME
-          value: {{ .Values.agent.caCertSecretName }}
-        {{- end }}
-        {{- if .Values.agent.allowInsecureTLS }}
-        - name: ALLOW_INSECURE_TLS # Env var expected by agent config loading
-          value: "true"
-        {{- end }}
         livenessProbe:
           httpGet:
             path: /healthz
@@ -71,23 +63,7 @@ spec:
             port: {{ .Values.controllerManager.healthProbe.port }}
           initialDelaySeconds: 5
           periodSeconds: 10
-        {{- if .Values.agent.caCertSecretName }}
-        volumeMounts:
-        - name: agent-ca-cert
-          mountPath: /etc/agent-certs
-          readOnly: true
-        {{- end }}
         resources:
           {{- toYaml .Values.controllerManager.manager.resources | nindent 10 }}
       serviceAccountName: {{ include "agent-operator.serviceAccountName" . }}
       terminationGracePeriodSeconds: 10
-      {{- if .Values.agent.caCertSecretName }}
-      volumes:
-      - name: agent-ca-cert
-        secret:
-          secretName: {{ .Values.agent.caCertSecretName }}
-          items:
-          - key: ca.crt
-            path: ca.crt
-          optional: false
-      {{- end }}
