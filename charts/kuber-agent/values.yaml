@@ -15,13 +15,6 @@ agent:
   publicKey: ""
   # Name for the agent (defaults to the node name if not set)
   name: ""
-  # Optional: Name of the Kubernetes Secret containing the ca.crt file
-  # for verifying the external proxy's server certificate when using a private CA.
-  # If commented out or empty, the agent will use the system's default trust store.
-  caCertSecretName: "" # Example: "agent-ca-secret"
-  # Allow insecure TLS connection (skip server verification). Useful for dev/test
-  # with self-signed proxy certs. DO NOT USE IN PRODUCTION.
-  allowInsecureTLS: false
 
 # Environment setting (determines default log level if debug.logLevel is not set)
 env: production # Set to "development" for debug logging by default
