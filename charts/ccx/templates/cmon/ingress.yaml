@@ -126,7 +126,7 @@ spec:
       http:
         paths:
           - path: /cmon-ssh/cmon/ws/(.*)
-            pathType: Prefix
+            pathType: ImplementationSpecific
             backend:
               service:
                 name: cmon-master
