@@ -2,6 +2,17 @@ apiVersion: v1
 entries:
   ccx:
   - apiVersion: v2
+    appVersion: 1.53.2
+    created: "2025-05-15T12:34:06.958037365Z"
+    description: A Helm chart for CCX
+    digest: 47e163d3f76a50bf1d17e8d81ba07cadedc8279ec1cd77cdd3acf99c42410695
+    icon: https://st.s9s.io/ccx/logo/ccx-purple.svg
+    name: ccx
+    type: application
+    urls:
+    - https://github.com/severalnines/helm-charts/releases/download/ccx-1.53.2/ccx-1.53.2.tgz
+    version: 1.53.2
+  - apiVersion: v2
     appVersion: 1.53.1
     created: "2025-05-14T13:30:57.972609895Z"
     description: A Helm chart for CCX
@@ -2021,4 +2032,4 @@ entries:
     urls:
     - https://github.com/severalnines/helm-charts/releases/download/kuber-agent-0.1.0/kuber-agent-0.1.0.tgz
     version: 0.1.0
-generated: "2025-05-14T13:30:57.973027576Z"
+generated: "2025-05-15T12:34:06.958439292Z"
