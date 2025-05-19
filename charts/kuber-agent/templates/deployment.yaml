@@ -25,7 +25,7 @@ spec:
         runAsNonRoot: true
       containers:
       - name: manager
-        image: {{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}
+        image: "{{ .Values.image.repository }}:{{ if .Values.image.useDevelopmentImage }}{{ .Values.image.developmentImageTag }}{{ else }}{{ .Values.image.tag | default .Chart.AppVersion }}{{ end }}"
         imagePullPolicy: {{ .Values.image.pullPolicy }}
         securityContext:
           allowPrivilegeEscalation: false
