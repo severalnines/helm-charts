@@ -68,6 +68,9 @@ oracle-mysql-operator:
   fullnameOverride: mysql-operator
 # installation and configuration option for mysql innodb
 mysql-innodbcluster:
+  env:
+    - name: MYSQL_OPERATOR_K8S_CLUSTER_DOMAIN
+      value: "cluster.local"
   enabled: true
   credentials:
     root:
