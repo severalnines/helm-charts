@@ -2,7 +2,7 @@ ccx:
   # list of k8s secrets containing cloud credentials
   # if this is not set, ccx will start but you won't be able to deploy anything
   cloudSecrets:
-   - mycloud-openstack #this have to exist in k8s secrets! - see secrets-template.yaml
+   - openstack #this have to exist in k8s secrets! - see secrets-template.yaml
   config:
     clouds:
     - code: mycloud
