@@ -1,32 +1,53 @@
 #!/bin/bash
 
 echo "Helper script to create k8s secrets with s3 credentials" 
-# Prompt for input
-read -p "Enter S3_ENDPOINT: " s3_endpoint
-read -p "Enter S3_ACCESSKEY: " s3_accesskey
-read -sp "Enter S3_SECRETKEY: " s3_secretkey
-echo
-read -p "Enter S3_BUCKETNAME: " s3_bucketname
+
+# Input validation loop
+read_nonempty() {
+  local varname="$1"
+  local prompt="$2"
+  local silent="$3"
+  local value=""
+  while true; do
+    if [ "$silent" = "silent" ]; then
+      read -sp "$prompt" value
+      echo
+    else
+      read -p "$prompt" value
+    fi
+    if [ -n "$value" ]; then
+      eval "$varname=\"\$value\""
+      break
+    else
+      echo "Value cannot be empty. Please try again."
+    fi
+  done
+}
+
+read_nonempty s3_endpoint "Enter S3_ENDPOINT: "
+read_nonempty s3_accesskey "Enter S3_ACCESSKEY: "
+read_nonempty s3_secretkey "Enter S3_SECRETKEY: " silent
+read_nonempty s3_bucketname "Enter S3_BUCKETNAME: "
 
 echo "Note! S3_INSECURE_SSL is normally 'false', but write 'true' if the access to s3 is not encrypted with TLS."
-# Loop until user enters 'true' or 'false'
 while true; do
-    read -p "Enter S3_INSECURE_SSL (true/false): " s3_insecure_ssl
-    if [[ "$s3_insecure_ssl" == "true" || "$s3_insecure_ssl" == "false" ]]; then
-        break
-    else
-        echo "Please enter 'true' or 'false'."
-    fi
+  read -p "Enter S3_INSECURE_SSL (true/false): " s3_insecure_ssl
+  if [[ "$s3_insecure_ssl" == "true" || "$s3_insecure_ssl" == "false" ]]; then
+    break
+  else
+    echo "Please enter 'true' or 'false'."
+  fi
 done
 
-# Base64 encode values
-b64_endpoint=$(echo -n "$s3_endpoint" | base64)
-b64_accesskey=$(echo -n "$s3_accesskey" | base64)
-b64_secretkey=$(echo -n "$s3_secretkey" | base64)
-b64_bucketname=$(echo -n "$s3_bucketname" | base64)
-b64_insecure_ssl=$(echo -n "$s3_insecure_ssl" | base64)
+# Base64 encode values robustly (remove newlines)
+b64() { echo -n "$1" | base64 | tr -d '\n'; }
 
-# Write YAML to file
+b64_endpoint=$(b64 "$s3_endpoint")
+b64_accesskey=$(b64 "$s3_accesskey")
+b64_secretkey=$(b64 "$s3_secretkey")
+b64_bucketname=$(b64 "$s3_bucketname")
+b64_insecure_ssl=$(b64 "$s3_insecure_ssl")
+
 cat <<EOF > openstack-s3-secrets.yaml
 apiVersion: v1
 kind: Secret
@@ -41,5 +62,6 @@ data:
   MYCLOUD_S3_INSECURE_SSL: $b64_insecure_ssl
 EOF
 
-echo "Kubernetes Secret YAML created: openstack-s3-secrets.yaml"
+chmod 600 openstack-s3-secrets.yaml
 
+echo "Kubernetes Secret YAML created: openstack-s3-secrets.yaml"
