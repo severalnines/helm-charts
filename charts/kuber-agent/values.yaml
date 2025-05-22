@@ -7,6 +7,8 @@ image:
   repository: europe-docker.pkg.dev/severalnines-public/clustercontrol/kuber-agent
   tag: "" # Default tag is empty; deployment template will use Chart.AppVersion if not overridden
   pullPolicy: Always
+  useDevelopmentImage: false # Set to true to use the developmentImageTag
+  developmentImageTag: "main-dev-latest" # The tag for your 'latest' development build
 
 
 # Agent configuration
