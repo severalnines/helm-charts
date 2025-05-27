@@ -45,6 +45,10 @@ spec:
           envFrom:
             - configMapRef:
                 name: ccx
+            {{ if not .Values.ccx.useK8sSecrets }}
+            - secretRef:
+                name: vault
+            {{ end }}
             {{ if .Values.ccx.services.billing.stripe }}
             - secretRef:
                 name: stripe

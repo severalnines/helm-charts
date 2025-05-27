@@ -5,7 +5,7 @@ metadata:
   labels:
     app: ccx-datastores-maintenance
 spec:
-  suspend: {{ .Values.ccx.env.DISABLE_ROLLBACK | default "false" }}
+  suspend: false
   schedule: "*/10 * * * *"
   concurrencyPolicy: Forbid
   jobTemplate:
@@ -34,7 +34,7 @@ spec:
           containers:
             - name: ccx-datastores-maintenance
               image: {{ .Values.ccx.services.datastorestorage.image | default .Values.ccx.backend.image | required "No image set for datastores" }}
-              command: [ "/bin/ccx-datastore-storage", "maintain" ]
+              command: ["/bin/ccx-datastore-storage", "maintain"]
               envFrom:
                 - configMapRef:
                     name: ccx

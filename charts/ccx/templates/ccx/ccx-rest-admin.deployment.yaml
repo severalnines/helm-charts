@@ -49,6 +49,10 @@ spec:
                 name: ccx
             - secretRef:
                 name: db
+            {{ if not .Values.ccx.useK8sSecrets }}
+            - secretRef:
+                name: vault
+            {{ end }}
             - secretRef:
                 name: admin-basic-auth
           ports:

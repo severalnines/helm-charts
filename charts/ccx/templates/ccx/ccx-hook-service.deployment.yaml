@@ -41,6 +41,10 @@ spec:
           envFrom:
             - configMapRef:
                 name: ccx
+            {{ if not .Values.ccx.useK8sSecrets }}
+            - secretRef:
+                name: vault
+            {{ end }}
             - secretRef:
                 name: db
           ports:

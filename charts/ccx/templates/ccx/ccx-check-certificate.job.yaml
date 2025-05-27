@@ -1,3 +1,4 @@
+{{ if .Values.ccx.useK8sSecrets }}
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -17,6 +18,8 @@ spec:
           image: {{ .Values.ccx.services.stores_service.image | default .Values.ccx.backend.image | required "No image set for stores" }}
           command: ["/bin/ccx-stores", "check-certificate-authority"]
           env:
+            - name: SECRETS_USE_K8S
+              value: {{ .Values.ccx.useK8sSecrets | quote }}
             - name: POD_NAMESPACE
               valueFrom:
                 fieldRef:
@@ -33,3 +36,4 @@ spec:
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+{{- end}}

@@ -1,57 +1,48 @@
+sessionDomain: ccx.mycloud.com
+ccxFQDN: ccx.mycloud.com
 ccx:
-  # List of Kubernetes secrets containing cloud credentials.
+  # list of k8s secrets containing cloud credentials
+  # if this is not set, ccx will start but you won't be able to deploy anything
   cloudSecrets:
-    - openstack  # This secret must exist in Kubernetes. See 'secrets-template.yaml' for reference.
-
+   - mycloud-openstack #this have to exist in k8s secrets! - see secrets-template.yaml
   config:
     clouds:
-      - code: mycloud  # Unique code for your cloud provider
-        name: MyCloud  # Human-readable name
-        instance_types:
-          - code: m1.small  # Instance code; must match your cloud provider
-            name: Small     # Display name
-            cpu: 2          # Number of vCPUs
-            ram: 4          # RAM in GB
-            disk_size: 60   # Disk size in GB
-            type: m1.small  # Cloud provider's type or flavor name
-
-        network_types:
-          - code: public
-            name: Public
-            in_vpc: false
-            info: >
-              All instances will be deployed with public IPs.
-              Access to the public IPs is controlled by a firewall.
-
-        regions:
-          - code: my-region1
-            display_code: my-region1
-            name: Stockholm
-            city: Stockholm
-            country_code: SE
-            continent_code: EU
-            availability_zones:
-              - code: nova
-                name: MyAZ
-
+    - code: mycloud
+      name: MyCloud    
+      instance_types:
+      - code: m1.small
+        cpu: 2
+        disk_size: 60
+        name: Small
+        ram: 4
+        type: m1.small
+      network_types:
+      - code: public
+        in_vpc: false
+        info: All instances will be deployed with public IPs. Access to the public IPs is controlled by a firewall.
+        name: Public
+      regions:
+      - availability_zones:
+        - code: nova
+          name: MyAZ
+        city: Stockholm
+        code: my-region1
+        continent_code: EU
+        country_code: SE
+        display_code: my-region1
+        name: Stockholm
   services:
     deployer:
       config:
         openstack_vendors:
           mycloud:
-            floating_network_id: MY_FLOATING_NETWORK_ID  # Replace with actual ID, e.g., "12345-abcde"
-            network_api_version: NetworkNeutron          # Typically "NetworkNeutron"
-            network_id: MY_NETWORK_ID                    # Replace with actual network ID
-            project_id: MY_PROJECT_ID                    # Replace with your OpenStack project ID
+            floating_network_id: MY_FLOATING_NETWORK_ID
+            network_api_version: NetworkNeutron
+            network_id: MY_NETWORK_ID
+            project_id: MY_PROJECT_ID
             regions:
               my-region1:
-                image_id: MY_IMAGE_ID                    # Replace with image ID for the region
-                # secgrp_name refers to the security group name used by ccx to access datastore VMs.
-                # It must be created manually and allow all TCP traffic from all Kubernetes nodes where ccx is running.
-                secgrp_name: ccx-common                  # Recommended to use a dedicated security group
-
-# NOTES:
-# - Replace all 'MY_*' placeholders with actual values from your OpenStack environment.
-# - Validate all IDs (network, image, project) before deployment to prevent errors.
-# - Use a YAML linter to check for syntax or formatting issues.
-# - For security, avoid committing real credentials or sensitive information.
+                image_id: MY_IMAGE_ID
+                # The secgrp_name refers to the security group name which will be used by ccx to access the datastore VMs.
+                # It should be created manually beforehand and allow all TCP traffic from all k8s nodes where ccx is running.
+                secgrp_name: ccx-common
