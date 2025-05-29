@@ -24,7 +24,7 @@ spec:
     spec:
       initContainers:
       - name: init-cmon
-        image: {{ .Values.cmon.image | required ".Values.cmon.image is missing" }}
+        image: {{ include "cc.cmonImage" . }}
         command: [ 'sh', '-c', 'cp /tmp/cmon.cnf /etc/cmon.cnf; /usr/bin/init-cmon.sh']
         volumeMounts:
         - mountPath: /tmp/cmon.cnf
@@ -34,7 +34,7 @@ spec:
           subPath: s9s.conf
           name: s9s-cnf-cfg
       - name: check-cmon-configs
-        image: {{ .Values.cmon.image | required ".Values.cmon.image is missing" }}
+        image: {{ include "cc.cmonImage" . }}
         command: [ 'sh', '-c', '/usr/bin/python3 /usr/bin/update-cmon-configs.py']
         volumeMounts:
         - mountPath: /etc/cmon.cnf
@@ -42,9 +42,33 @@ spec:
           name: cmon-cnf-cfg
         - mountPath: /etc/cmon.d/
           name: cmon-master-pv
+      - name: init-ccmgr
+        image: {{ include "cc.ccmgrImage" . }}
+        imagePullPolicy: Always
+        command: 
+        - sh
+        - -c
+        - |
+          if [ ! -f /usr/share/ccmgr/ccmgr.yaml ]; then
+            echo "Initializing ccmgr..."
+            # Create empty config file first
+            touch /usr/share/ccmgr/ccmgr.yaml
+            ccmgradm init \
+              --local-cmon \
+              --cmon-url cmon-master:9501 \
+              --cmon-ssh-url cmon-ssh:9511 \
+              --frontend-path /var/www/frontend \
+              --port 19051 \
+              --kuber-proxy-url http://localhost:{{ .Values.cmon.kuberProxy.env.HTTP_PORT | default 8081 }}
+          else
+            echo "ccmgr already initialized, skipping init"
+          fi
+        volumeMounts:
+        - mountPath: /usr/share/ccmgr
+          name: cmon-ccmgr-pv
       containers:
       - name: cmon-master
-        image: {{ .Values.cmon.image | required ".Values.cmon.image is missing" }}
+        image: {{ include "cc.cmonImage" . }}
         command: [ '/usr/sbin/cmon' ]
         args:
         {{- with .Values.cmon.extra_args }}
@@ -99,7 +123,7 @@ spec:
           {{- toYaml . | nindent 10 }}
         {{- end }}
       - name: cmon-cloud
-        image: {{ .Values.cmon.image | required ".Values.cmon.image is missing" }}
+        image: {{ include "cc.cmonImage" . }}
         command: ['sh', '-c', '/usr/sbin/cmon-cloud']
         securityContext:
           privileged: True
@@ -108,7 +132,7 @@ spec:
           protocol: TCP
           name: cmon9518
       - name: cmon-sd
-        image: {{ .Values.cmon.sd.image | required ".Values.cmon.sd.image is missing" }}
+        image: {{ include "cc.cmonSdImage" . }}
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 8080
@@ -132,7 +156,7 @@ spec:
           {{- toYaml . | nindent 10 }}
         {{- end }}
       - name: cmon-exporter
-        image: {{ .Values.cmon.exporter.image | required ".Values.cmon.exporter.image is missing" }}
+        image: {{ include "cc.cmonExporterImage" . }}
         ports:
         - containerPort: 9954
           protocol: TCP
@@ -150,26 +174,12 @@ spec:
                 name: cmon-credentials
                 key: cmon-password
                 optional: false
-        {{- with .Values.cmon.ccv2.resources }}
-        resources:
-          {{- toYaml . | nindent 10 }}
-        {{- end }}
-      - name: ccv2
-        image: {{ .Values.cmon.ccv2.image | required ".Values.cmon.ccv2.image is missing" }}
-        ports:
-        - containerPort: 80
-          protocol: TCP
-          name: 80-port
-        volumeMounts:
-        - mountPath: /usr/share/nginx/html/config.js
-          subPath: config.js
-          name: config-js-cfg
-        {{- with .Values.cmon.ccv2.resources }}
+        {{- with .Values.cmon.exporter.resources }}
         resources:
           {{- toYaml . | nindent 10 }}
         {{- end }}
       - name: cmon-ssh
-        image: {{ .Values.cmon.image | required ".Values.cmon.image is missing" }}
+        image: {{ include "cc.cmonImage" . }}
         command: ['sh', '-c', '/usr/sbin/cmon-ssh']
         ports:
         - containerPort: 9511
@@ -182,6 +192,64 @@ spec:
         - mountPath: /root/.ssh-keys-user
           name: ssh-keys-user
         {{ end }}
+      - name: ccmgr
+        image: {{ include "cc.ccmgrImage" . }}
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 19051
+          protocol: TCP
+          name: ccmgr19051
+        volumeMounts:
+        - mountPath: /usr/share/ccmgr
+          name: cmon-ccmgr-pv
+        - mountPath: /var/www/frontend/config.js
+          subPath: config.js
+          name: config-js-cfg
+        {{- with .Values.cmon.ccmgr.resources }}
+        resources:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+      - name: kuber-proxy
+        image: {{ include "cc.kuberProxyImage" . }}
+        imagePullPolicy: Always
+        ports:
+        - containerPort: {{ .Values.cmon.kuberProxy.env.HTTP_PORT | default 8081 }}
+          protocol: TCP
+          name: http-port
+        - containerPort: {{ .Values.cmon.kuberProxy.env.GRPC_PORT | default 50051 }}
+          protocol: TCP
+          name: grpc-port
+        env:
+        - name: HTTP_PORT
+          value: "{{ .Values.cmon.kuberProxy.env.HTTP_PORT | default 8080 }}"
+        - name: GRPC_PORT
+          value: "{{ .Values.cmon.kuberProxy.env.GRPC_PORT | default 50051 }}"
+        - name: JWT_SECRET_PATH
+          value: "{{ .Values.cmon.kuberProxy.env.JWT_SECRET_PATH | default "/usr/share/ccmgr/jwt_secret.key" }}"
+        - name: BASE_DIR
+          value: "{{ .Values.cmon.kuberProxy.env.BASE_DIR | default "/usr/share/kuber-proxy" }}"
+        - name: STATE_STORAGE
+          value: "{{ .Values.cmon.kuberProxy.env.STATE_STORAGE | default "jetstream" }}"
+        - name: DAPR_APP_ID
+          value: "{{ .Values.cmon.kuberProxy.env.DAPR_APP_ID | default "kuber-proxy" }}"
+        {{- if .Values.cmon.kuberProxy.env.PROXY_CERT_PATH }}
+        - name: PROXY_CERT_PATH
+          value: "{{ .Values.cmon.kuberProxy.env.PROXY_CERT_PATH }}"
+        {{- end }}
+        {{- if .Values.cmon.kuberProxy.env.PROXY_KEY_PATH }}
+        - name: PROXY_KEY_PATH
+          value: "{{ .Values.cmon.kuberProxy.env.PROXY_KEY_PATH }}"
+        {{- end }}
+        volumeMounts:
+        - mountPath: /usr/share/ccmgr
+          name: cmon-ccmgr-pv
+          readOnly: true
+        - mountPath: {{ .Values.cmon.kuberProxy.env.BASE_DIR | default "/usr/share/kuber-proxy" }}
+          name: kuber-proxy-pv
+        {{- with .Values.cmon.kuberProxy.resources }}
+        resources:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
       volumes:
       - name: cmon-master-pv
         persistentVolumeClaim:
@@ -189,6 +257,12 @@ spec:
       - name: cmon-pv-var-lib-cmon
         persistentVolumeClaim:
           claimName: cmon-var-lib-cmon
+      - name: cmon-ccmgr-pv
+        persistentVolumeClaim:
+          claimName: cmon-ccmgr-volume
+      - name: kuber-proxy-pv
+        persistentVolumeClaim:
+          claimName: kuber-proxy-volume
       - name: cmon-cnf-cfg
         secret:
           secretName: cmon-cnf
@@ -244,6 +318,34 @@ apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: cmon-var-lib-cmon
+spec:
+  {{ with .Values.storageClassName }}
+  storageClassName: {{ . }}
+  {{ end }}
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: cmon-ccmgr-volume
+spec:
+  {{ with .Values.storageClassName }}
+  storageClassName: {{ . }}
+  {{ end }}
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: kuber-proxy-volume
 spec:
   {{ with .Values.storageClassName }}
   storageClassName: {{ . }}
