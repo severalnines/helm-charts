@@ -24,6 +24,18 @@ spec:
     protocol: TCP
     targetPort: 9511
     name: 9511-port
+  - port: 19051
+    protocol: TCP
+    targetPort: 19051
+    name: 19051-port
+  - port: 8081
+    protocol: TCP
+    targetPort: 8081
+    name: kuber-proxy-http
+  - port: 50051
+    protocol: TCP
+    targetPort: 50051
+    name: kuber-proxy-grpc
   selector:
     app: cmon-master
     run: cmon-master

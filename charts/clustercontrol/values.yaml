@@ -5,6 +5,9 @@
 # REQUIRED fqdn for cluster control instance provided with this cc instance.
 fqdn: &fqdn localhost
 
+# Set to true to use development versions of images
+devBuild: false
+
 # ClusterControl helm chart will ship victoria metrics for monitoring by default
 # host of your prometheus/victoria metrics instance, MUST be available on port 9090
 # REQUIRED, if not provided, metrics and dashboards won't be available
@@ -43,6 +46,7 @@ cmon:
     user: cmon
     password: cmon
   image: severalnines/cmon:2.3.2-12771
+  devImage: severalnines/cmon:2.3.2-12771
   extra_args: # extra arguments for ClusterControl binary
     - -s
     - --no-log-db
@@ -55,22 +59,42 @@ cmon:
 #      memory: 1Gi
   sd:
     image: severalnines/cmon-sd:build-38
+    devImage: severalnines/cmon-sd:build-38
 #    resources:
 #      requests:
 #        cpu: 100m
 #        memory: 1Gi
   exporter:
     image: severalnines/cmon_exporter-linux-amd64:main
+    devImage: severalnines/cmon_exporter-linux-amd64:main
 #    resources:
 #      requests:
 #        cpu: 100m
 #        memory: 1Gi
-  ccv2:
-    image: severalnines/cc-frontend:2.3.2
+  ccmgr:
+    image: europe-docker.pkg.dev/severalnines-public/clustercontrol/ccmgr:release-2.3.2
+    devImage: europe-docker.pkg.dev/severalnines-public/clustercontrol/ccmgr:main-dev-latest
 #    resources:
 #      requests:
 #        cpu: 100m
 #        memory: 1Gi
+  kuberProxy:
+    image: europe-docker.pkg.dev/severalnines-public/clustercontrol/kuber-proxy:release-2.3.2
+    devImage: europe-docker.pkg.dev/severalnines-public/clustercontrol/kuber-proxy:main-dev-latest
+#    resources:
+#      requests:
+#        cpu: 100m
+#        memory: 1Gi
+    env:
+      HTTP_PORT: 8081
+      GRPC_PORT: 50051
+      JWT_SECRET_PATH: /usr/share/ccmgr/jwt_secret.key
+      BASE_DIR: /usr/share/kuber-proxy
+      STATE_STORAGE: jetstream
+      DAPR_APP_ID: kuber-proxy
+      # Optional environment variables (uncomment and configure as needed)
+      # PROXY_CERT_PATH: /path_to/server.crt
+      # PROXY_KEY_PATH: /path_to/server.key
   ingress:
   # Although not strictly necessary it's **strongly** recommended to use ingress for cmon
     enabled: true
@@ -165,3 +189,7 @@ ingress-nginx:
     service:
 #      loadBalancerIP: xxx.xxx.xxx.xxx
       externalTrafficPolicy: "Local"
+      ports:
+        50051-tcp: 50051
+  tcp:
+    50051: "clustercontrol/cmon-master:50051"
