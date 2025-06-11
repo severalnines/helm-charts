@@ -1,0 +1,76 @@
+{{- if .Values.cleanup.enabled }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "agent-operator.fullname" . }}-cleanup-phase2-databaseoperators
+  namespace: {{ include "agent-operator.namespace" . }}
+  labels:
+    {{- include "agent-operator.labels" . | nindent 4 }}
+    cleanup-phase: "2"
+  annotations:
+    "helm.sh/hook": pre-delete
+    "helm.sh/hook-weight": "-5"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: 3
+  activeDeadlineSeconds: {{ .Values.cleanup.timeoutSeconds }}
+  template:
+    metadata:
+      labels:
+        cleanup-phase: "2"
+        {{- include "agent-operator.selectorLabels" . | nindent 8 }}
+    spec:
+      restartPolicy: OnFailure
+      serviceAccountName: {{ include "agent-operator.serviceAccountName" . }}
+      containers:
+      - name: cleanup-databaseoperators
+        image: "{{ .Values.cleanup.image.repository }}:{{ .Values.cleanup.image.tag }}"
+        imagePullPolicy: {{ .Values.cleanup.image.pullPolicy }}
+        resources:
+          {{- toYaml .Values.cleanup.resources | nindent 10 }}
+        command:
+        - /bin/bash
+        - -c
+        - |
+          set -e
+          echo "Phase 2: Cleaning up DatabaseOperators..."
+          
+          # Check if CRD exists before attempting to delete resources
+          if kubectl get crd databaseoperators.agent.severalnines.com >/dev/null 2>&1; then
+            echo "Found DatabaseOperators CRD, proceeding with cleanup..."
+            
+            # Get all DatabaseOperators across all namespaces
+            operators=$(kubectl get databaseoperators.agent.severalnines.com --all-namespaces -o jsonpath='{range .items[*]}{.metadata.namespace}{" "}{.metadata.name}{"\n"}{end}' 2>/dev/null || true)
+            
+            if [ -n "$operators" ]; then
+              echo "Found DatabaseOperators to delete:"
+              echo "$operators"
+              
+              # Delete each DatabaseOperator
+              echo "$operators" | while IFS=' ' read -r namespace name; do
+                if [ -n "$namespace" ] && [ -n "$name" ]; then
+                  echo "Deleting DatabaseOperator $name in namespace $namespace..."
+                  kubectl delete databaseoperator.agent.severalnines.com "$name" -n "$namespace" --timeout=60s || true
+                fi
+              done
+              
+              # Wait for all DatabaseOperators to be deleted
+              echo "Waiting for all DatabaseOperators to be deleted..."
+              for i in {1..30}; do
+                remaining=$(kubectl get databaseoperators.agent.severalnines.com --all-namespaces --no-headers 2>/dev/null | wc -l || echo "0")
+                if [ "$remaining" -eq 0 ]; then
+                  echo "All DatabaseOperators deleted successfully"
+                  break
+                fi
+                echo "Waiting for $remaining DatabaseOperators to be deleted... (attempt $i/30)"
+                sleep 10
+              done
+            else
+              echo "No DatabaseOperators found to delete"
+            fi
+          else
+            echo "DatabaseOperators CRD not found, skipping cleanup"
+          fi
+          
+          echo "Phase 2 cleanup completed"
+{{- end }} 
