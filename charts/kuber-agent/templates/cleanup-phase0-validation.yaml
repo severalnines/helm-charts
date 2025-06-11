@@ -1,0 +1,108 @@
+{{- if .Values.cleanup.enabled }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "agent-operator.fullname" . }}-cleanup-phase0-validation
+  namespace: {{ include "agent-operator.namespace" . }}
+  labels:
+    {{- include "agent-operator.labels" . | nindent 4 }}
+    cleanup-phase: "0"
+  annotations:
+    "helm.sh/hook": pre-delete
+    "helm.sh/hook-weight": "-15"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: 1
+  activeDeadlineSeconds: 120
+  template:
+    metadata:
+      labels:
+        cleanup-phase: "0"
+        {{- include "agent-operator.selectorLabels" . | nindent 8 }}
+    spec:
+      restartPolicy: OnFailure
+      serviceAccountName: {{ include "agent-operator.serviceAccountName" . }}
+      containers:
+      - name: cleanup-validation
+        image: "{{ .Values.cleanup.image.repository }}:{{ .Values.cleanup.image.tag }}"
+        imagePullPolicy: {{ .Values.cleanup.image.pullPolicy }}
+        resources:
+          {{- toYaml .Values.cleanup.resources | nindent 10 }}
+        command:
+        - /bin/bash
+        - -c
+        - |
+          set -e
+          echo "Phase 0: Validating cleanup requirements..."
+          echo "========================================="
+          
+          # Check CRD permissions first
+          echo "Checking permissions..."
+          if kubectl auth can-i get customresourcedefinitions --quiet 2>/dev/null; then
+            echo "✅ Can read CRDs"
+            crd_access=true
+          else
+            echo "⚠️  Cannot read CRDs (will try to access resources directly)"
+            crd_access=false
+          fi
+          
+          # List of resources to check
+          resources=(
+            "databaseclusters.agent.severalnines.com"
+            "databaseoperators.agent.severalnines.com"
+            "databasebackups.agent.severalnines.com"
+            "databasebackupschedules.agent.severalnines.com"
+            "configversions.agent.severalnines.com"
+          )
+          
+          total_resources=0
+          
+          for resource in "${resources[@]}"; do
+            resource_name=$(echo "$resource" | cut -d'.' -f1)
+            
+            # Try to get the CRD first if we have permissions
+            if [ "$crd_access" = true ]; then
+              if kubectl get crd "$resource" >/dev/null 2>&1; then
+                echo "✅ CRD exists: $resource"
+                crd_exists=true
+              else
+                echo "❌ CRD not found: $resource"
+                crd_exists=false
+              fi
+            else
+              # Skip CRD check, assume it might exist
+              echo "❓ CRD access denied, trying resources directly: $resource"
+              crd_exists=true
+            fi
+            
+            # Try to count resources if CRD exists (or might exist)
+            if [ "$crd_exists" = true ]; then
+              count=$(kubectl get "$resource" --all-namespaces --no-headers 2>/dev/null | wc -l || echo "0")
+              if [ "$count" -gt 0 ]; then
+                echo "📊 Found $count $resource_name resources"
+                total_resources=$((total_resources + count))
+              else
+                echo "📊 Found 0 $resource_name resources"
+              fi
+            fi
+          done
+          
+          echo "========================================="
+          echo "Total resources to be cleaned: $total_resources"
+          echo "Cleanup timeout per phase: {{ .Values.cleanup.timeoutSeconds }}s"
+          echo "Expected cleanup order:"
+          echo "  1. DatabaseClusters"
+          echo "  2. DatabaseOperators"
+          echo "  3. CRDs"
+          echo "  4. Operator itself"
+          echo "========================================="
+          
+          if [ $total_resources -gt 0 ]; then
+            echo "⚠️  WARNING: This will delete ALL database resources across ALL namespaces!"
+            echo "⚠️  Make sure you have backups of important data before proceeding."
+          else
+            echo "✅ No resources found to clean up."
+          fi
+          
+          echo "Validation completed successfully"
+{{- end }} 

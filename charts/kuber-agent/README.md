@@ -30,16 +30,45 @@ helm install kuber-agent kuber-agent --repo https://severalnines.github.io/helm-
 | `namespaceOverride` | Override the namespace for resources | `""` |
 | `createNamespace` | Create the namespace | `true` |
 | `controllerManager.replicas` | Number of operator replicas | `1` |
-| `crds.install` | Whether to install CRDs | `true` |
-| `crds.keepOnDelete` | Whether to keep CRDs on chart deletion | `true` |
 | `rbac.create` | Create RBAC resources | `true` |
 | `serviceAccount.create` | Create service account | `true` |
 | `serviceAccount.name` | Service account name | `agent-operator-controller-manager` |
 | `proxy.grpcAddress` | ClusterControl proxy gRPC address | `host.docker.internal:50051` |
+| `cleanup.enabled` | Enable resource cleanup during uninstall | `false` |
+| `cleanup.timeoutSeconds` | Timeout for each cleanup phase | `300` |
 
 ## Uninstalling the Chart
 
-To uninstall/delete the `kuber-agent` deployment:
+### Resource Cleanup
+
+For a complete cleanup that removes all database resources, operators, and CRDs in the proper order:
+
+```bash
+# First, enable cleanup by upgrading the release
+helm upgrade kuber-agent kuber-agent --repo https://severalnines.github.io/helm-charts/ \
+  --set cleanup.enabled=true
+
+# Then uninstall - cleanup hooks will run automatically
+helm uninstall kuber-agent
+```
+
+This will automatically:
+1. **Phase 1**: Delete all DatabaseClusters across all namespaces
+2. **Phase 2**: Delete all DatabaseOperators across all namespaces  
+3. **Phase 3**: Delete all CRDs installed by the agent-operator
+4. **Phase 4**: Delete the operator itself (standard Helm uninstall)
+
+### Standard Uninstall (Leaves Resources)
+
+To uninstall only the operator (leaving all database resources and CRDs):
+
+```bash
+helm uninstall kuber-agent
+```
+
+### Manual Cleanup
+
+If you need to manually clean up resources:
 
 ```bash
 # Remove all resources managed by the operator first
@@ -49,29 +78,13 @@ kubectl delete databasebackups.agent.severalnines.com --all -A
 kubectl delete databasebackupschedules.agent.severalnines.com --all -A
 kubectl delete configversions.agent.severalnines.com --all -A
 
+# Delete CRDs
+kubectl delete crd databaseclusters.agent.severalnines.com
+kubectl delete crd databaseoperators.agent.severalnines.com
+kubectl delete crd databasebackups.agent.severalnines.com
+kubectl delete crd databasebackupschedules.agent.severalnines.com
+kubectl delete crd configversions.agent.severalnines.com
+
 # Uninstall the operator
 helm uninstall kuber-agent
-```
-
-
-### From Local Directory
-
-If you've cloned the repository:
-
-```bash
-helm install kuber-agent ./agent-operator/chart
-```
-
-## Configuration
-
-### Agent Authentication
-
-The operator requires a public key for agent authentication. You can provide it during installation:
-
-```bash
-helm install kuber-agent ./charts/kuber-agent \
-  --create-namespace \
-  --namespace severalnines-system
-  --set agent.publicKey="<public-key>" \
-  --set proxy.grpcAddress="host.docker.internal:50051"
 ```
