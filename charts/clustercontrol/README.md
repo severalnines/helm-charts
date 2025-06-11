@@ -35,7 +35,7 @@ kubectl config set-context --current --namespace=clustercontrol
 ## Install
 
 ```
-helm install clustercontrol s9s/clustercontrol
+helm install clustercontrol s9s/clustercontrol --devel
 ```
 
 ## Providing your own SSH keys for ClusterControl to use
@@ -58,7 +58,7 @@ kubectl create secret generic my-ssh-keys --from-file=key1=/path/to/my/.ssh/id_r
 Providing cmon.sshKeysSecretName value with our secret name created above
 
 ```
-helm upgrade --install clustercontrol s9s/clustercontrol --set cmon.sshKeysSecretName=my-ssh-keys
+helm upgrade --install clustercontrol s9s/clustercontrol --set cmon.sshKeysSecretName=my-ssh-keys --devel
 ```
 
 ## Custom configuration via values.yaml
@@ -74,7 +74,7 @@ helm show values s9s/clustercontrol > values.yaml
 ### Install / Upgrade using your custom values.yaml
 
 ```
-helm install clustercontrol s9s/clustercontrol -f values.yaml
+helm install clustercontrol s9s/clustercontrol -f values.yaml --devel
 ```
 
 ## Notes
@@ -90,7 +90,7 @@ Is is *HIGHLY* recommended to use ingress as ClusterControl V2 requires cmon API
 ### If you already have Oracle MySQL Operator or NGINX ingress controller installed
 
 ```
-helm install clustercontrol s9s/clustercontrol --debug --set fqdn=clustercontrol.example.com --set installMysqlOperator=false --set ingressController.enabled=false
+helm install clustercontrol s9s/clustercontrol --debug --set fqdn=clustercontrol.example.com --set installMysqlOperator=false --set ingressController.enabled=false --devel
 ```
 
 This helm chart has certain dependencies that makes ClusterControl easier to install.

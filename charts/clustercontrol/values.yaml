@@ -72,14 +72,14 @@ cmon:
 #        cpu: 100m
 #        memory: 1Gi
   ccmgr:
-    image: europe-docker.pkg.dev/severalnines-public/clustercontrol/ccmgr:release-2.3.2
+    image: europe-docker.pkg.dev/severalnines-public/clustercontrol/ccmgr:release-2.3.2-28
     devImage: europe-docker.pkg.dev/severalnines-public/clustercontrol/ccmgr:main-dev-latest
 #    resources:
 #      requests:
 #        cpu: 100m
 #        memory: 1Gi
   kuberProxy:
-    image: europe-docker.pkg.dev/severalnines-public/clustercontrol/kuber-proxy:release-2.3.2
+    image: europe-docker.pkg.dev/severalnines-public/clustercontrol/kuber-proxy:release-0.1.0
     devImage: europe-docker.pkg.dev/severalnines-public/clustercontrol/kuber-proxy:main-dev-latest
 #    resources:
 #      requests:
