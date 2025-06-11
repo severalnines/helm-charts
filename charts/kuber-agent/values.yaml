@@ -42,17 +42,6 @@ controllerManager:
   healthProbe:
     port: 8081
 
-# CRDs configuration
-crds:
-  # Whether to install all CRDs
-  install: true
-  # Keep CRDs on chart uninstall
-  keepOnDelete: true
-  # Individual CRD control
-  databaseCluster: true
-  databaseBackup: true
-  databaseOperator: true
-  databaseBackupSchedule: true
 
 # RBAC Configuration
 rbac:
@@ -70,4 +59,29 @@ proxy:
 
 # Debug settings
 debug:
-  logLevel: "" # Explicitly set log level (e.g., "debug", "info"). Overrides the default based on 'env'. 
+  logLevel: "" # Explicitly set log level (e.g., "debug", "info"). Overrides the default based on 'env'.
+
+# Cleanup configuration
+# Use: helm uninstall <release-name> --set cleanup.enabled=true
+cleanup:
+  # Enable comprehensive cleanup during helm uninstall
+  # This will delete database clusters, operators, and CRDs in proper order
+  enabled: false
+  
+  # Timeout for each cleanup phase (in seconds)
+  timeoutSeconds: 300
+  
+  # Image to use for cleanup jobs (kubectl image)
+  image:
+    repository: bitnami/kubectl
+    tag: "1.28"
+    pullPolicy: IfNotPresent
+  
+  # Resource limits for cleanup jobs
+  resources:
+    limits:
+      cpu: 100m
+      memory: 128Mi
+    requests:
+      cpu: 50m
+      memory: 64Mi 

@@ -1,0 +1,76 @@
+{{- if .Values.cleanup.enabled }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "agent-operator.fullname" . }}-cleanup-phase3-crds
+  namespace: {{ include "agent-operator.namespace" . }}
+  labels:
+    {{- include "agent-operator.labels" . | nindent 4 }}
+    cleanup-phase: "3"
+  annotations:
+    "helm.sh/hook": pre-delete
+    "helm.sh/hook-weight": "0"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: 3
+  activeDeadlineSeconds: {{ .Values.cleanup.timeoutSeconds }}
+  template:
+    metadata:
+      labels:
+        cleanup-phase: "3"
+        {{- include "agent-operator.selectorLabels" . | nindent 8 }}
+    spec:
+      restartPolicy: OnFailure
+      serviceAccountName: {{ include "agent-operator.serviceAccountName" . }}
+      containers:
+      - name: cleanup-crds
+        image: "{{ .Values.cleanup.image.repository }}:{{ .Values.cleanup.image.tag }}"
+        imagePullPolicy: {{ .Values.cleanup.image.pullPolicy }}
+        resources:
+          {{- toYaml .Values.cleanup.resources | nindent 10 }}
+        command:
+        - /bin/bash
+        - -c
+        - |
+          set -e
+          echo "Phase 3: Cleaning up CRDs..."
+          
+          # List of CRDs installed by the agent-operator
+          crds=(
+            "databaseclusters.agent.severalnines.com"
+            "databaseoperators.agent.severalnines.com"
+            "databasebackups.agent.severalnines.com"
+            "databasebackupschedules.agent.severalnines.com"
+            "configversions.agent.severalnines.com"
+          )
+          
+          echo "Deleting agent-operator CRDs..."
+          for crd in "${crds[@]}"; do
+            if kubectl get crd "$crd" >/dev/null 2>&1; then
+              echo "Deleting CRD: $crd"
+              kubectl delete crd "$crd" --timeout=60s || true
+            else
+              echo "CRD not found: $crd"
+            fi
+          done
+          
+          # Wait for all CRDs to be deleted
+          echo "Waiting for all CRDs to be deleted..."
+          for i in {1..30}; do
+            remaining_count=0
+            for crd in "${crds[@]}"; do
+              if kubectl get crd "$crd" >/dev/null 2>&1; then
+                ((remaining_count++))
+              fi
+            done
+            
+            if [ $remaining_count -eq 0 ]; then
+              echo "All CRDs deleted successfully"
+              break
+            fi
+            echo "Waiting for $remaining_count CRDs to be deleted... (attempt $i/30)"
+            sleep 10
+          done
+          
+          echo "Phase 3 cleanup completed"
+{{- end }} 
