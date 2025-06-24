@@ -2,7 +2,7 @@ ccx:
   # List of Kubernetes secrets containing cloud credentials.
   cloudSecrets:
     - openstack  # This secret must exist in Kubernetes. See 'secrets-template.yaml' for reference.
-
+    - openstack-s3 # This secret must exist in Kubernetes. See 'secrets-template.yaml' for reference.
   config:
     clouds:
       - code: mycloud  # Unique code for your cloud provider
