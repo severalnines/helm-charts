@@ -10,9 +10,9 @@ ccx:
         instance_types:
           - code: m1.small  # Instance code; must match your cloud provider
             name: Small     # Display name
-            cpu: 2          # Number of vCPUs
-            ram: 4          # RAM in GB
-            disk_size: 60   # Disk size in GB
+            cpu: 2          # Number of vCPUs. Minimum 2 vcpus for test
+            ram: 4          # RAM in GB. Minimum 4GB for test
+            disk_size: 60   # Min. disk size in GB for the database. This is not the size of the system/root disk.
             type: m1.small  # Cloud provider's type or flavor name
 
         network_types:
