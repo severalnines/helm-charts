@@ -40,6 +40,7 @@ ccx:
         openstack_vendors:
           mycloud:
             floating_network_id: MY_FLOATING_NETWORK_ID  # Replace with actual ID, e.g., "12345-abcde"
+            #public_pool: MY_FLOATING_NETWORK_ID # Enable this if a public pool is used, same value as floating_network_id.
             network_api_version: NetworkNeutron          # Typically "NetworkNeutron"
             network_id: MY_NETWORK_ID                    # Replace with actual network ID
             project_id: MY_PROJECT_ID                    # Replace with your OpenStack project ID
