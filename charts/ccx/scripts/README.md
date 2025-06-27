@@ -83,15 +83,20 @@ This script is intended for use by system administrators and support personnel f
 # Check openstack credentials
 
 The following packages are needed:
+
 ```
 pyyaml
 openstacksdk
 boto3
 ```
+Save them in `requirements.txt`. 
 
 ## To install:
 
-```pip install -r requirements.txt```
+```
+pip install -r requirements.txt
+```
+
 or
 
 ```
@@ -105,6 +110,20 @@ pip install boto3
 
 ```
 python ./test-openstack-secrets.py openstack-secret.yaml
+```
+
+If all is ok you will see:
+
+```
+
+🔎 Debug: Attempting OpenStack authentication with these arguments:
+...
+✅ MYCLOUD_OpenStack authentication: SUCCESS
+
+🔎 Debug: Attempting S3 authentication with these arguments:
+...
+✅ MYCLOUD_S3 authentication: SUCCESS
+
 ```
 
 The input secrets file must look like this (change `MYCLOUD` to the cloud identifier you want to use):
