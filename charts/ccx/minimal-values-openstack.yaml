@@ -1,4 +1,10 @@
+ccxFQDN: ccx.example.com
+ccFQDN: cc.example.com
+cc:
+  cidr: 0.0.0.0/0
 ccx:
+  # List of Kubernetes secrets containing cloud credentials.
+  cidr: 0.0.0.0/0
   # List of Kubernetes secrets containing cloud credentials.
   cloudSecrets:
     - openstack  # This secret must exist in Kubernetes. See 'secrets-template.yaml' for reference.
