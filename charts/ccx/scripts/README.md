@@ -1,4 +1,5 @@
-# CCX Logging Utility
+
+# CCX Logging Utility - gather-logs.sh
 
 This script is designed to facilitate the collection of logs and operational data from a CCX services and components within a Kubernetes environment. It specifically targets a suite of services CCX services along with cmon services, gathering their logs, s9s cluster and job information, and packaging them into a compressed archive for analysis.
 
@@ -76,3 +77,34 @@ This script is designed to facilitate easy installation of CCX deps and generate
 ## Note
 
 This script is intended for use by system administrators and support personnel familiar with Kubernetes. Use with caution and ensure you have the appropriate authorizations with production environments.
+
+
+
+# Check openstack credentials
+
+The following packages are needed:
+```
+pyyaml
+openstacksdk
+boto3
+```
+
+## To install:
+
+```pip install -r requirements.txt```
+or
+
+```
+pip install pyyaml
+pip install openstacksdk
+pip install boto3
+```
+
+## Run:
+
+
+```
+python ./test-openstack-secrets.py openstack-secret.yaml
+```
+
+
