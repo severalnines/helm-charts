@@ -45,7 +45,7 @@ If all is ok you will see:
 
 ```
 
-The input secrets file must look like this (change `MYCLOUD` to the cloud identifier you want to use):
+The input secrets file must have the following format (change `MYCLOUD` to the cloud identifier you want to use):
 
 ```
 ---
