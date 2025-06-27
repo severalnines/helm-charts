@@ -107,4 +107,34 @@ pip install boto3
 python ./test-openstack-secrets.py openstack-secret.yaml
 ```
 
+The input secrets file must look like this (change `MYCLOUD` to the cloud identifier you want to use):
+
+```
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: openstack
+type: Opaque
+stringData:
+  MYCLOUD_AUTH_URL: https://....
+  MYCLOUD_PASSWORD: xxxxxx
+  MYCLOUD_PROJECT_ID: 5b8e951e41f34b5394bb7cf2323
+  MYCLOUD_USER_DOMAIN: mydomain
+  MYCLOUD_USERNAME: bob@example.com
+  MYCLOUD_USER_DOMAIN_NAME: mydomain
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: openstack-s3
+type: Opaque
+stringData:
+  MYCLOUD_S3_ENDPOINT: https://s3...
+  MYCLOUD_S3_ACCESSKEY: <ACCESSKEY>
+  MYCLOUD_S3_SECRETKEY: <SECRETKEY>
+  MYCLOUD_S3_BUCKETNAME: ccx
+  MYCLOUD_S3_INSECURE_SSL: "false" # Set to 'true' if your S3 connection is unencrypted (http)  or 'false' if it is (https).
+```
+
 
