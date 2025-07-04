@@ -5,13 +5,13 @@ description: An Umbrella Chart for observability components in CCX
 type: application
 
 ## version
-version: 0.6.0
-appVersion: "0.6.0"
+version: 0.6.1
+appVersion: "0.6.1"
 
 dependencies:
   - name: victoria-metrics-single
     repository: https://victoriametrics.github.io/helm-charts/
-    version: 0.9.14
+    version: 0.22.0
     condition: victoria-metrics-single.enabled
   - name: victoria-metrics-alert
     repository: https://victoriametrics.github.io/helm-charts/
