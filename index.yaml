@@ -531,6 +531,53 @@ entries:
     version: 1.47.1
   ccx-monitoring:
   - apiVersion: v2
+    appVersion: 0.6.1
+    created: "2025-07-04T12:52:05.840987979Z"
+    dependencies:
+    - condition: victoria-metrics-single.enabled
+      name: victoria-metrics-single
+      repository: https://victoriametrics.github.io/helm-charts/
+      version: 0.22.0
+    - condition: victoria-metrics-alert.enabled
+      name: victoria-metrics-alert
+      repository: https://victoriametrics.github.io/helm-charts/
+      version: 0.8.6
+    - condition: victoria-metrics-agent.enabled
+      name: victoria-metrics-agent
+      repository: https://victoriametrics.github.io/helm-charts/
+      version: 0.9.15
+    - condition: kube-state-metrics.enabled
+      name: kube-state-metrics
+      repository: https://prometheus-community.github.io/helm-charts
+      version: 5.16.0
+    - condition: alertmanager.enabled
+      name: alertmanager
+      repository: https://prometheus-community.github.io/helm-charts
+      version: 1.7.0
+    - condition: grafana.enabled
+      name: grafana
+      repository: https://grafana.github.io/helm-charts
+      version: 7.0.1
+    - condition: loki.enabled
+      name: loki
+      repository: https://grafana.github.io/helm-charts
+      version: 6.5.2
+    - condition: node-exporter.enabled
+      name: prometheus-node-exporter
+      repository: https://prometheus-community.github.io/helm-charts
+      version: 4.23.2
+    - condition: prometheus-blackbox-exporter.enabled
+      name: prometheus-blackbox-exporter
+      repository: https://prometheus-community.github.io/helm-charts
+      version: 8.4.0
+    description: An Umbrella Chart for observability components in CCX
+    digest: a5a2371b28e0dc5bab9bcb0384132544bd9498e50d1bf25375ac0e39f8cf3a58
+    name: ccx-monitoring
+    type: application
+    urls:
+    - https://github.com/severalnines/helm-charts/releases/download/ccx-monitoring-0.6.1/ccx-monitoring-0.6.1.tgz
+    version: 0.6.1
+  - apiVersion: v2
     appVersion: 0.6.0
     created: "2024-12-04T12:39:04.614603129Z"
     dependencies:
@@ -1706,4 +1753,4 @@ entries:
     urls:
     - https://github.com/severalnines/helm-charts/releases/download/kuber-agent-0.1.0/kuber-agent-0.1.0.tgz
     version: 0.1.0
-generated: "2025-06-17T03:50:59.826834676Z"
+generated: "2025-07-04T12:52:06.058281897Z"
