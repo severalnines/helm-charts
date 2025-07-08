@@ -13,7 +13,7 @@ You can install the chart directly from the Git repository:
 ```bash
 helm install kuber-agent kuber-agent --repo https://severalnines.github.io/helm-charts/ \
   --create-namespace \
-  --namespace severalnines-system
+  --namespace severalnines-system \
   --set agent.publicKey="<public-key>" \
   --set proxy.grpcAddress="host.docker.internal:50051" \
 ```
@@ -46,6 +46,7 @@ For a complete cleanup that removes all database resources, operators, and CRDs 
 ```bash
 # First, enable cleanup by upgrading the release
 helm upgrade kuber-agent kuber-agent --repo https://severalnines.github.io/helm-charts/ \
+  --namespace severalnines-system \
   --set cleanup.enabled=true
 
 # Then uninstall - cleanup hooks will run automatically
