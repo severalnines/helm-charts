@@ -77,9 +77,6 @@ data:
             {{- end }}
       {{- end }}
       copy_files:
-        - target: "/home/ubuntu/ccx_growfs"
-          source: "/conf/ccx_growfs.sh"
-          perms: "0755"
       {{- if .Values.fluentbit.enabled }}
         - target: "/etc/fluent-bit/fluent-bit.conf"
           source: "/conf/fluent-bit.conf"
