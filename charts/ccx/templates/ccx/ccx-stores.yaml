@@ -22,7 +22,6 @@ spec:
         checksum: {{ include (print $.Template.BasePath "/ccx/secrets.yaml") . | sha256sum }}
         checksum/config: {{ include (print $.Template.BasePath "/ccx/config.yaml") . | sha256sum }}
         checksum/core: {{ include (print $.Template.BasePath "/ccx/ccx-config-core.yaml") . | sha256sum }}
-        checksum/growfs: {{ include (print $.Template.BasePath "/ccx/ccx-config-growfs.yaml") . | sha256sum }}
         checksum/fluentbit: {{ include (print $.Template.BasePath "/ccx/ccx-fluentbit-config.yaml") . | sha256sum }}
     spec:
       initContainers:
@@ -132,9 +131,6 @@ spec:
               mountPath: "/conf/extra_output.conf"
               subPath: "extra-output.conf"
             {{- end }}
-            - name: conf-growfs
-              mountPath: "/conf/ccx_growfs.sh"
-              subPath: ccx_growfs.sh
             {{- range .Values.ccx.services.stores_service.extraVolumeMounts }}
             - name: {{ .name }}
               mountPath: {{ .mountPath }}
@@ -151,9 +147,6 @@ spec:
           configMap:
             name: ccx-configmap-fluentbit
         {{- end }}
-        - name: conf-growfs
-          configMap:
-            name: ccx-config-growfs
       {{ with .Values.ccx.services.stores_service.affinity }}
       affinity:
         {{ toYaml . | nindent 8 }}
@@ -213,7 +206,6 @@ spec:
         checksum: {{ include (print $.Template.BasePath "/ccx/secrets.yaml") . | sha256sum }}
         checksum/config: {{ include (print $.Template.BasePath "/ccx/config.yaml") . | sha256sum }}
         checksum/core: {{ include (print $.Template.BasePath "/ccx/ccx-config-core.yaml") . | sha256sum }}
-        checksum/growfs: {{ include (print $.Template.BasePath "/ccx/ccx-config-growfs.yaml") . | sha256sum }}
         checksum/fluentbit: {{ include (print $.Template.BasePath "/ccx/ccx-fluentbit-config.yaml") . | sha256sum }}
     spec:
       terminationGracePeriodSeconds: 120
@@ -296,9 +288,6 @@ spec:
               mountPath: "/conf/extra_output.conf"
               subPath: "extra-output.conf"
             {{- end }}
-            - name: conf-growfs
-              mountPath: "/conf/ccx_growfs.sh"
-              subPath: ccx_growfs.sh
             {{- range .Values.ccx.services.stores_worker.extraVolumeMounts }}
             - name: {{ .name }}
               mountPath: {{ .mountPath }}
@@ -315,9 +304,6 @@ spec:
           configMap:
             name: ccx-configmap-fluentbit
         {{- end }}
-        - name: conf-growfs
-          configMap:
-            name: ccx-config-growfs
       {{ with .Values.ccx.services.stores_worker.affinity }}
       affinity:
         {{ toYaml . | nindent 8 }}

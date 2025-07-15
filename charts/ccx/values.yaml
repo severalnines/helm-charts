@@ -4,10 +4,10 @@
 ccxFQDN: ccx.localhost
 ## REQUIRED fqdn for cluster control instance provided with this ccx instance.
 ccFQDN: cc.localhost
-## OPTIONAL cross origin urls which are not managed by ccx, but are used for ccx api requests and opening ccx iframes
+## OPTIONAL cross-origin urls which are not managed by ccx, but are used for ccx api requests and opening ccx iframes
 crossOrigins:
-  #- https://not.ccx.local
-## host of your prometheus/victoria metrics instance, must be available on port 9090
+#- https://not.ccx.local
+## host of your prometheus/victoria metrics instance must be available on port 9090
 prometheusHostname:
 ## k8s storage class used for PVs across CCX. This is a global variable applied to all PVCs/PVs to simplify things.
 storageClassName:
@@ -15,20 +15,20 @@ storageClassName:
 # shared configuration across all units
 global:
   # default number of replicas for normal service units - this should be set to more than 1 in a production environment
-  # NB. this does not apply to all units, e.g. some units will be run with a single replica always
+  # NB. this does not apply to all units, e.g., some units will be run with a single replica always
   replicas: 1
 
 ## Autoscaling configuration for the ccx
 autoscaling:
   # datastore storage will be scaled up automatically by adding additional disk and extending logical volume
-  # users needs to enable autoscaling in the CCX UI per datastore
+  # users need to enable autoscaling in the CCX UI per datastore
   storage:
     enabled: true # set to false to disable
     threshold: 75 # threshold in percentage, beyond which the storage will be autoscaled
     percentage: 20 # the percentage by which the storage will be increased
 
 
-## this section allows to deploy a single default cmon instance in the k8s cluster
+## this section allows deploying a single default cmon instance in the k8s cluster
 cmon:
   enabled: true
   id: "00000000-0000-0000-0000-000000000000"
@@ -43,7 +43,7 @@ cmon:
     name: cmon
     user: cmon
     password: Super$3cr3t
-  image: severalnines/cmon:2.3.1-12778
+  image: severalnines/cmon:2.3.1-13620
   extra_args: # extra arguments for cmon binary
     - -s
     - -b 0.0.0.0
@@ -83,7 +83,7 @@ ccx:
   userDomain: # "example.org"
 
   ## set admin credentials here
-  ## if not set, they will be generated automatically and you can read them from admin-users secret
+  ## if not set, they will be generated automatically, and you can read them from admin-users secret
   ## admin-users secret can also be used to add additional admin users separated by semicolon
   admin:
     email: #admin email
@@ -105,8 +105,7 @@ ccx:
 
   ## default settings for all backend components
   backend:
-    image: europe-docker.pkg.dev/severalnines-public/ccx/ccx-backend:2983
-
+    image: europe-docker.pkg.dev/severalnines-public/ccx/ccx-backend:3102
   ## postgresql server used by all backend components
   db:
     ## overwrite the below if you are using external DB for CCX
@@ -120,7 +119,7 @@ ccx:
   env:
     INIT_HOST_WAIT_CONFIG: "60x30s"
     USE_PUBLIC_IPS: "true"
-    ## Change below to set desired TTL on ExternalDNS created records
+    ## Change below to set the desired TTL on ExternalDNS created records
     EXTERNAL_DNS_TTL: 15
     ## Change below to the current date to trigger the servers upgrade described in "Lifecycle Management". The format is RFC 3339.
     LATEST_SERVER_CONFIG: "2006-01-02T15:04:05Z"
@@ -133,7 +132,7 @@ ccx:
     ssl:
       secretName: # use an existing k8s secret of type tls for CCX ingress
       clusterIssuer: # set this to your cert manager's cluster issuer or simply remove to not use one
-    annotations: #Add ability to specify annotations
+    annotations: #Add the ability to specify annotations
   ## NATS+JetStream server used by all backend components
   nats:
     server: ccxdeps-ccx-nats # your nats server name/address
@@ -149,8 +148,8 @@ ccx:
     ingress:
       enabled: false # enable/disable keycloak ingress
 
-  ## Create role and rolebinding for ExternalName service management.
-  ## Please not that this is REQUIRED for CCX to be able to create ExternalName services and
+  ## Create a role and rolebinding for ExternalName service management.
+  ## Please note that this is REQUIRED for CCX to be able to create ExternalName services and
   ## allowing DNS records to be created automatically.
   ## However, if you have configured your roles externaly, you can set this to false.
   createRBAC: true
@@ -161,7 +160,7 @@ ccx:
   ## please talk to severalnines about these settings
   services:
     admin:
-      basicauth: # if not set, it will be generated automatically and you can read them from admin-basic-auth secret
+      basicauth: # if not set, it will be generated automatically, and you can read them from admin-basic-auth secret
         username:
         password:
       env:
@@ -182,7 +181,7 @@ ccx:
           cpu: 1m
           memory: 5Mi
     billing:
-      # note that this does not disable the billing service, it disables the billing UI
+      # note that this does not disable the billing service; it disables the billing UI
       enabled: false
       # when enabled, the billing service will use the stripe and bill the users based on their subscriptions and usage
       # note that enabling this will require you to set up the stripe secret in the secrets and prices in config
@@ -208,8 +207,8 @@ ccx:
           cpu: 1m
           memory: 5Mi
     deployer:
-      ## Set deployer config to match your infrastructure
-      ## By default aws_vendor is enabled and configured as shown in commented example below
+      ## Set deployer config to match your infrastructure,
+      ## By default, aws_vendor is enabled and configured as shown in the commented example below
       config:
         #aws_vendor:
         #  regions:
@@ -248,12 +247,12 @@ ccx:
         #          to_port: 65535
         #openstack_vendors:
         #  vendor_name:
-        #    REQUIRED auth_url refers to an URL of the authentication service endpoint.
+        #    REQUIRED auth_url refers to a URL of the authentication service endpoint.
         #    auth_url: https://openstack_authurl
         #    REQUIRED project_id refers to a unique identifier assigned to an Openstack project. All the resources (VMs, volumes, sec. groups, floating IPs, etc.) created by ccx will be created in this project. REQUIRED
         #    project_id: 00000000000000000000000000000000
 
-        #    REQUIRED (one of them) floating_network_id or public_pool has to be choose to provide external access (public IPs)
+        #    REQUIRED (one of them) floating_network_id or public_pool has to be chosen to provide external access (public IPs)
         #    It is mandatory set floating_network_id or public_pool.
 
         #    The floating_network_id refers to a floating IP pool, which is a range of public IP addresses available for assignment to virtual machines.
@@ -268,12 +267,12 @@ ccx:
         #    Option network_api_version and floating_ip_api_version should be only set if the Openstack uses old network APIs, otherwise we should not setthem at all and use the defaults.
         #    The network_api_version and floating_ip_api_version options are optional and should be only set if we have old APIs for network deployed in the OpenStack deployment.
 
-        #    OPTIONAL network_api_version define which API use for network. We can choose between NetworkNeutron (default) or NetworkNova (old deprecated, but uses in some old Openstack deployments).
+        #    OPTIONAL network_api_version define which API use for network. We can choose between NetworkNeutron (default) or NetworkNova (old deprecated, but used in some old Openstack deployments).
         #    network_api_version: NetworkNeutron
-        #    OPTIONAL floating_ip_api_version define which API use for floating IPs, you can choose FloatingIPV2 or FloatingIPV3 (default), if no set it will be choose based on network_api_version. FloatingIPV2 is the old one based on the Nova API. OPTIONAL
+        #    OPTIONAL floating_ip_api_version defines which API use for floating IPs, you can choose FloatingIPV2 or FloatingIPV3 (default), if no set it will be chosen based on network_api_version. FloatingIPV2 is the old one based on the Nova API. OPTIONAL
         #    floating_ip_api_version: FloatingIPV3
 
-        #    We can define mulitple regions and overwrite the above options in the specific region.
+        #    We can define multiple regions and overwrite the above options in the specific region.
         #    REQUIRED at least one region
         #    regions:
         #      se-sto:
@@ -416,11 +415,11 @@ ccx:
         ENABLE_EMAIL: "false"
         ## disable emails to users
         DISABLE_USER_EMAILS: "false"
-        ## to enable slack for support and feedback
+        ## to enable Slack for support and feedback
         ENABLE_SLACK: "false"
-        ## where to submit slack messages
+        ## where to submit Slack messages
         SLACK_URL: "https://hooks.slack.com/services/CHANGE_ME"
-        ## slack channel, which may be overriden by the above URL
+        ## Slack channel, which may be overriden by the above URL
         SLACK_CHANNEL: "my-chan"
         ## pagerduty is not currently implemented
         ENABLE_PAGERDUTY: "false"
@@ -480,7 +479,7 @@ ccx:
           cpu: 1m
           memory: 5Mi
       extraVolumeMounts:
-        #Example below for volume mount
+        #The example below for volume mount
         # - name: conf-fluentbit
         #   mountPath: "/conf/credentials"
         #   subPath: "credentials"
@@ -496,12 +495,12 @@ ccx:
           cpu: 1m
           memory: 10Mi
       extraVolumeMounts:
-        #Example below for volume mount
+        #The example below for volume mount
         # - name: conf-fluentbit
         #   mountPath: "/conf/credentials"
         #   subPath: "credentials"
     uiapp:
-      image: europe-docker.pkg.dev/severalnines-public/ccx/ccx-ui-app:725
+      image: europe-docker.pkg.dev/severalnines-public/ccx/ccx-ui-app:780
       resources:
         requests:
           cpu: 1m
@@ -580,6 +579,7 @@ ccx:
         versions:
           - "10.11"
           - "11.4"
+          - "11.8"
         num_nodes:
           - 1
           - 2
@@ -627,9 +627,9 @@ ccx:
       - code: postgres
         name: PostgreSQL
         versions:
-          - "14"
           - "15"
           - "16"
+          - "17"
         num_nodes:
           - 1
           - 2
@@ -887,7 +887,7 @@ ccx:
       - name: timeout
         description: Close the connection after a client is idle for N seconds (0 to disable)
         type: number
-        default_value: 0
+        default_value: "0"
         validation_options: "min=0,max=10800"
         vendors:
           - "redis"
@@ -895,7 +895,7 @@ ccx:
       - name: group_concat_max_len
         description: The maximum permitted result length in bytes for the GROUP_CONCAT() function
         type: "number"
-        default_value: 1024
+        default_value: "1024"
         validation_options: "min=1024,max=104857600"
         vendors:
           - percona
@@ -903,7 +903,7 @@ ccx:
       - name: table_open_cache
         description: The number of open tables for all threads
         type: "number"
-        default_value: 4000
+        default_value: "4000"
         validation_options: "min=4000,max=10000"
         vendors:
           - percona
@@ -911,7 +911,7 @@ ccx:
       - name: wait_timeout
         description: The number of seconds the server waits for activity on a noninteractive connection before closing it.
         type: "number"
-        default_value: 28800
+        default_value: "28800"
         validation_options: "min=3000,max=28800"
         vendors:
           - percona
@@ -919,7 +919,7 @@ ccx:
       - name: interactive_timeout
         description: The number of seconds the server waits for activity on an interactive connection before closing it. An interactive client is defined as a client that uses the CLIENT_INTERACTIVE option to mysql_real_connect(). See also wait_timeout.
         type: "number"
-        default_value: 28800
+        default_value: "28800"
         validation_options: "min=3000,max=28800"
         vendors:
           - percona
@@ -927,7 +927,7 @@ ccx:
       - name: max_allowed_packet
         description: The maximum size of one packet or any generated/intermediate string, or any parameter sent by the mysql_stmt_send_long_data() C API function.
         type: "number"
-        default_value: 536870912
+        default_value: "536870912"
         validation_options: "min=536870912,max=1073741824"
         vendors:
           - percona
@@ -968,63 +968,77 @@ ccx:
       - name: statement_timeout
         description: Sets the time to wait (in milliseconds) on a lock before checking for deadlock
         type: number
-        default_value: 0
+        default_value: "0"
         validation_options: "min=0,max=10800"
         vendors:
           - "postgres"
       - name: wal_keep_size
-        description: Specifies the minimum size of past WAL files kept in the pg_wal directory.
+        description: Specifies the minimum size of past WAL files kept in the pg_wal directory (unit is MB).
         type: "number"
-        default_value: 1024
+        default_value: "1024"
         validation_options: "min=1024,max=8192"
         vendors:
           - postgres
       - name: max_wal_senders
         description: Specifies the maximum number of concurrent connections from standby servers or streaming base backup clients.
         type: "number"
-        default_value: 16
+        default_value: "16"
         validation_options: "min=16,max=32"
         vendors:
           - postgres
       - name: max_wal_size
-        description: Maximum size to let the WAL grow during automatic checkpoints.
+        description: Maximum size to let the WAL grow during automatic checkpoints (unit is MB).
         type: "number"
-        default_value: 1024
+        default_value: "1024"
         validation_options: "min=1024,max=8192"
+        vendors:
+          - postgres
+      - name: min_wal_size
+        description: Sets the minimum size to shrink the WAL to (unit is MB).
+        type: "number"
+        default_value: "80"
+        validation_options: "min=2,max=2147483647"
         vendors:
           - postgres
       - name: checkpoint_timeout
         description: Sets the maximum time between automatic WAL checkpoints.
         type: "number"
-        default_value: 300
+        default_value: "300"
         validation_options: "min=300,max=3600"
         vendors:
           - postgres
       - name: deadlock_timeout
         description: Sets the time to wait on a lock before checking for deadlock.
         type: "number"
-        default_value: 1000
+        default_value: "1000"
         validation_options: "min=1,max=2147483647"
         vendors:
           - postgres
       - name: lock_timeout
         description: Sets the maximum allowed duration of any wait for a lock.
         type: "number"
-        default_value: 0
+        default_value: "0"
         validation_options: "min=0,max=2147483647"
         vendors:
           - postgres
       - name: autovacuum
         description: Controls whether the server should run the autovacuum launcher daemon.
         type: "boolean"
-        default_value: true
+        default_value: "true"
         vendors:
           - postgres
       - name: autovacuum_naptime
         description: Time to sleep between autovacuum runs.
         type: "number"
-        default_value: 60
+        default_value: "60"
         validation_options: "min=1,max=86400"
+        vendors:
+          - postgres
+      - name: autovacuum_work_mem
+        description: "Sets the maximum memory to be used by each autovacuum worker process (unit is KB).  It defaults to -1, indicating that the value of maintenance_work_mem should be used instead."
+        type: "number"
+        default_value: "-1"
+        validation_options: "min=-1,max=2147483647"
         vendors:
           - postgres
       - name: log_min_duration_statement
@@ -1043,6 +1057,13 @@ ccx:
           - ddl
           - mod
           - all
+        vendors:
+          - postgres
+      - name: max_parallel_workers
+        description: "Sets the maximum number of parallel workers that can be active at one time."
+        type: "number"
+        default_value: "8"
+        validation_options: "min=0,max=1024"
         vendors:
           - postgres
       - name: max_parallel_workers_per_gather
@@ -1073,8 +1094,15 @@ ccx:
         validation_options: "min=0,max=1000000000000000000000"
         vendors:
           - postgres
+      - name: random_page_cost
+        description: "Sets the planner's estimate of the cost of a nonsequentially fetched disk page."
+        type: "number"
+        default_value: "4"
+        validation_options: "min=0,max=1000000000000000000000"
+        vendors:
+          - postgres
     backup:
-      # OPTIONAL. This section is optional. If not set the Backup schedule will not be randomized.
+      # OPTIONAL. This section is optional. If not set, the Backup schedule will not be randomized.
       randomize_schedule:
         enabled: true # enable/disable randomization
         start_hour: 0 # start hour, 0-23
@@ -1082,11 +1110,11 @@ ccx:
         interval_minutes: 15 # randomize interval in minutes, 0-60
 fluentbit:
   enabled: true
-  # Provide Ingress hostname of loki from ccxdeps ,If not set it will automatically preconfigure from ccxdeps.
+  # Provide Ingress hostname of loki from ccxdeps. If not set, it will automatically preconfigure from ccxdeps.
   host:
   port: 443
   # Provide Fluent-bit extra output config to forward logs to another logging tool
   extraOutputConfig: |
 
   # Provide Credentials incase if needed for output plugins
-  extraSecretMounts:  |
+  extraSecretMounts: |
