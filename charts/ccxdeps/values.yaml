@@ -12,10 +12,16 @@ ingressController:
 
 ingress-nginx:
   controller:
+    addHeaders:
+      Referrer-Policy: no-referrer
+      X-Content-Type-Options: nosniff
+      X-Frame-Options: DENY
+      X-XSS-Protection: 1; mode=block
     config:
       allow-backend-server-header: "true"
-      allow-snippet-annotations: "true"
+      # allow-snippet-annotations: "true"
       use-forwarded-headers: "true"
+      hide-headers: "Server,X-Powered-By"
     kind: DaemonSet
     metrics:
       enabled: true
@@ -25,6 +31,13 @@ ingress-nginx:
 #      loadBalancerIP: xxx.xxx.xxx.xxx
       externalTrafficPolicy: "Local"
 # nats option will install nats streaming
+    admissionWebhooks:
+      namespaceSelector:
+        matchExpressions:
+        - key: nginx-webhook
+          operator: NotIn
+          values:
+          - disabled
 nats:
   enabled: true
   nameOverride: "ccx-nats"
@@ -61,16 +74,16 @@ external-dns:
   sources:
   # Service source is required
   - service
-  txtPrefix: txt-
+  - ingress
+  txtPrefix: ccx-
 # installation and configuration option for mysql operator
 oracle-mysql-operator:
   enabled: true
   fullnameOverride: mysql-operator
+  envs:
+    k8sClusterDomain: cluster.local
 # installation and configuration option for mysql innodb
 mysql-innodbcluster:
-  env:
-    - name: MYSQL_OPERATOR_K8S_CLUSTER_DOMAIN
-      value: "cluster.local"
   enabled: true
   credentials:
     root:
@@ -93,7 +106,7 @@ mysql-innodbcluster:
     - name: mysql
       resources:
         requests:
-          memory: "2048Mi"
+          memory: "1024Mi"
 # installation and configuration option for monitoring
 ccx-monitoring:
   enabled: true
@@ -115,8 +128,7 @@ ccx-monitoring:
       service:
         servicePort: 9090
         clusterIP: null
-      statefulSet:
-        enabled: false
+      mode: deployment
       podAnnotations:
         prometheus.io/scrape: 'true'
         prometheus.io/port: '8428'
