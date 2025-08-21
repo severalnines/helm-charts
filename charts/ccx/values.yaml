@@ -105,7 +105,7 @@ ccx:
 
   ## default settings for all backend components
   backend:
-    image: europe-docker.pkg.dev/severalnines-public/ccx/ccx-backend:3104
+    image: europe-docker.pkg.dev/severalnines-public/ccx/ccx-backend:3154
   ## postgresql server used by all backend components
   db:
     ## overwrite the below if you are using external DB for CCX
@@ -500,13 +500,13 @@ ccx:
         #   mountPath: "/conf/credentials"
         #   subPath: "credentials"
     uiapp:
-      image: europe-docker.pkg.dev/severalnines-public/ccx/ccx-ui-app:780
+      image: europe-docker.pkg.dev/severalnines-public/ccx/ccx-ui-app:805
       resources:
         requests:
           cpu: 1m
           memory: 10Mi
     uiauth:
-      image: europe-docker.pkg.dev/severalnines-public/ccx/ccx-ui-auth:2
+      image: europe-docker.pkg.dev/severalnines-public/ccx/ccx-ui-auth:9
       resources:
         requests:
           cpu: 1m
@@ -645,23 +645,23 @@ ccx:
               2: 1 master, 1 replica
               3: 1 master, 2 replicas
         ports: [ 5432 ]
-      - code: redis
-        name: Redis
+      - code: valkey_sentinel
+        name: Valkey
         versions:
-          - "7"
+          - "8"
         num_nodes:
           - 1
           - 3
-        info: Deploy Redis Sentinel.
+        info: Deploy Valkey Sentinel.
         enabled: true
         beta: false
         types:
           - name: Sentinel
-            code: redis
+            code: valkey_sentinel
             size_hints:
               1: 1 master node
               3: 1 master, 2 replicas
-        ports: [ 6379, 16379 ]
+        ports: [6379]
       - code: microsoft
         name: Microsoft SQL Server
         versions:
