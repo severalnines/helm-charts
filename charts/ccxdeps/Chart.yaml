@@ -17,7 +17,7 @@ type: application
 # Versions are expected to follow Semantic Versioning (https://semver.org/)
 
 
-version: 0.6.6
+version: 0.6.7
 
 
 dependencies:
@@ -27,7 +27,7 @@ dependencies:
     condition: installOperators
   - name: ingress-nginx
     repository: https://kubernetes.github.io/ingress-nginx
-    version: 4.11.3
+    version: 4.13.0
     condition: ingressController.enabled
   - name: nats
     repository: https://nats-io.github.io/k8s/helm/charts/
@@ -35,7 +35,7 @@ dependencies:
     condition: nats.enabled
   - name: external-dns
     repository: "oci://registry-1.docker.io/bitnamicharts"
-    version: 6.26.3
+    version: 9.0.0
     condition: external-dns.enabled
   - name: mysql-operator
     version: 2.2.4
@@ -48,7 +48,7 @@ dependencies:
     condition: mysql-innodbcluster.enabled
   - name: ccx-monitoring
     repository: https://severalnines.github.io/helm-charts/
-    version: 0.6.0
+    version: 0.6.1
     condition: ccx-monitoring.enabled
   - name: keycloak
     repository: oci://registry-1.docker.io/bitnamicharts
