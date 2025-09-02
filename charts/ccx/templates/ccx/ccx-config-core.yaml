@@ -16,8 +16,6 @@ data:
       {{- toYaml .Values.ccx.services.deployer.config | nindent 6 }}
       {{- else }}
       aws_vendor:
-        s3:
-          enabled: true
         regions:
           eu-north-1:
             image_id: ami-05baaef454dd96656
@@ -66,7 +64,7 @@ data:
                 self: true
             {{- end }}
             {{- end }}
-          - name: valkey_sentinel
+          - name: redis
             security_groups:
             {{- with include "ccx.cidr" . | fromJsonArray }}
             {{- range . }}
