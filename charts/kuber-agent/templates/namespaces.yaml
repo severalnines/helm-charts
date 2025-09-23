@@ -1,0 +1,17 @@
+{{- if and .Values.rbac.create .Values.rbac.createNamespaces }}
+{{- $nsList := .Values.rbac.roles.namespaceAdmin | default (list) }}
+{{- range $ns := $nsList }}
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ $ns | quote }}
+  annotations:
+    helm.sh/resource-policy: keep
+  labels:
+    {{- include "agent-operator.labels" $ | nindent 4 }}
+{{- end }}
+{{- end }}
+
+
+  

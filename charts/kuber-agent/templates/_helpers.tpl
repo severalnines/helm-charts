@@ -51,15 +51,8 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
 
 {{/*
-Create the name of the service account to use
+Deprecated: serviceAccount helpers removed in favor of rbac.serviceAccounts values
 */}}
-{{- define "agent-operator.serviceAccountName" -}}
-{{- if .Values.serviceAccount.create }}
-{{- default (include "agent-operator.fullname" .) .Values.serviceAccount.name }}
-{{- else }}
-{{- default "default" .Values.serviceAccount.name }}
-{{- end }}
-{{- end }}
 
 {{/*
 Get the namespace to use
