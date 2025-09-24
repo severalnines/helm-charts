@@ -1,0 +1,528 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.17.0
+  name: appbundles.agent.severalnines.com
+spec:
+  group: agent.severalnines.com
+  names:
+    kind: AppBundle
+    listKind: AppBundleList
+    plural: appbundles
+    singular: appbundle
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .spec.provider
+      name: Provider
+      type: string
+    - jsonPath: .spec.targetNamespace
+      name: TargetNS
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: AppBundle is the Schema for the AppBundle API
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: AppBundleSpec defines the desired state of AppBundle
+            properties:
+              deletionPolicy:
+                description: AppBundleDeletionPolicy controls behavior on delete
+                enum:
+                - Delete
+                - WaitForTermination
+                - Orphan
+                type: string
+              deliveryMode:
+                description: |-
+                  DeliveryMode allows forcing direct apply or GitOps regardless of GitOpsSpec presence.
+                  Values: direct | gitops | auto (default). When auto, GitOps is used if configured or inherited; otherwise direct.
+                enum:
+                - direct
+                - gitops
+                - auto
+                type: string
+              dependsOn:
+                items:
+                  properties:
+                    healthChecks:
+                      items:
+                        properties:
+                          condition:
+                            type: string
+                          object:
+                            description: ObjectRef points to a namespaced or cluster-scoped
+                              object
+                            properties:
+                              apiVersion:
+                                type: string
+                              kind:
+                                type: string
+                              name:
+                                type: string
+                              namespace:
+                                type: string
+                            type: object
+                          type:
+                            type: string
+                        type: object
+                      type: array
+                    name:
+                      type: string
+                    namespace:
+                      type: string
+                    resolver:
+                      description: |-
+                        Resolver optionally defines how to detect if this dependency is already satisfied in the cluster.
+                        If set, this is evaluated before translation/apply to decide whether to skip creating this dependency.
+                        This is different from healthChecks which are about post-apply readiness.
+                      properties:
+                        checks:
+                          items:
+                            description: |-
+                              DependencyCheckSpec describes a single detection check.
+                              Only one of APIGroup, CRD, or Resource should typically be set per check.
+                            properties:
+                              apiGroup:
+                                description: APIGroup is considered satisfied if the
+                                  given API group exists on the server, e.g. "cert-manager.io".
+                                type: string
+                              crd:
+                                description: CRD is considered satisfied if the given
+                                  CRD (by plural.name.group) exists, e.g. "certificates.cert-manager.io".
+                                type: string
+                              resource:
+                                description: Resource checks for existence/condition
+                                  on a specific object.
+                                properties:
+                                  apiVersion:
+                                    type: string
+                                  kind:
+                                    type: string
+                                  name:
+                                    type: string
+                                  namespace:
+                                    type: string
+                                type: object
+                            type: object
+                          type: array
+                        mode:
+                          type: string
+                      type: object
+                    shared:
+                      type: boolean
+                    source:
+                      description: AppInstallSource describes where to fetch the app
+                        from
+                      properties:
+                        git:
+                          properties:
+                            include:
+                              type: string
+                            path:
+                              type: string
+                            recurse:
+                              type: boolean
+                            ref:
+                              type: string
+                            url:
+                              type: string
+                          required:
+                          - path
+                          - ref
+                          - url
+                          type: object
+                        helm:
+                          properties:
+                            chart:
+                              type: string
+                            repoURL:
+                              type: string
+                            values:
+                              x-kubernetes-preserve-unknown-fields: true
+                            valuesFrom:
+                              items:
+                                properties:
+                                  key:
+                                    type: string
+                                  kind:
+                                    enum:
+                                    - Secret
+                                    - ConfigMap
+                                    type: string
+                                  name:
+                                    type: string
+                                  optional:
+                                    type: boolean
+                                required:
+                                - key
+                                - kind
+                                - name
+                                type: object
+                              type: array
+                            version:
+                              type: string
+                          required:
+                          - chart
+                          - repoURL
+                          type: object
+                        kind:
+                          enum:
+                          - helm
+                          - git
+                          - oci
+                          type: string
+                        oci:
+                          properties:
+                            path:
+                              type: string
+                            ref:
+                              type: string
+                            url:
+                              type: string
+                          required:
+                          - ref
+                          - url
+                          type: object
+                      required:
+                      - kind
+                      type: object
+                  type: object
+                type: array
+              destination:
+                properties:
+                  kubeconfigSecretRef:
+                    type: string
+                  name:
+                    type: string
+                  server:
+                    type: string
+                type: object
+              driftDetection:
+                type: string
+              gitOps:
+                description: |-
+                  GitOps contains VCS/PR settings to drive GitOps-based delivery for this AppBundle.
+                  If set, the controller will create PRs/commits instead of applying directly.
+                properties:
+                  baseBranch:
+                    type: string
+                  basePath:
+                    description: |-
+                      BasePath specifies the directory in the repo where the root Application should point.
+                      All file paths are computed deterministically from BasePath and resource shape.
+                    type: string
+                  baseURL:
+                    type: string
+                  clusterID:
+                    type: string
+                  credentialsRef:
+                    description: |-
+                      GitOpsCredentialsRef references a Secret that contains credentials for VCS hosting
+                      If Namespace is empty, the AppBundle namespace is used. If Key is empty, "token" is assumed.
+                    properties:
+                      key:
+                        type: string
+                      name:
+                        type: string
+                      namespace:
+                        type: string
+                    required:
+                    - name
+                    type: object
+                  repoURL:
+                    type: string
+                  reviewers:
+                    items:
+                      type: string
+                    type: array
+                  vcs:
+                    enum:
+                    - github
+                    type: string
+                required:
+                - repoURL
+                type: object
+              gitOpsFrom:
+                description: |-
+                  GitOpsFrom allows inheriting GitOps configuration from another AppBundle. Typically points to a
+                  cluster "root" AppBundle that holds shared GitOps settings.
+                properties:
+                  apiVersion:
+                    type: string
+                  kind:
+                    type: string
+                  name:
+                    type: string
+                  namespace:
+                    type: string
+                type: object
+              interval:
+                type: string
+              manageLifecycle:
+                default: false
+                description: |-
+                  ManageLifecycle determines if the controller should reconcile/apply resources for this AppBundle.
+                  If false, the controller will not apply changes (useful for imported bundles).
+                type: boolean
+              provider:
+                description: AppBundleProvider indicates which controller provider
+                  to emit
+                enum:
+                - argo
+                - flux
+                - auto
+                type: string
+              prune:
+                type: boolean
+              releaseName:
+                type: string
+              renderer:
+                description: AppBundleRenderer defines how to render git/oci sources
+                enum:
+                - auto
+                - kustomize
+                - raw
+                type: string
+              serviceAccountName:
+                type: string
+              source:
+                description: AppInstallSource describes where to fetch the app from
+                properties:
+                  git:
+                    properties:
+                      include:
+                        type: string
+                      path:
+                        type: string
+                      recurse:
+                        type: boolean
+                      ref:
+                        type: string
+                      url:
+                        type: string
+                    required:
+                    - path
+                    - ref
+                    - url
+                    type: object
+                  helm:
+                    properties:
+                      chart:
+                        type: string
+                      repoURL:
+                        type: string
+                      values:
+                        x-kubernetes-preserve-unknown-fields: true
+                      valuesFrom:
+                        items:
+                          properties:
+                            key:
+                              type: string
+                            kind:
+                              enum:
+                              - Secret
+                              - ConfigMap
+                              type: string
+                            name:
+                              type: string
+                            optional:
+                              type: boolean
+                          required:
+                          - key
+                          - kind
+                          - name
+                          type: object
+                        type: array
+                      version:
+                        type: string
+                    required:
+                    - chart
+                    - repoURL
+                    type: object
+                  kind:
+                    enum:
+                    - helm
+                    - git
+                    - oci
+                    type: string
+                  oci:
+                    properties:
+                      path:
+                        type: string
+                      ref:
+                        type: string
+                      url:
+                        type: string
+                    required:
+                    - ref
+                    - url
+                    type: object
+                required:
+                - kind
+                type: object
+              sync:
+                properties:
+                  createNamespace:
+                    type: boolean
+                  prunePropagationPolicy:
+                    type: string
+                  replaceOnConflicts:
+                    type: boolean
+                  retry:
+                    properties:
+                      backoff:
+                        properties:
+                          duration:
+                            type: string
+                          factor:
+                            format: int32
+                            type: integer
+                          maxDuration:
+                            type: string
+                        type: object
+                      limit:
+                        format: int32
+                        type: integer
+                    type: object
+                  serverSideApply:
+                    type: boolean
+                  skipDryRunOnMissingResource:
+                    type: boolean
+                type: object
+              targetNamespace:
+                type: string
+              useServiceAccountAsArgoClusterCred:
+                type: boolean
+            required:
+            - source
+            - targetNamespace
+            type: object
+          status:
+            description: AppBundleStatus defines minimal observed state
+            properties:
+              conditions:
+                description: Conditions expresses high-level status such as Ready,
+                  Progressing, Degraded
+                items:
+                  description: Condition contains details for one aspect of the current
+                    state of this API Resource.
+                  properties:
+                    lastTransitionTime:
+                      description: |-
+                        lastTransitionTime is the last time the condition transitioned from one status to another.
+                        This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.
+                      format: date-time
+                      type: string
+                    message:
+                      description: |-
+                        message is a human readable message indicating details about the transition.
+                        This may be an empty string.
+                      maxLength: 32768
+                      type: string
+                    observedGeneration:
+                      description: |-
+                        observedGeneration represents the .metadata.generation that the condition was set based upon.
+                        For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date
+                        with respect to the current state of the instance.
+                      format: int64
+                      minimum: 0
+                      type: integer
+                    reason:
+                      description: |-
+                        reason contains a programmatic identifier indicating the reason for the condition's last transition.
+                        Producers of specific condition types may define expected values and meanings for this field,
+                        and whether the values are considered a guaranteed API.
+                        The value should be a CamelCase string.
+                        This field may not be empty.
+                      maxLength: 1024
+                      minLength: 1
+                      pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
+                      type: string
+                    status:
+                      description: status of the condition, one of True, False, Unknown.
+                      enum:
+                      - "True"
+                      - "False"
+                      - Unknown
+                      type: string
+                    type:
+                      description: type of condition in CamelCase or in foo.example.com/CamelCase.
+                      maxLength: 316
+                      pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - message
+                  - reason
+                  - status
+                  - type
+                  type: object
+                type: array
+              lastAppliedManifestsCount:
+                description: LastAppliedManifestsCount shows how many objects the
+                  last translation emitted
+                format: int32
+                type: integer
+              lastReconciledTime:
+                description: LastReconciledTime captures last reconciliation timestamp
+                format: date-time
+                type: string
+              managedRefs:
+                description: ManagedRefs lists objects created/managed by this AppBundle
+                  translation
+                items:
+                  description: ObjectRef points to a namespaced or cluster-scoped
+                    object
+                  properties:
+                    apiVersion:
+                      type: string
+                    kind:
+                      type: string
+                    name:
+                      type: string
+                    namespace:
+                      type: string
+                  type: object
+                type: array
+              observedGeneration:
+                description: ObservedGeneration is the last reconciled generation
+                format: int64
+                type: integer
+              phase:
+                type: string
+              providerSummary:
+                additionalProperties:
+                  type: string
+                description: ProviderSummary contains tool-specific summary fields
+                  (e.g., sync/health for Argo; ready for Flux)
+                type: object
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
