@@ -23,10 +23,47 @@ spec:
     spec:
       securityContext:
         runAsNonRoot: true
+        fsGroup: 65532
+        fsGroupChangePolicy: OnRootMismatch
+      {{- if .Values.dev.enabled }}
+      initContainers:
+      - name: prewarm-caches
+        image: "{{ .Values.image.repository }}:{{ if .Values.image.useDevelopmentImage }}{{ .Values.image.developmentImageTag }}{{ else }}{{ .Values.image.tag | default .Chart.AppVersion }}{{ end }}"
+        imagePullPolicy: {{ 
+          .Values.image.pullPolicy 
+        }}
+        command: ["/bin/sh","-lc"]
+        args:
+          - |
+            if [ -f /workspace/agent-operator/go.mod ]; then
+              cd /workspace/agent-operator && timeout 180 /usr/local/go/bin/go mod download || true;
+            else
+              echo "[prewarm] /workspace/agent-operator/go.mod not found, skipping";
+            fi
+        env:
+        - name: GOMODCACHE
+          value: /home/nonroot/go/pkg/mod
+        - name: GOCACHE
+          value: /home/nonroot/.cache/go-build
+        - name: GOWORK
+          value: /workspace/go.work
+        - name: GOPROXY
+          value: https://proxy.golang.org,direct
+        volumeMounts:
+        - name: go-cache
+          mountPath: /home/nonroot/go/pkg/mod
+          subPath: gomod
+        - name: go-cache
+          mountPath: /home/nonroot/.cache/go-build
+          subPath: gobuild
+      {{- end }}
       containers:
       - name: manager
-        image: "{{ .Values.image.repository }}:{{ if .Values.image.useDevelopmentImage }}{{ .Values.image.developmentImageTag }}{{ else }}{{ .Values.image.tag | default .Chart.AppVersion }}{{ end }}"
-        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        {{- if .Values.dev.enabled }}
+        command: {{ toJson .Values.dev.command }}
+        {{- end }}
+        image: "{{ .Values.image.repository | default (include "agent-operator.imageRepositoryDefault" .) }}:{{ if .Values.image.useDevelopmentImage }}{{ .Values.image.developmentImageTag }}{{ else }}{{ .Values.image.tag | default .Chart.AppVersion }}{{ end }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy | default (include "agent-operator.imagePullPolicyDefault" .) }}
         securityContext:
           allowPrivilegeEscalation: false
           capabilities:
@@ -37,6 +74,9 @@ spec:
         - "--metrics-bind-address=0"
         - "--leader-elect"
         - "--env={{ .Values.env }}"
+        {{- if .Values.controllerManager.controllers }}
+        - "--controllers={{ join "," .Values.controllerManager.controllers }}"
+        {{- end }}
         {{- if .Values.debug.logLevel }}
         - "--log-level={{ .Values.debug.logLevel }}"
         {{- end }}
@@ -51,6 +91,38 @@ spec:
         - name: AGENT_NAME
           value: {{ .Values.agent.name }}
         {{- end }}
+        # GitOps hints
+        - name: ARGOCD_NAMESPACE
+          value: {{ .Values.gitops.argo.namespace | quote }}
+        - name: FLUX_NAMESPACE
+          value: {{ .Values.gitops.flux.namespace | quote }}
+        {{- if .Values.gitops.enabled }}
+        - name: APPBUNDLE_GITOPS_ENABLED
+          value: "true"
+        {{- end }}
+        # AppBundle importer
+        - name: APPBUNDLE_IMPORT_ENABLED
+          value: {{ ternary "true" "false" .Values.appBundleImport.enabled | quote }}
+        - name: APPBUNDLE_IMPORT_MANAGE_LIFECYCLE
+          value: {{ ternary "true" "false" .Values.appBundleImport.manageLifecycle | quote }}
+        {{- if .Values.appBundleImport.provider }}
+        - name: APPBUNDLE_IMPORT_PROVIDER
+          value: {{ .Values.appBundleImport.provider | quote }}
+        {{- end }}
+        {{- if .Values.appBundleImport.interval }}
+        - name: APPBUNDLE_IMPORT_INTERVAL
+          value: {{ .Values.appBundleImport.interval | quote }}
+        {{- end }}
+        {{- if .Values.appBundleImport.crNamespace }}
+        - name: APPBUNDLE_IMPORT_CR_NAMESPACE
+          value: {{ .Values.appBundleImport.crNamespace | quote }}
+        {{- end }}
+        {{- if .Values.debug.logLevel }}
+        - name: LOG_LEVEL
+          value: {{ .Values.debug.logLevel }}
+        {{- end }}
+        
+        {{- if not (and .Values.dev.enabled .Values.dev.disableProbes) }}
         livenessProbe:
           httpGet:
             path: /healthz
@@ -63,7 +135,28 @@ spec:
             port: {{ .Values.controllerManager.healthProbe.port }}
           initialDelaySeconds: 5
           periodSeconds: 10
+        {{- end }}
+        {{- if and .Values.dev.enabled (and .Values.dev.startupProbe (not .Values.dev.disableProbes)) }}
+        startupProbe:
+{{ toYaml .Values.dev.startupProbe | nindent 10 }}
+        {{- end }}
+        {{- if .Values.dev.enabled }}
+        volumeMounts:
+        - name: go-cache
+          mountPath: /home/nonroot/go/pkg/mod
+          subPath: gomod
+        - name: go-cache
+          mountPath: /home/nonroot/.cache/go-build
+          subPath: gobuild
+        {{- end }}
         resources:
           {{- toYaml .Values.controllerManager.manager.resources | nindent 10 }}
-      serviceAccountName: {{ include "agent-operator.serviceAccountName" . }}
+      serviceAccountName: {{ if .Values.mode.write.enabled }}{{ .Values.rbac.serviceAccounts.write.name }}{{ else }}{{ .Values.rbac.serviceAccounts.agent.name }}{{ end }}
       terminationGracePeriodSeconds: 10
+      {{- if .Values.dev.enabled }}
+      volumes:
+      - name: go-cache
+        persistentVolumeClaim:
+          claimName: {{ .Values.dev.persistentCache.pvcName }}
+      {{- end }}
+        

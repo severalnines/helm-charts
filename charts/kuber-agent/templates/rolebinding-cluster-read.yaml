@@ -1,0 +1,23 @@
+{{- if .Values.rbac.create }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ include "agent-operator.fullname" . }}-cluster-read-binding
+  labels:
+    {{- include "agent-operator.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: s9s:cluster-read
+subjects:
+- kind: ServiceAccount
+  name: {{ .Values.rbac.serviceAccounts.agent.name }}
+  namespace: {{ include "agent-operator.namespace" . }}
+{{- if .Values.mode.write.enabled }}
+- kind: ServiceAccount
+  name: {{ .Values.rbac.serviceAccounts.write.name }}
+  namespace: {{ include "agent-operator.namespace" . }}
+{{- end }}
+{{- end }}
+
+
