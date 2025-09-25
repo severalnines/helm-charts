@@ -52,7 +52,7 @@ dev:
   command: ["/usr/local/bin/devloop-operator.sh"]
   startupProbe:
     httpGet:
-      path: /healthzin
+      path: /healthz
       port: 8081
     failureThreshold: 120
     periodSeconds: 2
