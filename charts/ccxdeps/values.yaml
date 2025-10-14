@@ -63,6 +63,11 @@ postgresql:
 # installation and configuration option for external-dns
 external-dns:
   enabled: false
+  image:
+    repository: bitnamilegacy/external-dns
+  global:
+    security:
+      allowInsecureImages: true
   watchReleaseNamespace: true
   domainFilters:
   - ccx.example.org
@@ -270,6 +275,14 @@ ccx-monitoring:
 keycloak:
   fullnameOverride: "ccxdeps-keycloak"
   enabled: true
+  global:
+    security:
+      allowInsecureImages: true
+  keycloakConfigCli:
+    image:
+      repository: bitnamilegacy/keycloak
+  image:
+    repository: bitnamilegacy/keycloak
   production: true #set to false for development
   httpRelativePath: /keycloak/
   proxyHeaders: "xforwarded"
