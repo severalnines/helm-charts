@@ -712,6 +712,38 @@ spec:
                   description: DatabaseClusterInstanceStatus defines status information
                     for a single instance
                   properties:
+                    containers:
+                      description: Containers lists containers that belong to the
+                        pod backing this instance
+                      items:
+                        description: DatabaseClusterInstanceContainer represents a
+                          container belonging to a database instance pod.
+                        properties:
+                          image:
+                            description: Image is the container image reference
+                            type: string
+                          name:
+                            description: Name is the container name
+                            type: string
+                          ready:
+                            description: Ready reflects whether the container is reported
+                              ready by Kubernetes
+                            type: boolean
+                          restartCount:
+                            description: RestartCount records how many times the container
+                              has restarted
+                            format: int32
+                            type: integer
+                          type:
+                            description: Type indicates the container type (app, init,
+                              ephemeral)
+                            enum:
+                            - app
+                            - init
+                            - ephemeral
+                            type: string
+                        type: object
+                      type: array
                     name:
                       description: Name is the instance name
                       type: string
