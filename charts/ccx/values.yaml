@@ -105,7 +105,7 @@ ccx:
 
   ## default settings for all backend components
   backend:
-    image: europe-docker.pkg.dev/severalnines-public/ccx/ccx-backend:3244
+    image: europe-docker.pkg.dev/severalnines-public/ccx/ccx-backend:3282
   ## postgresql server used by all backend components
   db:
     ## overwrite the below if you are using external DB for CCX
@@ -210,160 +210,160 @@ ccx:
       ## Set deployer config to match your infrastructure,
       ## By default, aws_vendor is enabled and configured as shown in the commented example below
       config:
-        #aws_vendor:
-        #  regions:
-        #    eu-north-1:
-        #      image_id: ami-05baaef454dd96656
-        #  database_vendors:
-        #    - name: mariadb
-        #      security_groups:
-        #        - cidr: 0.0.0.0/0
-        #          from_port: 1
-        #          ip_protocol: tcp
-        #          to_port: 65535
-        #    - name: microsoft
-        #      security_groups:
-        #        - cidr: 0.0.0.0/0
-        #          from_port: 1
-        #          ip_protocol: tcp
-        #          to_port: 65535
-        #    - name: percona
-        #      security_groups:
-        #        - cidr: 0.0.0.0/0
-        #          from_port: 1
-        #          ip_protocol: tcp
-        #          to_port: 65535
-        #    - name: postgres
-        #      security_groups:
-        #        - cidr: 0.0.0.0/0
-        #          from_port: 1
-        #          ip_protocol: tcp
-        #          to_port: 65535
-        #    - name: redis
-        #      security_groups:
-        #        - cidr: 0.0.0.0/0
-        #          from_port: 1
-        #          ip_protocol: tcp
-        #          to_port: 65535
-        #openstack_vendors:
-        #  vendor_name:
-        #    REQUIRED auth_url refers to a URL of the authentication service endpoint.
-        #    auth_url: https://openstack_authurl
-        #    REQUIRED project_id refers to a unique identifier assigned to an Openstack project. All the resources (VMs, volumes, sec. groups, floating IPs, etc.) created by ccx will be created in this project. REQUIRED
-        #    project_id: 00000000000000000000000000000000
+      #aws_vendor:
+      #  regions:
+      #    eu-north-1:
+      #      image_id: ami-05baaef454dd96656
+      #  database_vendors:
+      #    - name: mariadb
+      #      security_groups:
+      #        - cidr: 0.0.0.0/0
+      #          from_port: 1
+      #          ip_protocol: tcp
+      #          to_port: 65535
+      #    - name: microsoft
+      #      security_groups:
+      #        - cidr: 0.0.0.0/0
+      #          from_port: 1
+      #          ip_protocol: tcp
+      #          to_port: 65535
+      #    - name: percona
+      #      security_groups:
+      #        - cidr: 0.0.0.0/0
+      #          from_port: 1
+      #          ip_protocol: tcp
+      #          to_port: 65535
+      #    - name: postgres
+      #      security_groups:
+      #        - cidr: 0.0.0.0/0
+      #          from_port: 1
+      #          ip_protocol: tcp
+      #          to_port: 65535
+      #    - name: redis
+      #      security_groups:
+      #        - cidr: 0.0.0.0/0
+      #          from_port: 1
+      #          ip_protocol: tcp
+      #          to_port: 65535
+      #openstack_vendors:
+      #  vendor_name:
+      #    REQUIRED auth_url refers to a URL of the authentication service endpoint.
+      #    auth_url: https://openstack_authurl
+      #    REQUIRED project_id refers to a unique identifier assigned to an Openstack project. All the resources (VMs, volumes, sec. groups, floating IPs, etc.) created by ccx will be created in this project. REQUIRED
+      #    project_id: 00000000000000000000000000000000
 
-        #    REQUIRED (one of them) floating_network_id or public_pool has to be chosen to provide external access (public IPs)
-        #    It is mandatory set floating_network_id or public_pool.
+      #    REQUIRED (one of them) floating_network_id or public_pool has to be chosen to provide external access (public IPs)
+      #    It is mandatory set floating_network_id or public_pool.
 
-        #    The floating_network_id refers to a floating IP pool, which is a range of public IP addresses available for assignment to virtual machines.
-        #    floating_network_id: 00000000-0000-0000-0000-000000000000
+      #    The floating_network_id refers to a floating IP pool, which is a range of public IP addresses available for assignment to virtual machines.
+      #    floating_network_id: 00000000-0000-0000-0000-000000000000
 
-        #    The public_pool refers to the unique identifier assigned to a network of public IP pool
-        #    public_pool: 00000000-0000-0000-0000-000000000000 # public
+      #    The public_pool refers to the unique identifier assigned to a network of public IP pool
+      #    public_pool: 00000000-0000-0000-0000-000000000000 # public
 
-        #    REQUIRED network_id refers to the unique identifier assigned to a default network within the OpenStack environment. REQUIRED
-        #    network_id: 00000000-0000-0000-0000-000000000000 # severalnines-dbaas-network1
+      #    REQUIRED network_id refers to the unique identifier assigned to a default network within the OpenStack environment. REQUIRED
+      #    network_id: 00000000-0000-0000-0000-000000000000 # severalnines-dbaas-network1
 
-        #    Option network_api_version and floating_ip_api_version should be only set if the Openstack uses old network APIs, otherwise we should not setthem at all and use the defaults.
-        #    The network_api_version and floating_ip_api_version options are optional and should be only set if we have old APIs for network deployed in the OpenStack deployment.
+      #    Option network_api_version and floating_ip_api_version should be only set if the Openstack uses old network APIs, otherwise we should not setthem at all and use the defaults.
+      #    The network_api_version and floating_ip_api_version options are optional and should be only set if we have old APIs for network deployed in the OpenStack deployment.
 
-        #    OPTIONAL network_api_version define which API use for network. We can choose between NetworkNeutron (default) or NetworkNova (old deprecated, but used in some old Openstack deployments).
-        #    network_api_version: NetworkNeutron
-        #    OPTIONAL floating_ip_api_version defines which API use for floating IPs, you can choose FloatingIPV2 or FloatingIPV3 (default), if no set it will be chosen based on network_api_version. FloatingIPV2 is the old one based on the Nova API. OPTIONAL
-        #    floating_ip_api_version: FloatingIPV3
+      #    OPTIONAL network_api_version define which API use for network. We can choose between NetworkNeutron (default) or NetworkNova (old deprecated, but used in some old Openstack deployments).
+      #    network_api_version: NetworkNeutron
+      #    OPTIONAL floating_ip_api_version defines which API use for floating IPs, you can choose FloatingIPV2 or FloatingIPV3 (default), if no set it will be chosen based on network_api_version. FloatingIPV2 is the old one based on the Nova API. OPTIONAL
+      #    floating_ip_api_version: FloatingIPV3
 
-        #    We can define multiple regions and overwrite the above options in the specific region.
-        #    REQUIRED at least one region
-        #    regions:
-        #      se-sto:
-        #        image_id: 00000000-0000-0000-0000-000000000000 # REQUIRED
-        #        # The secgrp_name refers to the security group name which will be used by ccx to access the datastore VMs. It should be created manually beforehand and allow all TCP traffic from all k8s nodes where ccx is running.
-        #        secgrp_name: ccx-common # REQUIRED
+      #    We can define multiple regions and overwrite the above options in the specific region.
+      #    REQUIRED at least one region
+      #    regions:
+      #      se-sto:
+      #        image_id: 00000000-0000-0000-0000-000000000000 # REQUIRED
+      #        # The secgrp_name refers to the security group name which will be used by ccx to access the datastore VMs. It should be created manually beforehand and allow all TCP traffic from all k8s nodes where ccx is running.
+      #        secgrp_name: ccx-common # REQUIRED
 
-        #    OPTIONAL S3 configuration for backups.
-        #    s3:
-        #      endpoint: s3_endpoint
-        #      access_key: access_key
-        #      secret_key: secret_key
+      #    OPTIONAL S3 configuration for backups.
+      #    s3:
+      #      endpoint: s3_endpoint
+      #      access_key: access_key
+      #      secret_key: secret_key
 
-        #    OPTIONAL root_volume section sets the size in GiB for the root volume.
-        #    root_volume:
-        #      enabled: true
-        #      size: 30
-        # gcp_vendor:
-        #   project: gcp-project # replace with created project name
-        #   image_id: projects/ubuntu-os-cloud/global/images/ubuntu-2204-jammy-v20240614 # replace with the image id
-        #   network: default # replace with the network name if created, otherwise will fallback to default
-        #   s3:
-        #     enabled: true # needed for backups
-        #   regions:
-        #     europe-west1:
-        #       azs:
-        #       - europe-west1-b
-        #       - europe-west1-c
-        #       - europe-west1-d
-        #   database_vendors: # replace `x.x.x.x/x` with the CIDR of the IP address that the CCX cluster will use to access the database nodes.
-        #     - name: mariadb
-        #       security_groups:
-        #         - cidr: x.x.x.x/x
-        #           from_port: 22
-        #           ip_protocol: tcp
-        #           to_port: 22
-        #         - cidr: x.x.x.x/x
-        #           from_port: 1000
-        #           ip_protocol: tcp
-        #           self: true
-        #           to_port: 65535
-        #     - name: microsoft
-        #       security_groups:
-        #         - cidr: x.x.x.x/x
-        #           from_port: 22
-        #           ip_protocol: tcp
-        #           to_port: 22
-        #         - cidr: x.x.x.x/x
-        #           from_port: 1000
-        #           ip_protocol: tcp
-        #           self: true
-        #           to_port: 65535
-        #     - name: percona
-        #       security_groups:
-        #         - cidr: x.x.x.x/x
-        #           from_port: 22
-        #           ip_protocol: tcp
-        #           to_port: 22
-        #         - cidr: x.x.x.x/x
-        #           from_port: 1000
-        #           ip_protocol: tcp
-        #           self: true
-        #           to_port: 65535
-        #     - name: postgres
-        #       security_groups:
-        #         - cidr: x.x.x.x/x
-        #           from_port: 22
-        #           ip_protocol: tcp
-        #           to_port: 22
-        #         - cidr: x.x.x.x/x
-        #           from_port: 1000
-        #           ip_protocol: tcp
-        #           self: true
-        #           to_port: 65535
-        #     - name: redis
-        #       security_groups:
-        #         - cidr: x.x.x.x/x
-        #           from_port: 22
-        #           ip_protocol: tcp
-        #           to_port: 22
-        #         - cidr: x.x.x.x/x
-        #           from_port: 1000
-        #           ip_protocol: tcp
-        #           self: true
-        #           to_port: 65535
+      #    OPTIONAL root_volume section sets the size in GiB for the root volume.
+      #    root_volume:
+      #      enabled: true
+      #      size: 30
+      # gcp_vendor:
+      #   project: gcp-project # replace with created project name
+      #   image_id: projects/ubuntu-os-cloud/global/images/ubuntu-2204-jammy-v20240614 # replace with the image id
+      #   network: default # replace with the network name if created, otherwise will fallback to default
+      #   s3:
+      #     enabled: true # needed for backups
+      #   regions:
+      #     europe-west1:
+      #       azs:
+      #       - europe-west1-b
+      #       - europe-west1-c
+      #       - europe-west1-d
+      #   database_vendors: # replace `x.x.x.x/x` with the CIDR of the IP address that the CCX cluster will use to access the database nodes.
+      #     - name: mariadb
+      #       security_groups:
+      #         - cidr: x.x.x.x/x
+      #           from_port: 22
+      #           ip_protocol: tcp
+      #           to_port: 22
+      #         - cidr: x.x.x.x/x
+      #           from_port: 1000
+      #           ip_protocol: tcp
+      #           self: true
+      #           to_port: 65535
+      #     - name: microsoft
+      #       security_groups:
+      #         - cidr: x.x.x.x/x
+      #           from_port: 22
+      #           ip_protocol: tcp
+      #           to_port: 22
+      #         - cidr: x.x.x.x/x
+      #           from_port: 1000
+      #           ip_protocol: tcp
+      #           self: true
+      #           to_port: 65535
+      #     - name: percona
+      #       security_groups:
+      #         - cidr: x.x.x.x/x
+      #           from_port: 22
+      #           ip_protocol: tcp
+      #           to_port: 22
+      #         - cidr: x.x.x.x/x
+      #           from_port: 1000
+      #           ip_protocol: tcp
+      #           self: true
+      #           to_port: 65535
+      #     - name: postgres
+      #       security_groups:
+      #         - cidr: x.x.x.x/x
+      #           from_port: 22
+      #           ip_protocol: tcp
+      #           to_port: 22
+      #         - cidr: x.x.x.x/x
+      #           from_port: 1000
+      #           ip_protocol: tcp
+      #           self: true
+      #           to_port: 65535
+      #     - name: redis
+      #       security_groups:
+      #         - cidr: x.x.x.x/x
+      #           from_port: 22
+      #           ip_protocol: tcp
+      #           to_port: 22
+      #         - cidr: x.x.x.x/x
+      #           from_port: 1000
+      #           ip_protocol: tcp
+      #           self: true
+      #           to_port: 65535
       extraCopyFiles:
-        #Example below to copy the files to deployer node
-        # - target: "/etc/fluent-bit/credentials"
-        #   source: "/conf/credentials"
-        #   owner: "root:root"
-        #   perms: "0644"
+      #Example below to copy the files to deployer node
+      # - target: "/etc/fluent-bit/credentials"
+      #   source: "/conf/credentials"
+      #   owner: "root:root"
+      #   perms: "0644"
 
     hook:
       # please talk to severalnines for information about hooks
@@ -380,7 +380,7 @@ ccx:
           memory: 5Mi
     storesMigrate:
       env:
-    migrate: {}
+    migrate: { }
     monitor:
       env:
         HOST_PAGE_SIZE: "1000"
@@ -479,10 +479,10 @@ ccx:
           cpu: 1m
           memory: 5Mi
       extraVolumeMounts:
-        #The example below for volume mount
-        # - name: conf-fluentbit
-        #   mountPath: "/conf/credentials"
-        #   subPath: "credentials"
+      #The example below for volume mount
+      # - name: conf-fluentbit
+      #   mountPath: "/conf/credentials"
+      #   subPath: "credentials"
     stores_worker:
       # IMPORTANT stores_service and stores_worker should always have the same configuration
       # these values should not normally be changed
@@ -495,10 +495,10 @@ ccx:
           cpu: 1m
           memory: 10Mi
       extraVolumeMounts:
-        #The example below for volume mount
-        # - name: conf-fluentbit
-        #   mountPath: "/conf/credentials"
-        #   subPath: "credentials"
+      #The example below for volume mount
+      # - name: conf-fluentbit
+      #   mountPath: "/conf/credentials"
+      #   subPath: "credentials"
     uiapp:
       image: europe-docker.pkg.dev/severalnines-public/ccx/ccx-ui-app:825
       resources:
@@ -661,7 +661,7 @@ ccx:
             size_hints:
               1: 1 master node
               3: 1 master, 2 replicas
-        ports: [6379]
+        ports: [ 6379 ]
       - code: microsoft
         name: Microsoft SQL Server
         versions:
@@ -964,7 +964,7 @@ ccx:
         default_value: "utf8mb4_0900_ai_ci"
         vendors:
           - "percona"
-# postgresql
+      # postgresql
       - name: statement_timeout
         description: Sets the time to wait (in milliseconds) on a lock before checking for deadlock
         type: number
