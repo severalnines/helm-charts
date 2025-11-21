@@ -1,0 +1,172 @@
+{{- if .Values.rbac.create }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: s9s:cluster-read
+  labels:
+    {{- include "agent-operator.labels" . | nindent 4 }}
+rules:
+  - apiGroups: ["agent.severalnines.com"]
+    resources:
+      [
+        "databaseclusters",
+        "databaseoperators",
+        "databasebackups",
+        "databasebackupschedules",
+        "appbundles",
+        "clusterchangerequests",
+        "databaseclusters/status",
+        "databaseoperators/status",
+        "databasebackups/status",
+        "databasebackupschedules/status",
+        "appbundles/status",
+        "clusterchangerequests/status",
+        "databaseclusters/finalizers",
+        "databaseoperators/finalizers",
+        "databasebackups/finalizers",
+        "databasebackupschedules/finalizers",
+        "appbundles/finalizers",
+        "clusterchangerequests/finalizers"
+      ]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources:
+      [
+        "configmaps",
+        "services",
+        "persistentvolumeclaims",
+        "events",
+        "pods",
+        "pods/log",
+        "namespaces",
+        "nodes"
+      ]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["events.k8s.io"]
+    resources: ["events"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["argoproj.io"]
+    resources: ["applications"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["helm.toolkit.fluxcd.io"]
+    resources: ["helmreleases"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["kustomize.toolkit.fluxcd.io"]
+    resources: ["kustomizations"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["apps"]
+    resources: ["deployments", "statefulsets"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["batch"]
+    resources: ["jobs", "cronjobs"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["coordination.k8s.io"]
+    resources: ["leases"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["postgresql.cnpg.io"]
+    resources: ["clusters", "backups", "scheduledbackups"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["moco.cybozu.com"]
+    resources:
+      ["mysqlclusters", "mysqlbackups", "mysqlbackuppolicies", "backuppolicies"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["pxc.percona.com"]
+    resources:
+      [
+        "perconaxtradbclusters",
+        "perconaxtradbbackups",
+        "perconaxtradbbackupjobs",
+        "perconaxtradbrestores"
+      ]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["stackgres.io"]
+    resources: ["sgclusters", "sgbackups", "sgbackupconfigs", "sgschedules"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["elasticsearch.k8s.elastic.co"]
+    resources: ["elasticsearches"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: s9s:cluster-read-extra
+  labels:
+    {{- include "agent-operator.labels" . | nindent 4 }}
+rules:
+- apiGroups: [""]
+  resources: ["secrets", "serviceaccounts"]
+  verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: s9s:cluster-write
+  labels:
+    {{- include "agent-operator.labels" . | nindent 4 }}
+rules:
+  - apiGroups: [""]
+    resources:
+      [
+        "configmaps",
+        "secrets",
+        "serviceaccounts",
+        "services",
+        "persistentvolumeclaims",
+        "events",
+        "namespaces",
+      ]
+    verbs: ["create", "update", "patch", "delete"]
+  - apiGroups: ["apps"]
+    resources: ["deployments", "statefulsets"]
+    verbs: ["create", "update", "patch", "delete"]
+  - apiGroups: ["batch"]
+    resources: ["jobs", "cronjobs"]
+    verbs: ["create", "update", "patch", "delete"]
+  - apiGroups: ["agent.severalnines.com"]
+    resources:
+      [
+        "databaseclusters",
+        "databaseoperators",
+        "databasebackups",
+        "databasebackupschedules",
+        "appbundles",
+        "clusterchangerequests",
+        "databaseclusters/status",
+        "databaseoperators/status",
+        "databasebackups/status",
+        "databasebackupschedules/status",
+        "appbundles/status",
+        "clusterchangerequests/status",
+        "databaseclusters/finalizers",
+        "databaseoperators/finalizers",
+        "databasebackups/finalizers",
+        "databasebackupschedules/finalizers",
+        "appbundles/finalizers",
+        "clusterchangerequests/finalizers",
+      ]
+    verbs: ["create", "update", "patch", "delete"]
+  - apiGroups: ["postgresql.cnpg.io"]
+    resources: ["clusters", "backups", "scheduledbackups"]
+    verbs: ["create", "update", "patch", "delete"]
+  - apiGroups: ["moco.cybozu.com"]
+    resources:
+      ["mysqlclusters", "mysqlbackups", "mysqlbackuppolicies", "backuppolicies"]
+    verbs: ["create", "update", "patch", "delete"]
+  - apiGroups: ["events.k8s.io"]
+    resources: ["events"]
+    verbs: ["create", "patch", "update"]
+
+  - apiGroups: ["argoproj.io"]
+    resources: ["applications"]
+    verbs: ["create", "patch", "update", "delete"]
+  - apiGroups: ["helm.toolkit.fluxcd.io"]
+    resources: ["helmreleases"]
+    verbs: ["create", "patch", "update", "delete"]
+  - apiGroups: ["kustomize.toolkit.fluxcd.io"]
+    resources: ["kustomizations"]
+    verbs: ["create", "patch", "update", "delete"]
+
+  - apiGroups: ["coordination.k8s.io"]
+    resources: ["leases"]
+    verbs: ["create", "update", "patch"]
+{{- end }}

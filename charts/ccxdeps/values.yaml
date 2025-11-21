@@ -43,7 +43,7 @@ nats:
   nameOverride: "ccx-nats"
   exporter:
     enabled: true
-  nats:
+  config:
     jetstream:
       enabled:
         true

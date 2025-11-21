@@ -1,0 +1,277 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.17.0
+  name: clusterchangerequests.agent.severalnines.com
+spec:
+  group: agent.severalnines.com
+  names:
+    kind: ClusterChangeRequest
+    listKind: ClusterChangeRequestList
+    plural: clusterchangerequests
+    singular: clusterchangerequest
+  scope: Namespaced
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: ClusterChangeRequest requests a GitOps PR for the provided resources
+          and tracks its lifecycle.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: |-
+              ClusterChangeRequestSpec defines the desired state of a change submission.
+              Delivery controls how the change is executed (gitops/manual/direct), and
+              placement controls path computation for methods that persist files (e.g., gitops).
+              Require at least one of: spec.objects or spec.resources (when present) to be non-empty.
+            properties:
+              action:
+                default: apply
+                description: Action determines whether to apply or delete manifests
+                  via GitOps
+                enum:
+                - apply
+                - delete
+                type: string
+              delivery:
+                description: Delivery describes how this change should be delivered
+                properties:
+                  gitOps:
+                    description: |-
+                      GitOps optionally overrides the default root GitOps configuration
+                      If omitted and type=gitops, the controller will require a configured default root
+                    properties:
+                      baseBranch:
+                        type: string
+                      basePath:
+                        description: |-
+                          BasePath specifies the directory in the repo where the root Application should point.
+                          All file paths are computed deterministically from BasePath and resource shape.
+                        type: string
+                      baseURL:
+                        type: string
+                      clusterID:
+                        type: string
+                      credentialsRef:
+                        description: |-
+                          GitOpsCredentialsRef references a Secret that contains credentials for VCS hosting
+                          If Namespace is empty, the AppBundle namespace is used. If Key is empty, "token" is assumed.
+                        properties:
+                          key:
+                            type: string
+                          name:
+                            type: string
+                          namespace:
+                            type: string
+                        required:
+                        - name
+                        type: object
+                      repoURL:
+                        type: string
+                      reviewers:
+                        items:
+                          type: string
+                        type: array
+                      vcs:
+                        enum:
+                        - github
+                        type: string
+                    required:
+                    - repoURL
+                    type: object
+                  manual:
+                    description: Manual delivery options
+                    properties:
+                      output:
+                        description: Output controls artifact format and storage
+                        properties:
+                          format:
+                            description: 'Format: bundle (multi-doc) | singleFile
+                              (alias of bundle)'
+                            enum:
+                            - bundle
+                            - singleFile
+                            type: string
+                          name:
+                            type: string
+                          namespace:
+                            description: Namespace and Name are required when storage
+                              is configMap or secret
+                            type: string
+                          storage:
+                            description: 'Storage: status | configMap | secret (status
+                              supported initially)'
+                            enum:
+                            - status
+                            - configMap
+                            - secret
+                            type: string
+                        type: object
+                    type: object
+                  type:
+                    description: 'Type selects the delivery method. Current options:
+                      gitops, manual'
+                    enum:
+                    - gitops
+                    - manual
+                    type: string
+                type: object
+              objects:
+                description: |-
+                  Objects contains embedded Kubernetes resources (preferred over resources)
+                  Each item is a full K8s object (apiVersion/kind/metadata/spec...)
+                items:
+                  description: EmbeddedObject holds a single embedded Kubernetes resource.
+                  type: object
+                  x-kubernetes-preserve-unknown-fields: true
+                minItems: 1
+                type: array
+              placement:
+                description: Placement controls how paths are computed for file-based
+                  deliveries
+                properties:
+                  app:
+                    type: string
+                  explicitPath:
+                    type: string
+                  mode:
+                    type: string
+                type: object
+              resources:
+                description: Resources holds one or more YAML documents as strings
+                items:
+                  type: string
+                type: array
+              singleFile:
+                description: SingleFile, if true, packs all docs into a single multi-doc
+                  YAML at the computed path
+                type: boolean
+            type: object
+            x-kubernetes-validations:
+            - message: either spec.objects or spec.resources must contain at least
+                one item
+              rule: (has(self.objects) && size(self.objects) > 0) || (has(self.resources)
+                && size(self.resources) > 0)
+          status:
+            description: |-
+              ClusterChangeRequestStatus captures progress and delivery metadata
+              Phase: Submitted | PendingUserAction | PRCreated | Applied | Completed | Failed
+              ObservedRefs are the objects expected to appear in the cluster after application
+              Paths lists all repo paths touched by this request (gitops/manual suggestions)
+              Message is a short human-readable info or error
+              For GitOps: PRNumber/URL/Branch/BaseBranch/RepoURL describe the PR when created
+              For Manual: Manual contains artifact information and suggested commands
+              LastReconciledTime mirrors other statuses
+            properties:
+              baseBranch:
+                type: string
+              branch:
+                type: string
+              deliveryType:
+                type: string
+              lastReconciledTime:
+                format: date-time
+                type: string
+              manual:
+                description: ManualDeliveryStatus provides details for manual delivery
+                  artifacts
+                properties:
+                  artifactSHA:
+                    description: ArtifactSHA is the SHA256 of the inline bundle
+                    type: string
+                  inlineBundle:
+                    description: InlineBundle contains the multi-doc YAML when storage=status
+                    type: string
+                  sizeBytes:
+                    description: SizeBytes reports the size of the bundle
+                    format: int64
+                    type: integer
+                  storageRef:
+                    description: StorageRef points to ConfigMap/Secret when used (nil
+                      for status storage)
+                    properties:
+                      apiVersion:
+                        type: string
+                      kind:
+                        type: string
+                      name:
+                        type: string
+                      namespace:
+                        type: string
+                    type: object
+                type: object
+              message:
+                type: string
+              nextActions:
+                items:
+                  description: NextAction suggests an actionable command for the user
+                    (manual delivery)
+                  properties:
+                    command:
+                      type: string
+                    kind:
+                      type: string
+                    title:
+                      type: string
+                  type: object
+                type: array
+              observedGeneration:
+                format: int64
+                type: integer
+              observedRefs:
+                items:
+                  description: ObjectRef points to a namespaced or cluster-scoped
+                    object
+                  properties:
+                    apiVersion:
+                      type: string
+                    kind:
+                      type: string
+                    name:
+                      type: string
+                    namespace:
+                      type: string
+                  type: object
+                type: array
+              paths:
+                items:
+                  type: string
+                type: array
+              phase:
+                type: string
+              prNumber:
+                format: int32
+                type: integer
+              providerSummary:
+                additionalProperties:
+                  type: string
+                type: object
+              repoURL:
+                type: string
+              url:
+                type: string
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

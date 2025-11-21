@@ -34,24 +34,55 @@ controllerManager:
     resources:
       limits:
         cpu: 500m
-        memory: 256Mi
+        memory: 512Mi
       requests:
-        cpu: 100m
-        memory: 128Mi
+        cpu: 200m
+        memory: 256Mi
   # Health probe configuration
   healthProbe:
     port: 8081
 
+  # Optional: run only a subset of controllers. Empty = all
+  # Valid: databasecluster, databaseoperator, databasebackupschedule, databasebackup, appbundle, gc
+  controllers: []
 
-# RBAC Configuration
+# Dev overrides (command/startupProbe) - enabled via values
+dev:
+  enabled: false
+  command: ["/usr/local/bin/devloop-operator.sh"]
+  startupProbe:
+    httpGet:
+      path: /healthz
+      port: 8081
+    failureThreshold: 120
+    periodSeconds: 2
+  disableProbes: true
+  persistentCache:
+    enabled: true
+    create: false
+    pvcName: operator-cache
+    storageClassName: local-path
+  resources: {}
+
+
 rbac:
   create: true
+  serviceAccounts:
+    agent:
+      name: agent-operator-controller-manager
+      create: true
+    write:
+      name: agent-operator-controller-manager-write
+      create: true
+  clusterRead:
+    includeSecrets: false      # when true, also bind s9s:cluster-read-extra per namespace
+  namespaces:
+    targets: []            # e.g. ["app-a", "app-b"]
+    create: false          # optionally create target namespaces
 
-# Service Account Configuration
-serviceAccount:
-  create: true
-  name: "agent-operator-controller-manager"
-  annotations: {}
+mode:
+  write:
+    enabled: false   # when true: bind agent-write SA to s9s:cluster-write cluster-wide
 
 # Proxy configuration for connecting to ClusterControl server
 proxy:
@@ -84,4 +115,33 @@ cleanup:
       memory: 128Mi
     requests:
       cpu: 50m
-      memory: 64Mi 
+      memory: 64Mi
+
+# GitOps integration (controllers must be installed separately; no bootstrapping here)
+gitops:
+  enabled: false
+  # tool: "argo" | "flux"
+  tool: "argo"
+  argo:
+    namespace: "argocd"
+  flux:
+    namespace: "flux-system"
+
+# AppBundle importer configuration
+appBundleImport:
+  enabled: true               # Enable background importer to create AppBundle CRs from Argo/Flux
+  provider: ""                # argo | flux | "" (both)
+  interval: "1m"              # Sweep interval (e.g., 30s, 1m)
+  crNamespace: ""             # Namespace to create AppBundle CRs (default: POD_NAMESPACE when empty)
+  manageLifecycle: false       # Set spec.manageLifecycle on generated CRs
+
+# Controller authentication (token used by controller for GitOps PRs/commits)
+controllerAuth:
+  secret:
+    enabled: false
+    name: ""   # e.g. s9s-gitops-token
+    key: "token"
+    value: ""
+  provider: "github"   # keep option for future providers; current: github
+  baseURL: ""          # optional base URL for GitHub Enterprise
+

@@ -90,9 +90,20 @@ data:
 
     [INPUT]
         Name                tail
+        Tag                 ccx.valkey
+        Path                /var/log/valkey/valkey-server.log, /var/log/valkey/valkey-sentinel.log
+        DB                  /var/fluent-bit/state/flb_valkey.db
+        Mem_Buf_Limit       5MB
+        Skip_Long_Lines     On
+        Refresh_Interval    10
+        Read_from_Head      false
+        Path_Key            log_path
+
+    [INPUT]
+        Name                tail
         Tag                 ccx.mssql
         Path                /var/opt/mssql/log/errorlog
-        DB                  /var/fluent-bit/state/flb_redis.db
+        DB                  /var/fluent-bit/state/flb_mssqs.db
         Mem_Buf_Limit       5MB
         Skip_Long_Lines     On
         Refresh_Interval    10
