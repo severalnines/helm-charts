@@ -17,7 +17,7 @@ type: application
 # Versions are expected to follow Semantic Versioning (https://semver.org/)
 
 
-version: 0.6.9
+version: 0.6.12
 
 
 dependencies:
@@ -38,12 +38,12 @@ dependencies:
     version: 9.0.0
     condition: external-dns.enabled
   - name: mysql-operator
-    version: 2.2.5
+    version: 2.2.6
     repository: https://mysql.github.io/mysql-operator/
     condition: oracle-mysql-operator.enabled
     alias: oracle-mysql-operator
   - name: mysql-innodbcluster
-    version: 2.2.5
+    version: 2.2.6
     repository: https://mysql.github.io/mysql-operator/
     condition: mysql-innodbcluster.enabled
   - name: ccx-monitoring
