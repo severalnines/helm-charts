@@ -514,6 +514,23 @@ spec:
                 type: integer
               phase:
                 type: string
+              providerManagedRefs:
+                description: ProviderManagedRefs captures objects reported by the
+                  underlying delivery provider (e.g. Argo inventory)
+                items:
+                  description: ObjectRef points to a namespaced or cluster-scoped
+                    object
+                  properties:
+                    apiVersion:
+                      type: string
+                    kind:
+                      type: string
+                    name:
+                      type: string
+                    namespace:
+                      type: string
+                  type: object
+                type: array
               providerSummary:
                 additionalProperties:
                   type: string

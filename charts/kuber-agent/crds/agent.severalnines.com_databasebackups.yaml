@@ -128,6 +128,36 @@ spec:
                 description: Phase represents the current phase of the backup process
                   (Running, Completed, Failed)
                 type: string
+              podRef:
+                description: PodRef optionally references the specific Pod that performed
+                  or is associated with the backup
+                properties:
+                  apiVersion:
+                    type: string
+                  kind:
+                    type: string
+                  name:
+                    type: string
+                  namespace:
+                    type: string
+                type: object
+              refs:
+                description: Refs lists Kubernetes objects created as part of this
+                  backup execution (e.g. Jobs, Pods)
+                items:
+                  description: ObjectRef points to a namespaced or cluster-scoped
+                    object
+                  properties:
+                    apiVersion:
+                      type: string
+                    kind:
+                      type: string
+                    name:
+                      type: string
+                    namespace:
+                      type: string
+                  type: object
+                type: array
               size:
                 description: Size is the size of the backup in bytes (if available)
                 format: int64

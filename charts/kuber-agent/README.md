@@ -100,7 +100,7 @@ Controllers (Argo/Flux) must be installed separately.
 GIT_PAT='YOUR_GITHUB_PAT'
 kubectl -n argocd create secret generic s9s-argocd-repo \
   --from-literal=type=git \
-  --from-literal=url='https://github.com/ORG/REPO.git' \
+  --from-literal=url='https://github.com/ORG/REPO/' \
   --from-literal=username='git' \
   --from-literal=password="$GIT_PAT"
 kubectl -n argocd label secret s9s-argocd-repo argocd.argoproj.io/secret-type=repository --overwrite

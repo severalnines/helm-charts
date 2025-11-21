@@ -8,6 +8,8 @@ metadata:
   name: {{ $ns | quote }}
   annotations:
     helm.sh/resource-policy: keep
+    argocd.argoproj.io/sync-options: Prune=false,Delete=false
+    argocd.argoproj.io/compare-options: IgnoreExtraneous
   labels:
     {{- include "agent-operator.labels" $ | nindent 4 }}
 {{- end }}
