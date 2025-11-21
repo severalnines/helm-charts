@@ -482,6 +482,33 @@ spec:
                   - type
                   type: object
                 type: array
+              gitOpsRate:
+                description: |-
+                  GitOpsRate surfaces the most recent Git provider rate-limit snapshot observed during GitOps delivery.
+                  Only populated for AppBundles that own GitOps credentials (spec.gitOps set).
+                properties:
+                  limit:
+                    description: Limit is the maximum number of allowed requests in
+                      the current window.
+                    format: int32
+                    type: integer
+                  observedAt:
+                    description: ObservedAt is when this snapshot was recorded.
+                    format: date-time
+                    type: string
+                  provider:
+                    description: Provider indicates the Git service (e.g., github.com).
+                    type: string
+                  remaining:
+                    description: Remaining represents how many requests remain in
+                      the current window.
+                    format: int32
+                    type: integer
+                  resetTime:
+                    description: ResetTime is when the current window resets.
+                    format: date-time
+                    type: string
+                type: object
               lastAppliedManifestsCount:
                 description: LastAppliedManifestsCount shows how many objects the
                   last translation emitted
