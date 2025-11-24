@@ -1241,6 +1241,42 @@ spec:
                   Phase represents the current phase of the database cluster
                   (e.g., Pending, Creating, Running, Failed)
                 type: string
+              restore:
+                description: |-
+                  Restore tracks the latest restore attempt initiated for this cluster.
+                  It is nil when no restore has been requested via spec.bootstrap.
+                properties:
+                  backupName:
+                    description: BackupName is the name of the DatabaseBackup resource
+                      that seeded the restore.
+                    type: string
+                  backupUid:
+                    description: BackupUID helps distinguish different backup objects
+                      that might share the same name.
+                    type: string
+                  completedAt:
+                    description: CompletedAt marks when the current restore attempt
+                      finished (either success or failure).
+                    format: date-time
+                    type: string
+                  message:
+                    description: Message provides additional human-readable context
+                      about the last transition.
+                    type: string
+                  phase:
+                    description: Phase reflects the phase of the restore attempt (InProgress,
+                      Succeeded, Failed).
+                    type: string
+                  reason:
+                    description: Reason is a short CamelCase string describing the
+                      last transition.
+                    type: string
+                  startedAt:
+                    description: StartedAt marks when the current restore attempt
+                      began.
+                    format: date-time
+                    type: string
+                type: object
             type: object
         type: object
     served: true
