@@ -1142,6 +1142,10 @@ spec:
                   description: DatabaseClusterEndpoint defines a database connection
                     endpoint
                   properties:
+                    dbRole:
+                      description: DBRole describes the logical database role (Primary,
+                        Replica, ReadWrite, ReadOnly, etc.)
+                      type: string
                     host:
                       description: Host is the hostname or IP address
                       type: string
@@ -1149,9 +1153,12 @@ spec:
                       description: Port is the port number
                       format: int32
                       type: integer
+                    targetPort:
+                      description: TargetPort captures service target port
+                      type: string
                     type:
-                      description: Type indicates the endpoint type (primary, read,
-                        etc.)
+                      description: Type indicates the Service type (ClusterIP, NodePort,
+                        LoadBalancer, etc.)
                       type: string
                   type: object
                 type: array
@@ -1162,6 +1169,10 @@ spec:
                   description: DatabaseClusterEndpoint defines a database connection
                     endpoint
                   properties:
+                    dbRole:
+                      description: DBRole describes the logical database role (Primary,
+                        Replica, ReadWrite, ReadOnly, etc.)
+                      type: string
                     host:
                       description: Host is the hostname or IP address
                       type: string
@@ -1169,9 +1180,12 @@ spec:
                       description: Port is the port number
                       format: int32
                       type: integer
+                    targetPort:
+                      description: TargetPort captures service target port
+                      type: string
                     type:
-                      description: Type indicates the endpoint type (primary, read,
-                        etc.)
+                      description: Type indicates the Service type (ClusterIP, NodePort,
+                        LoadBalancer, etc.)
                       type: string
                   type: object
                 type: array
