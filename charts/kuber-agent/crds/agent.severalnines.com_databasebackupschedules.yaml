@@ -57,6 +57,51 @@ spec:
           spec:
             description: DatabaseBackupScheduleSpec defines the desired state of DatabaseBackupSchedule
             properties:
+              cronJob:
+                description: |-
+                  CronJob configures CronJob-level behavior such as history limits.
+                  Only a subset of the upstream batch/v1 CronJobSpec is exposed here –
+                  translators ignore any option they cannot honor.
+                properties:
+                  concurrencyPolicy:
+                    description: |-
+                      ConcurrencyPolicy specifies how to treat concurrent executions.
+                      Allowed values are "Allow", "Forbid", or "Replace".
+                    enum:
+                    - Allow
+                    - Forbid
+                    - Replace
+                    type: string
+                  failedJobsHistoryLimit:
+                    default: 50
+                    description: FailedJobsHistoryLimit is the number of failed finished
+                      jobs to retain.
+                    format: int32
+                    minimum: 0
+                    type: integer
+                  startingDeadlineSeconds:
+                    description: StartingDeadlineSeconds is the deadline in seconds
+                      for starting the job if it misses scheduled time.
+                    format: int64
+                    minimum: 0
+                    type: integer
+                  successfulJobsHistoryLimit:
+                    default: 30
+                    description: SuccessfulJobsHistoryLimit is the number of successful
+                      finished jobs to retain.
+                    format: int32
+                    minimum: 0
+                    type: integer
+                  suspend:
+                    description: Suspend tells the controller to stop scheduling new
+                      CronJob executions.
+                    type: boolean
+                  timeZone:
+                    description: |-
+                      TimeZone specifies the time zone for the Cron schedule (Kubernetes 1.27+).
+                      Example: "Etc/UTC".
+                    type: string
+                type: object
               options:
                 description: Options contains backup-specific options
                 properties:

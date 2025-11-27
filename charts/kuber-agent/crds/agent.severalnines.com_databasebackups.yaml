@@ -124,6 +124,10 @@ spec:
               message:
                 description: Message provides additional information about the backup
                 type: string
+              observedResourceState:
+                description: ObservedResourceState indicates whether the underlying
+                  job/backup resource is still reachable.
+                type: string
               phase:
                 description: Phase represents the current phase of the backup process
                   (Running, Completed, Failed)
