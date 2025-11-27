@@ -27,15 +27,21 @@ jobs:
         with:
           token: "${{ secrets.GITHUB_TOKEN }}"
 
-      - name: Package charts
+      # - name: Package charts
+      #   run: |
+      #     set -euo pipefail
+      #     mkdir -p .devrepo
+      #     for d in charts/*; do
+      #       if [ -f "$d/Chart.yaml" ]; then
+      #         helm package "$d" -d .devrepo
+      #       fi
+      #     done
+      
+      - name: Package kuber-agent chart only
         run: |
           set -euo pipefail
           mkdir -p .devrepo
-          for d in charts/*; do
-            if [ -f "$d/Chart.yaml" ]; then
-              helm package "$d" -d .devrepo
-            fi
-          done
+          helm package charts/kuber-agent -d .devrepo
 
       - name: Generate index.yaml for /dev
         run: |
