@@ -1,0 +1,55 @@
+name: Dev Release Charts (GitHub Pages subdir)
+
+on:
+  push:
+    paths:
+      - "**/Chart.yaml"
+    branches:
+      - develop
+  workflow_dispatch:
+
+
+concurrency:
+  group: gh-pages-deploy
+  cancel-in-progress: false
+
+jobs:
+  dev-repo:
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Install Helm
+        uses: azure/setup-helm@v3
+        with:
+          token: "${{ secrets.GITHUB_TOKEN }}"
+
+      - name: Package charts
+        run: |
+          set -euo pipefail
+          mkdir -p .devrepo
+          for d in charts/*; do
+            if [ -f "$d/Chart.yaml" ]; then
+              helm package "$d" -d .devrepo
+            fi
+          done
+
+      - name: Generate index.yaml for /dev
+        run: |
+          set -euo pipefail
+          OWNER="${GITHUB_REPOSITORY%%/*}"
+          REPO="${GITHUB_REPOSITORY##*/}"
+          URL="https://${OWNER}.github.io/${REPO}/dev"
+          helm repo index .devrepo --url "$URL"
+
+      - name: Deploy to gh-pages:/dev
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: gh-pages
+          publish_dir: .devrepo
+          destination_dir: dev
+          keep_files: true
