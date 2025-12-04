@@ -500,7 +500,7 @@ ccx:
       #   mountPath: "/conf/credentials"
       #   subPath: "credentials"
     uiapp:
-      image: europe-docker.pkg.dev/severalnines-public/ccx/ccx-ui-app:825
+      image: europe-docker.pkg.dev/severalnines-public/ccx/ccx-ui-app:896
       resources:
         requests:
           cpu: 1m
