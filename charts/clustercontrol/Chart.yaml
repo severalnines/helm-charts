@@ -5,15 +5,15 @@ description: A ClusterControl Helm Chart for Kubernetes
 type: application
 
 version: "0.1.0"
-appVersion: "2.3.2-12981"
+appVersion: "2.3.4-17501"
 
 dependencies:
   - name: mysql-operator
-    version: 2.0.18
+    version: 2.0.20
     repository: https://mysql.github.io/mysql-operator/
     condition: installMysqlOperator
   - name: mysql-innodbcluster
-    version: 2.0.18
+    version: 2.0.20
     repository: https://mysql.github.io/mysql-operator/
     condition: createDatabases
   - name: victoria-metrics-single
@@ -23,5 +23,5 @@ dependencies:
     alias: monitoring
   - name: ingress-nginx
     repository: https://kubernetes.github.io/ingress-nginx
-    version: 4.11.3
+    version: 4.11.8
     condition: ingressController.enabled
