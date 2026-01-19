@@ -45,8 +45,8 @@ cmon:
     name: cmon
     user: cmon
     password: cmon
-  image: severalnines/cmon:2.3.2-12981
-  devImage: severalnines/cmon:2.3.2-12981
+  image: severalnines/cmon:2.3.4-17501
+  devImage: severalnines/cmon:2.3.4-17501
   extra_args: # extra arguments for ClusterControl binary
     - -s
     - --no-log-db
@@ -58,8 +58,8 @@ cmon:
 #      cpu: 100m
 #      memory: 1Gi
   sd:
-    image: severalnines/cmon-sd:build-38
-    devImage: severalnines/cmon-sd:build-38
+    image: severalnines/cmon-sd:latest
+    devImage: severalnines/cmon-sd:latest
 #    resources:
 #      requests:
 #        cpu: 100m
@@ -72,7 +72,7 @@ cmon:
 #        cpu: 100m
 #        memory: 1Gi
   ccmgr:
-    image: europe-docker.pkg.dev/severalnines-public/clustercontrol/ccmgr:release-2.3.2-28
+    image: europe-docker.pkg.dev/severalnines-public/clustercontrol/ccmgr:release-2.3.4-171
     devImage: europe-docker.pkg.dev/severalnines-public/clustercontrol/ccmgr:main-dev-latest
 #    resources:
 #      requests:
