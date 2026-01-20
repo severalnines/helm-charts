@@ -1924,6 +1924,34 @@ entries:
   clustercontrol:
   - apiVersion: v2
     appVersion: 2.3.4-17501
+    created: "2026-01-20T03:14:47.217935622Z"
+    dependencies:
+    - condition: installMysqlOperator
+      name: mysql-operator
+      repository: https://mysql.github.io/mysql-operator/
+      version: 2.0.20
+    - condition: createDatabases
+      name: mysql-innodbcluster
+      repository: https://mysql.github.io/mysql-operator/
+      version: 2.0.20
+    - alias: monitoring
+      condition: monitoring.enabled
+      name: victoria-metrics-single
+      repository: https://victoriametrics.github.io/helm-charts/
+      version: 0.9.16
+    - condition: ingressController.enabled
+      name: ingress-nginx
+      repository: https://kubernetes.github.io/ingress-nginx
+      version: 4.11.8
+    description: A ClusterControl Helm Chart for Kubernetes
+    digest: b783cc2ef42aa4c2dece08fc725e50be7ffe6d7c8d0ad0cba26f23a1eb9c2248
+    name: clustercontrol
+    type: application
+    urls:
+    - https://github.com/severalnines/helm-charts/releases/download/clustercontrol-0.2.0/clustercontrol-0.2.0.tgz
+    version: 0.2.0
+  - apiVersion: v2
+    appVersion: 2.3.4-17501
     created: "2025-06-17T03:50:59.826605944Z"
     dependencies:
     - condition: installMysqlOperator
@@ -2131,4 +2159,4 @@ entries:
     urls:
     - https://github.com/severalnines/helm-charts/releases/download/kuber-agent-0.1.0/kuber-agent-0.1.0.tgz
     version: 0.1.0
-generated: "2026-01-09T14:29:04.791670144Z"
+generated: "2026-01-20T03:14:47.218179398Z"
