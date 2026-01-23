@@ -85,6 +85,20 @@ ClusterControl V2 is accessible within the cluster via cmon-master:3000
 Is is *HIGHLY* recommended to use ingress as ClusterControl V2 requires cmon API to be exposed and available externaly.
 
 
+## Access UI (ingress)
+If you enabled the bundled NGINX ingress controller, wait for its service to get an external IP/hostname:
+
+```bash
+kubectl get svc -n clustercontrol clustercontrol-ingress-nginx-controller
+```
+
+Then set `fqdn` to a DNS name that resolves to that IP. For quick testing you can use nip.io:
+
+```bash
+helm upgrade --install clustercontrol s9s/clustercontrol --set fqdn=<external-ip>.nip.io
+```
+
+
 ## Helm chart dependencies
 
 ### If you already have Oracle MySQL Operator or NGINX ingress controller installed
