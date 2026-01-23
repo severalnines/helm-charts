@@ -22,6 +22,11 @@ storageClassName:
 installMysqlOperator: true
 # OPTIONAL create databases using mysql operator? If false, you must create the databases yourself.
 createDatabases: true
+
+# MySQL operator configuration
+mysql-operator:
+  envs:
+    k8sClusterDomain: cluster.local
 # OPTIONAL install ingress controller? Set to false if you already have ingress controller installed in your cluster
 ingressController:
   enabled: True
