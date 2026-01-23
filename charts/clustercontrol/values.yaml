@@ -77,7 +77,7 @@ cmon:
 #        cpu: 100m
 #        memory: 1Gi
   ccmgr:
-    image: europe-docker.pkg.dev/severalnines-public/clustercontrol/ccmgr:release-2.3.4-171
+    image: europe-docker.pkg.dev/severalnines-public/clustercontrol/ccmgr:release-2.3.4-182
     devImage: europe-docker.pkg.dev/severalnines-public/clustercontrol/ccmgr:main-dev-latest
 #    resources:
 #      requests:
