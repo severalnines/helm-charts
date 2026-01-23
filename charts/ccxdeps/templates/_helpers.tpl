@@ -112,3 +112,11 @@ Create the name of the service account to use
 {{- define "ccx.cmonRPCKey" -}}
 {{- include "ccx.cmonPassword" . }}
 {{- end }}
+
+{{- define "loki.username" -}}
+{{- .Values.loki.username | default "ccx" -}}
+{{- end -}}
+
+{{- define "loki.password" -}}
+{{- .Values.loki.password | default (randAlphaNum 32) -}}
+{{- end -}}
