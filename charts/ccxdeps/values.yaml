@@ -10,6 +10,10 @@ installOperators: true
 ingressController:
   enabled: false
 
+loki:
+  username: ccx
+  password: "S|,25M>cy7i2"
+
 ingress-nginx:
   controller:
     addHeaders:
@@ -63,19 +67,10 @@ postgresql:
 # installation and configuration option for external-dns
 external-dns:
   enabled: false
-  image:
-    repository: bitnamilegacy/external-dns
-  global:
-    security:
-      allowInsecureImages: true
-  watchReleaseNamespace: true
   domainFilters:
   - ccx.example.org
   interval: 10s
   policy: sync
-  serviceTypeFilter:
-  # ExternalName type is required
-  - ExternalName
   sources:
   # Service source is required
   - service
@@ -301,3 +296,9 @@ keycloak:
   resources:
     requests:
       memory: 100Mi
+  
+cert-manager:
+  enabled: false
+  crds:
+    enabled: true
+email: "some@email.com"
