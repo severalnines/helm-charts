@@ -9,6 +9,11 @@ spec:
   teamId: "acid"
   postgresql:
     version: "14"
+    parameters:
+      wal_level: logical
+      max_replication_slots: "10"
+      max_wal_senders: "10"
+      max_worker_processes: "20"
   numberOfInstances: {{ .Values.postgresql.replicas | default 1 }}
   volume:
     size: {{ .Values.postgresql.volumeSize | default "10Gi" }}
@@ -23,13 +28,7 @@ spec:
     ccx: ccx
     ccx_deployer: ccx
     ccx_backup: ccx
-    userdb: ccx
-    ccx_notification: ccx
-    ccx_projects: ccx
-    ccx_rbac: ccx
     ccx_vpc: ccx
-    ccx_stores: ccx
-    ccx_cloud: ccx
     ccx_keycloak: ccx
 
   patroni:
