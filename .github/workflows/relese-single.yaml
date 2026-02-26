@@ -47,3 +47,4 @@ jobs:
         with:
           charts_dir: charts
           config: .github/ci/cr.yaml
+          skip_packaging: true
