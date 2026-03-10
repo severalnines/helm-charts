@@ -24,6 +24,10 @@ spec:
         checksum/core: {{ include (print $.Template.BasePath "/ccx/ccx-config-core.yaml") . | sha256sum }}
         checksum/fluentbit: {{ include (print $.Template.BasePath "/ccx/ccx-fluentbit-config.yaml") . | sha256sum }}
     spec:
+      {{- if .Values.ccx.imagePullSecret }}
+      imagePullSecrets:
+        - name: {{ .Values.ccx.imagePullSecret }}
+      {{- end }}
       initContainers:
         - name: ccx-stores-init
           image: {{ .Values.ccx.services.stores_service.image | default .Values.ccx.backend.image | required "No image set for stores" }}
@@ -76,10 +80,6 @@ spec:
                 secretKeyRef:
                   name: db-vpc
                   key: DB_DSN
-          {{- with .Values.cmon.id }}
-            - name: DEFAULT_CONTROLLER_ID
-              value: {{ . }}
-          {{- end }}
           {{- range $key, $val := .Values.ccx.services.stores_service.env }}
             - name: {{ $key }}
               value: {{ $val | quote }}
@@ -181,141 +181,6 @@ spec:
     - protocol: TCP
       port: 20002
       targetPort: 20002
----
-# deployment for worker
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: ccx-stores-worker
-  labels:
-    app: ccx-stores-worker
-    run: ccx-stores-worker
-spec:
-  replicas: {{ .Values.ccx.services.stores_worker.replicas | default 1 }}
-  selector:
-    matchLabels:
-      app: ccx-stores-worker
-  template:
-    metadata:
-      labels:
-        app: ccx-stores-worker
-        run: ccx-stores-worker
-      annotations:
-        prometheus.io/scrape: "true"
-        prometheus.io/port: "9090"
-        checksum: {{ include (print $.Template.BasePath "/ccx/secrets.yaml") . | sha256sum }}
-        checksum/config: {{ include (print $.Template.BasePath "/ccx/config.yaml") . | sha256sum }}
-        checksum/core: {{ include (print $.Template.BasePath "/ccx/ccx-config-core.yaml") . | sha256sum }}
-        checksum/fluentbit: {{ include (print $.Template.BasePath "/ccx/ccx-fluentbit-config.yaml") . | sha256sum }}
-    spec:
-      terminationGracePeriodSeconds: 120
-      initContainers:
-        - name: ccx-stores-init
-          image: {{ .Values.ccx.services.stores_worker.image | default .Values.ccx.backend.image | required "No image set for stores" }}
-          command: ["/bin/ccx-stores", "migrate"]
-          envFrom:
-            - secretRef:
-                name: db
-      containers:
-        - name: ccx-stores-worker
-          image: {{ .Values.ccx.services.stores_worker.image | default .Values.ccx.backend.image | required "No image set for stores" }}
-          command: ["/bin/ccx-stores", "work"]
-          env:
-            - name: CONFIG_FILE
-              value: "/conf/ccx.yaml"
-            - name: POD_NAME
-              valueFrom:
-                fieldRef:
-                  fieldPath: metadata.name
-            - name: POD_NAMESPACE
-              valueFrom:
-                fieldRef:
-                  fieldPath: metadata.namespace
-            - name: PROMETHEUS_URL
-              value: http://{{ include "ccx.prometheusHostname" . }}:9090
-            - name: BACKUPS_DB_DSN
-              valueFrom:
-                secretKeyRef:
-                  name: db-backup
-                  key: DB_DSN
-            - name: DEPLOYER_DB_DSN
-              valueFrom:
-                secretKeyRef:
-                  name: db-deployer
-                  key: DB_DSN
-            - name: VPCS_DB_DSN
-              valueFrom:
-                secretKeyRef:
-                  name: db-vpc
-                  key: DB_DSN
-          {{- with .Values.cmon.id }}
-            - name: DEFAULT_CONTROLLER_ID
-              value: {{ . }}
-          {{- end }}
-          {{- range $key, $val := .Values.ccx.services.stores_worker.env }}
-            - name: {{ $key }}
-              value: {{ $val | quote }}
-          {{- end }}
-          envFrom:
-            - configMapRef:
-                name: ccx
-            - secretRef:
-                name: cmon-credentials
-            - secretRef:
-                name: db
-          {{- range $name := .Values.ccx.cloudSecrets }}
-            - secretRef:
-                name: {{ $name }}
-          {{- end }}
-          ports:
-            - name: metrics
-              containerPort: 9090
-              protocol: TCP
-          volumeMounts:
-            - name: conf-core
-              mountPath: "/conf/ccx.yaml"
-              subPath: "ccx.yaml"
-            {{- if .Values.fluentbit.enabled }}
-            - name: conf-fluentbit
-              mountPath: "/conf/fluent-bit.conf"
-              subPath: "fluent-bit.conf"
-            - name: conf-fluentbit
-              mountPath: "/conf/parsers-multiline.conf"
-              subPath: "parsers-multiline.conf"
-            {{- end }}
-            {{- if and .Values.fluentbit.enabled .Values.fluentbit.extraOutputConfig }}
-            - name: conf-fluentbit
-              mountPath: "/conf/extra_output.conf"
-              subPath: "extra-output.conf"
-            {{- end }}
-            {{- range .Values.ccx.services.stores_worker.extraVolumeMounts }}
-            - name: {{ .name }}
-              mountPath: {{ .mountPath }}
-              subPath: {{ .subPath }}
-           {{- end }}
-          resources:
-            {{- toYaml .Values.ccx.services.stores_worker.resources | nindent 12 }}
-      volumes:
-        - name: conf-core
-          configMap:
-            name: ccx-config-core
-        {{- if .Values.fluentbit.enabled }}
-        - name: conf-fluentbit
-          configMap:
-            name: ccx-configmap-fluentbit
-        {{- end }}
-      {{ with .Values.ccx.services.stores_worker.affinity }}
-      affinity:
-        {{ toYaml . | nindent 8 }}
-      {{ end }}
-      {{ with .Values.ccx.services.stores_worker.nodeSelector }}
-      nodeSelector:
-        {{ toYaml . | nindent 8 }}
-      {{ end }}
-      {{ with .Values.ccx.services.stores_worker.tolerations }}
-      tolerations:
-        {{ toYaml . | nindent 8 }}
-      {{ end }}
 ---
 # deployment for listener
 apiVersion: apps/v1

@@ -23,6 +23,10 @@ spec:
         checksum/config: {{ include (print $.Template.BasePath "/ccx/config.yaml") . | sha256sum }}
         checksum/core: {{ include (print $.Template.BasePath "/ccx/ccx-config-core.yaml") . | sha256sum }}
     spec:
+      {{- if .Values.ccx.imagePullSecret }}
+      imagePullSecrets:
+        - name: {{ .Values.ccx.imagePullSecret }}
+      {{- end }}
       terminationGracePeriodSeconds: 3600
       containers:
         - name: ccx-runner-service

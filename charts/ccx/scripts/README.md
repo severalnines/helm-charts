@@ -31,9 +31,9 @@ This script is designed to facilitate the collection of logs and operational dat
 
 ## Functionality
 
-1. **Initial Check**: Verifies the presence of the `cmon-master-0` pod to ensure the script is executed in the correct environment.
+1. **Initial Check**: Verifies the presence of the `cmon-0` pod to ensure the script is executed in the correct environment.
 2. **Log Collection**: Iterates through the list of services, gathering logs from all containers within pods labeled with the service name.
-3. **s9s Info**: Gathers cluster and job information using the `s9s` tool from the `cmon-master-0` pod.
+3. **s9s Info**: Gathers cluster and job information using the `s9s` tool from the `cmon-0` pod.
 4. **Failed Job Logs**: Collects logs for the last 10 failed jobs, if any.
 5. **Partial CCX database dump**: Dumps some database tables for review. Sensitive or user data is not dumped!
 6. **Archiving**: Packages all collected data into a compressed file named `ccx-logs.tar.gz`.
@@ -41,7 +41,7 @@ This script is designed to facilitate the collection of logs and operational dat
 
 ## Troubleshooting
 
-If you encounter an error stating `cmon-master-0 pod not found`, verify that:
+If you encounter an error stating `cmon-0 pod not found`, verify that:
 - You are in the correct Kubernetes cluster and namespace.
 - Your `kubectl` is properly configured and has the necessary permissions.
 

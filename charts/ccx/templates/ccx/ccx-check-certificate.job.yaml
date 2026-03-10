@@ -11,6 +11,10 @@ spec:
   backoffLimit: 0
   template:
     spec:
+      {{- if .Values.ccx.imagePullSecret }}
+      imagePullSecrets:
+        - name: {{ .Values.ccx.imagePullSecret }}
+      {{- end }}
       restartPolicy: Never
       containers:
         - name: check-certificate-authority

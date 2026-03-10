@@ -132,6 +132,10 @@ data:
         line_format json
         tls         on
         tls.verify  off
+        {{- if and .Values.fluentbit.auth.http_user .Values.fluentbit.auth.http_passwd }}
+        http_user   {{ .Values.fluentbit.auth.http_user }}
+        http_passwd {{ .Values.fluentbit.auth.http_passwd }}
+        {{- end }}
     {{- if .Values.fluentbit.extraOutputConfig }}
     @INCLUDE extra_output.conf
     {{- end }}

@@ -17,6 +17,10 @@ spec:
         app: ccx-ui-admin
         run: ccx-ui-admin
     spec:
+      {{- if .Values.ccx.imagePullSecret }}
+      imagePullSecrets:
+        - name: {{ .Values.ccx.imagePullSecret }}
+      {{- end }}
       containers:
         - name: ccx-ui-admin
           image: {{ .Values.ccx.services.uiadmin.image | required "No image set for uiadmin" }}

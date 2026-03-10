@@ -3,7 +3,7 @@
 OUTPUT_FILE="ccx-logs.tar.gz"
 NAMESPACE=""
 
-services="ccx-auth-service ccx-billing-service ccx-datastores-maintenance ccx-hook-service ccx-monitor-service ccx-notify-worker ccx-rest-admin-service ccx-rest-user-service ccx-runner-service ccx-state-worker ccx-stores-listener ccx-stores-service ccx-stores-worker ccx-ui-admin ccx-ui-app ccx-ui-auth ccx-user cmon-master cmon-proxy"
+services="ccx-auth-service ccx-billing-service ccx-datastores-maintenance ccx-hook-service ccx-monitor-service ccx-notify-worker ccx-rest-admin-service ccx-rest-user-service ccx-runner-service ccx-state-worker ccx-stores-listener ccx-stores-service ccx-ui-admin ccx-ui-app ccx-ui-auth ccx-user cmon cmon-proxy"
 
 help() {
     echo "Usage: $0 [-n namespace] [-o output] [-h]"
@@ -37,11 +37,11 @@ while getopts "n:o:h" opt; do
   esac
 done
 
-kubectl ${NAMESPACE} get pod cmon-master-0 >/dev/null 2>&1
+kubectl ${NAMESPACE} get pod cmon-0 >/dev/null 2>&1
 
 if [ $? != 0 ]
 then
-    echo cmon-master-0 pod not found. Are you running in correct cluster and namespace and kubectl is in your PATH?
+    echo cmon-0 pod not found. Are you running in correct cluster and namespace and kubectl is in your PATH?
     exit 1;
 fi
 
@@ -77,21 +77,21 @@ do
 done
 
 echo Gathering s9s info...
-kubectl ${NAMESPACE} exec -ti cmon-master-0 -c cmon-master -- s9s job --list --print-json > ${dir}/s9s.job.list.json 2>&1
-kubectl ${NAMESPACE} exec -ti cmon-master-0 -c cmon-master -- s9s job --list > ${dir}/s9s.job.list.txt 2>&1
-kubectl ${NAMESPACE} exec -ti cmon-master-0 -c cmon-master -- s9s cluster --list --long > ${dir}/s9s.cluster.list.txt 2>&1
-kubectl ${NAMESPACE} exec -ti cmon-master-0 -c cmon-master -- s9s cluster --list --long --print-json > ${dir}/s9s.cluster.list.json 2>&1
-kubectl ${NAMESPACE} exec -ti cmon-master-0 -c cmon-master -- s9s node --list --long > ${dir}/s9s.node.list.txt 2>&1
-kubectl ${NAMESPACE} exec -ti cmon-master-0 -c cmon-master -- s9s node --list --long --print-json > ${dir}/s9s.node.list.json 2>&1
+kubectl ${NAMESPACE} exec -ti cmon-0 -c cmon -- s9s job --list --print-json > ${dir}/s9s.job.list.json 2>&1
+kubectl ${NAMESPACE} exec -ti cmon-0 -c cmon -- s9s job --list > ${dir}/s9s.job.list.txt 2>&1
+kubectl ${NAMESPACE} exec -ti cmon-0 -c cmon -- s9s cluster --list --long > ${dir}/s9s.cluster.list.txt 2>&1
+kubectl ${NAMESPACE} exec -ti cmon-0 -c cmon -- s9s cluster --list --long --print-json > ${dir}/s9s.cluster.list.json 2>&1
+kubectl ${NAMESPACE} exec -ti cmon-0 -c cmon -- s9s node --list --long > ${dir}/s9s.node.list.txt 2>&1
+kubectl ${NAMESPACE} exec -ti cmon-0 -c cmon -- s9s node --list --long --print-json > ${dir}/s9s.node.list.json 2>&1
 
 echo Gathering last failed job logs if any...
-jobs=$(kubectl ${NAMESPACE} exec -ti cmon-master-0 -c cmon-master -- s9s job --list --show-failed | grep -v "Total" | tail -n +2 | awk '{print $1}')
+jobs=$(kubectl ${NAMESPACE} exec -ti cmon-0 -c cmon -- s9s job --list --show-failed | grep -v "Total" | tail -n +2 | awk '{print $1}')
 
 for i in ${jobs}
 do
     echo Gathering logs for job ${i}...
-    kubectl ${NAMESPACE} exec -ti cmon-master-0 -c cmon-master -- s9s job --log --print-request --color=never --job-id ${i} > ${dir}/s9s.job.${i}.log.txt 2>&1
-    kubectl ${NAMESPACE} exec -ti cmon-master-0 -c cmon-master -- s9s job --log --color=never --job-id ${i} --print-json > ${dir}/s9s.job.${i}.log.json 2>&1
+    kubectl ${NAMESPACE} exec -ti cmon-0 -c cmon -- s9s job --log --print-request --color=never --job-id ${i} > ${dir}/s9s.job.${i}.log.txt 2>&1
+    kubectl ${NAMESPACE} exec -ti cmon-0 -c cmon -- s9s job --log --color=never --job-id ${i} --print-json > ${dir}/s9s.job.${i}.log.json 2>&1
 done
 
 echo Dumping CCX tables...

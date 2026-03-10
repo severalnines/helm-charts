@@ -23,6 +23,10 @@ spec:
         checksum/config: {{ include (print $.Template.BasePath "/ccx/config.yaml") . | sha256sum }}
         checksum/core: {{ include (print $.Template.BasePath "/ccx/ccx-config-core.yaml") . | sha256sum }}
     spec:
+      {{- if .Values.ccx.imagePullSecret }}
+      imagePullSecrets:
+        - name: {{ .Values.ccx.imagePullSecret }}
+      {{- end }}
       containers:
         - name: ccx-rest-user-service
           image: {{ .Values.ccx.services.rest_service.image | default .Values.ccx.backend.image | required "No image set for rest" }}
@@ -30,8 +34,26 @@ spec:
           env:
             - name: CONFIG_FILE
               value: "/conf/ccx.yaml"
+          {{- if .Values.loki.url }}
+            - name: LOKI_URL
+              value: {{ .Values.loki.url }}
+          {{- end }}
+          {{- if .Values.loki.ingressSecret }}
+            - name: LOKI_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.loki.ingressSecret }}
+                  key: LOKI_USERNAME
+          {{- end }}
+          {{- if .Values.loki.ingressSecret }}
+            - name: LOKI_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.loki.ingressSecret }}
+                  key: LOKI_PASSWORD
+          {{- end }}
             - name: PROMETHEUS_URL
-              value: http://{{ include "ccx.prometheusHostname" . }}:9090
+              value: "{{ if eq (include "ccx.prometheusSelectorName" .) .Values.prometheusHostname }}http://{{ include "ccx.prometheusSelectorName" . }}:9090{{ else }}http://{{ include "ccx.prometheusSelectorName" . }}:8481/select/0/prometheus{{ end }}"
             - name: POD_NAMESPACE
               valueFrom:
                 fieldRef:

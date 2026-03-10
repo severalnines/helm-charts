@@ -72,5 +72,5 @@ ccx:
                 <<: *secgroups
               - name: postgres
                 <<: *secgroups
-              - name: redis
+              - name: valkey_sentinel
                 <<: *secgroups
