@@ -20,6 +20,10 @@ spec:
         app: cmon-proxy
         run: cmon-proxy
     spec:
+      {{- if .Values.ccx.imagePullSecret }}
+      imagePullSecrets:
+        - name: {{ .Values.ccx.imagePullSecret }}
+      {{- end }}
       containers:
         - name: cmon-proxy
           image: {{ .Values.ccx.services.cmonproxy.image | required ".Values.ccx.services.cmonproxy.image is missing" }}

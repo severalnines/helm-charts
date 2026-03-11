@@ -22,6 +22,10 @@ spec:
       tolerations:
         {{- toYaml . | nindent 8 }}
     {{- end }}
+      {{- if .Values.ccx.imagePullSecret }}
+      imagePullSecrets:
+        - name: {{ .Values.ccx.imagePullSecret }}
+      {{- end }}
       containers:
         - name: migrate
           image: {{ .Values.ccx.services.migrate.image | default .Values.ccx.backend.image |  required "migrate image is missing" }}

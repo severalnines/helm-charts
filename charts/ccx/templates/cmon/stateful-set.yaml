@@ -1,0 +1,259 @@
+{{ if ( and .Values.cmon .Values.cmon.enabled ) }}
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: cmon
+  labels:
+    app: cmon
+    run: cmon
+spec:
+  selector:
+    matchLabels:
+      app: cmon
+      run: cmon
+  replicas: {{ .Values.cmon.replicas | default .Values.global.replicas }}
+  serviceName: cmon-pool
+  template:
+    metadata:
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9954"
+        config: {{ include (print $.Template.BasePath "/cmon/secrets.yaml") . | sha256sum }}
+      labels:
+        app: cmon
+        run: cmon
+    spec:
+      initContainers:
+        - name: set-hostname
+          image: {{ .Values.cmon.image | required ".Values.cmon.image is missing" }}
+          securityContext:
+            privileged: true
+          command: [ "/bin/sh", "-c" ]
+          args:
+            - hostname $(POD_NAME).cmon-pool
+          env:
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+        - name: init-cmon
+          image: {{ .Values.cmon.image | required ".Values.cmon.image is missing" }}
+        {{- if .Values.cmon.coreDumpEnable }}
+          securityContext:
+            privileged: true
+        {{- end }}
+          command: [ "/bin/sh", "-c" ]
+          args:
+            - cp /tmp/cmon.cnf /etc/cmon.cnf;
+              /usr/bin/check-cmon.sh;
+              echo "Starting upgrade";
+              /usr/sbin/cmon -u;
+              echo "Finishing upgrade";
+          {{- if .Values.cmon.coreDumpEnable }}
+              sysctl -w kernel.core_pattern=/etc/cmon.d/core.%h.%e.%p.%t;
+          {{- end }}
+          volumeMounts:
+            - mountPath: /tmp/cmon.cnf
+              subPath: cmon.cnf
+              name: cmon-cnf-cfg
+            - mountPath: /etc/cmon.d/
+              name: cmon-master-pv 
+      containers:
+        - name: cmon
+          image: {{ .Values.cmon.image | required ".Values.cmon.image is missing" }}
+          command: [ '/usr/sbin/cmon' ]
+          args:
+            - --k8s
+            - --pool
+            - --mysql-connect-retries
+            - "5"
+            - --events-client
+            - http://ccx-stores-listener-svc:18097/cmon-events/{{ .Values.cmon.id }}
+            - -b 0.0.0.0
+            - -s
+            - -d
+            {{- with .Values.cmon.extra_args }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          securityContext:
+            privileged: True
+          ports:
+            - containerPort: 9501
+              protocol: TCP
+              name: cmon9501
+            - containerPort: 9500
+              protocol: TCP
+              name: cmon9500
+          volumeMounts:
+            - mountPath: /etc/cmon.d/
+              name: cmon-master-pv
+            - mountPath: /etc/cmon.cnf
+              subPath: cmon.cnf
+              name: cmon-cnf-cfg
+            - mountPath: /root/.s9s/s9s.conf
+              subPath: s9s.conf
+              name: s9s-cnf-cfg
+            - mountPath: /var/lib/cmon
+              name: cmon-pv-var-lib-cmon
+          {{ if .Values.cmon.license }}
+            - mountPath: /root/.s9s/cmon-license
+              name: cmon-license
+          startupProbe:
+            exec:
+              command: [ 'sh', '-c', 'cat /root/.s9s/cmon-license/license | s9s --controller=https://localhost:9501 tree --save .runtime/cmon_license' ]
+            timeoutSeconds: 10
+            failureThreshold: 10
+            periodSeconds: 5
+          {{ end }}
+          livenessProbe:
+            httpGet:
+              path: /v2/controller?operation=ping
+              port: 9501
+              scheme: HTTPS
+            initialDelaySeconds: 60
+            timeoutSeconds: 10
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /v2/controller?operation=ping
+              port: 9501
+              scheme: HTTPS
+            initialDelaySeconds: 60
+            timeoutSeconds: 10
+            periodSeconds: 30
+          resources:
+            {{- toYaml .Values.cmon.resources | nindent 12 }}
+        - name: cmon-cloud
+          image: {{ .Values.cmon.image | required ".Values.cmon.image is missing" }}
+          command: [ 'sh', '-c', '/usr/sbin/cmon-cloud' ]
+          securityContext:
+            privileged: True
+          ports:
+            - containerPort: 9518
+              protocol: TCP
+              name: cmon9518
+        - name: cmon-ssh
+          image: {{ .Values.cmon.image | required ".Values.cmon.image is missing" }}
+          command: [ '/usr/sbin/cmon-ssh', '--k8s' ]
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 9511
+              protocol: TCP
+              name: cmon-ssh9511
+          volumeMounts:
+            - mountPath: /etc/cmon.d/
+              name: cmon-master-pv
+          env:
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+        - name: cmon-exporter
+          image: {{ .Values.cmon.exporter.image | required ".Values.cmon.exporter.image is missing" }}
+          ports:
+            - containerPort: 9954
+              protocol: TCP
+              name: cmon-exp9954
+          env:
+            - name: CMON_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: cmon-credentials
+                  key: cmon-user
+                  optional: false
+            - name: CMON_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: cmon-credentials
+                  key: cmon-password
+                  optional: false
+          volumeMounts:
+            - mountPath: /etc/cmon.d/
+              name: cmon-master-pv
+          resources:
+            {{- toYaml .Values.cmon.exporter.resources | nindent 12 }}
+        - name: ccv2
+          image: {{ .Values.cmon.ccv2.image | required ".Values.cmon.ccv2.image is missing" }}
+          ports:
+            - containerPort: 80
+              protocol: TCP
+              name: 80-port
+          volumeMounts:
+            - mountPath: /usr/share/nginx/html/config.js
+              subPath: config.js
+              name: config-js-cfg
+          resources:
+            {{- toYaml .Values.cmon.ccv2.resources | nindent 12 }}
+      volumes:
+        - name: cmon-master-pv
+          persistentVolumeClaim:
+            claimName: cmon-master-volume
+        - name: cmon-pv-var-lib-cmon
+          persistentVolumeClaim:
+            claimName: cmon-var-lib-cmon
+        - name: cmon-cnf-cfg
+          secret:
+            secretName: cmon-cnf
+        - name: cmon-license
+          secret:
+            secretName: cmon-license
+            optional: true
+        - name: s9s-cnf-cfg
+          secret:
+            secretName: s9s-conf
+        - name: config-js-cfg
+          configMap:
+            name: config-js
+      {{ with .Values.cmon.affinity }}
+      affinity:
+        {{ toYaml . | nindent 8 }}
+      {{ end }}
+      {{ with .Values.cmon.nodeSelector }}
+      nodeSelector:
+        {{ toYaml . | nindent 8 }}
+      {{ end }}
+      {{ with .Values.cmon.tolerations }}
+      tolerations:
+        {{ toYaml . | nindent 8 }}
+      {{ end }}
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: cmon-master-volume
+  {{- if .Values.cmon.finalizers | default false }}
+  finalizers:
+    - kubernetes.io/pvc-protection
+    - cmon/pvc-protection
+  {{- end }}
+spec:
+  {{ with .Values.storageClassName }}
+  storageClassName: {{ . }}
+  {{ end }}
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 20Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: cmon-var-lib-cmon
+  {{- if .Values.cmon.finalizers | default false }}
+  finalizers:
+    - kubernetes.io/pvc-protection
+    - cmon/pvc-protection
+  {{- end }}
+spec:
+  {{ with .Values.storageClassName }}
+  storageClassName: {{ . }}
+  {{ end }}
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+{{ end }}

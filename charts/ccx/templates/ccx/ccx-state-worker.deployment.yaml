@@ -25,6 +25,10 @@ spec:
         checksum/config: {{ include (print $.Template.BasePath "/ccx/config.yaml") . | sha256sum }}
         checksum/ccx: {{ include (print $.Template.BasePath "/ccx/ccx-config.yaml") . | sha256sum }}
     spec:
+      {{- if .Values.ccx.imagePullSecret }}
+      imagePullSecrets:
+        - name: {{ .Values.ccx.imagePullSecret }}
+      {{- end }}
       containers:
         - name: state-worker
           image: {{ .Values.ccx.services.datastorestorage.image | default .Values.ccx.backend.image | required "No image set for state-worker" }}

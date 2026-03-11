@@ -16,6 +16,10 @@ spec:
         app: ccx-ui-auth
         run: ccx-ui-auth
     spec:
+      {{- if .Values.ccx.imagePullSecret }}
+      imagePullSecrets:
+        - name: {{ .Values.ccx.imagePullSecret }}
+      {{- end }}
       containers:
         - name: ccx-ui-auth
           image: {{ .Values.ccx.services.uiauth.image | required ".Values.ccx.services.uiauth.image is missing" }}

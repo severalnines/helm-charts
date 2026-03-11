@@ -138,6 +138,21 @@ Create the name of the service account to use
 {{- end }}
 {{- end }}
 
+{{- define "ccx.prometheusSelectorName" -}}
+{{- if .Values.prometheusSelectorName }}
+{{- .Values.prometheusSelectorName | trim -}}
+{{- else if .Values.prometheusHostname }}
+{{- .Values.prometheusHostname | trim -}}
+{{- else }}
+{{- $serviceObj := (lookup "v1" "Service" .Release.Namespace "victoria-metrics") }}
+{{- if not $serviceObj }}
+{{- fail ".Values.prometheusHostname is required when not using embedded monitoring stack!" }}
+{{- else }}
+{{- "victoria-metrics" }}
+{{- end }}
+{{- end }}
+{{- end }}
+
 {{- define "ccx.checkFluentBitConfig" -}}
 {{- if and .Values.fluentbit.enabled (not .Values.fluentbit.hostSet) }}
   {{- if not .Values.fluentbit.host }}

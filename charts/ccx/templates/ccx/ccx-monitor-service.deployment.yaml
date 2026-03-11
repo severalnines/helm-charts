@@ -22,6 +22,10 @@ spec:
         checksum: {{ include (print $.Template.BasePath "/ccx/secrets.yaml") . | sha256sum }}
         checksum/config: {{ include (print $.Template.BasePath "/ccx/config.yaml") . | sha256sum }}
     spec:
+      {{- if .Values.ccx.imagePullSecret }}
+      imagePullSecrets:
+        - name: {{ .Values.ccx.imagePullSecret }}
+      {{- end }}
       containers:
         - name: ccx-monitor-service
           image: {{ .Values.ccx.services.monitor.image | default .Values.ccx.backend.image | required "No image set for monitor" }}

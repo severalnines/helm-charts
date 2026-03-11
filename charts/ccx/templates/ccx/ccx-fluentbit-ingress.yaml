@@ -12,6 +12,10 @@ metadata:
     nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
     nginx.ingress.kubernetes.io/rewrite-target: /loki/$1
     nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    {{- if .Values.loki.authSecret }}
+    nginx.ingress.kubernetes.io/auth-secret: {{ .Values.loki.authSecret }}
+    nginx.ingress.kubernetes.io/auth-type: basic
+    {{- end }}
 spec:
   ingressClassName: {{ .Values.ccx.ingress.ingressClassName | default "nginx" }}
   tls:

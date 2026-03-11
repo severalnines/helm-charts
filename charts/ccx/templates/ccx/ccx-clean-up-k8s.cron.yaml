@@ -1,22 +1,24 @@
 apiVersion: batch/v1
 kind: CronJob
 metadata:
-  name: ccx-datastores-maintenance
+  name: ccx-clean-up-k8s
   labels:
-    app: ccx-datastores-maintenance
+    app: ccx-clean-up-k8s
 spec:
-  suspend: {{ .Values.ccx.env.DISABLE_ROLLBACK | default "false" }}
-  schedule: "*/10 * * * *"
+  suspend: {{ or .Values.ccx.env.DISABLE_ROLLBACK .Values.ccx.services.datastorestorage.cleanUpK8sResources.disabled | default "false" }}
+  schedule: "0 0 * * *"
   concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 1
   jobTemplate:
     metadata:
       labels:
-        app: ccx-datastores-maintenance
+        app: ccx-clean-up-k8s
     spec:
       template:
         metadata:
           labels:
-            app: ccx-datastores-maintenance
+            app: ccx-clean-up-k8s
         spec:
         {{- with .Values.ccx.services.datastorestorage.nodeSelector }}
           nodeSelector:
@@ -36,9 +38,21 @@ spec:
             - name: {{ .Values.ccx.imagePullSecret }}
           {{- end }}
           containers:
-            - name: ccx-datastores-maintenance
+            - name: ccx-clean-up-k8s
               image: {{ .Values.ccx.services.datastorestorage.image | default .Values.ccx.backend.image | required "No image set for datastores" }}
-              command: [ "/bin/ccx-datastore-storage", "maintain" ]
+              command: [ "/bin/ccx-datastore-storage", "clean-up-k8s" ]
+              resources:
+                requests:
+                  cpu: 10m
+                  memory: 32Mi
+                limits:
+                  cpu: 100m
+                  memory: 128Mi
+              env:
+                - name: POD_NAMESPACE
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.namespace
               envFrom:
                 - configMapRef:
                     name: ccx

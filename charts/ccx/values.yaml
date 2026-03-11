@@ -43,28 +43,18 @@ cmon:
     name: cmon
     user: cmon
     password: Super$3cr3t
-  image: severalnines/cmon:2.3.1-17837
-  extra_args: # extra arguments for cmon binary
-    - -s
-    - -b 0.0.0.0
-    - --mysql-connect-retries=5
-    - -d
+  image: severalnines/cmon:2.3.4-17927
+  extra_args: [ ] # extra arguments for cmon binary
   resources:
     requests:
       cpu: 100m
       memory: 1Gi
-  sd:
-    image: severalnines/cmon-sd:build-49
-    resources:
-      requests:
-        cpu: 10m
-        memory: 10Mi
   exporter:
     resources:
       requests:
         cpu: 10m
         memory: 10Mi
-    image: severalnines/cmon_exporter-linux-amd64:main
+    image: severalnines/cmon_exporter-linux-amd64:29
   ccv2:
     image: severalnines/cc-frontend:2.2.5
   license: # REQUIRED put your CMON license key here, base64 encoded
@@ -105,7 +95,7 @@ ccx:
 
   ## default settings for all backend components
   backend:
-    image: europe-docker.pkg.dev/severalnines-public/ccx/ccx-backend:3566
+    image: europe-docker.pkg.dev/severalnines-public/ccx/ccx-backend:3708
   ## postgresql server used by all backend components
   db:
     ## overwrite the below if you are using external DB for CCX
@@ -200,6 +190,8 @@ ccx:
           cpu: 1m
           memory: 5Mi
     datastorestorage:
+      cleanUpK8sResources:
+        disabled: false
       workInterval: 60
       env:
       resources:
@@ -239,7 +231,7 @@ ccx:
       #          from_port: 1
       #          ip_protocol: tcp
       #          to_port: 65535
-      #    - name: redis
+      #    - name: valkey_sentinel
       #      security_groups:
       #        - cidr: 0.0.0.0/0
       #          from_port: 1
@@ -347,7 +339,7 @@ ccx:
       #           ip_protocol: tcp
       #           self: true
       #           to_port: 65535
-      #     - name: redis
+      #     - name: valkey_sentinel
       #       security_groups:
       #         - cidr: x.x.x.x/x
       #           from_port: 22
@@ -483,24 +475,8 @@ ccx:
       # - name: conf-fluentbit
       #   mountPath: "/conf/credentials"
       #   subPath: "credentials"
-    stores_worker:
-      # IMPORTANT stores_service and stores_worker should always have the same configuration
-      # these values should not normally be changed
-      env:
-        ENABLE_HOOKS: "true"
-        ENABLE_NOTIFICATIONS: "true"
-        ENABLE_K8S: "true"
-      resources:
-        requests:
-          cpu: 1m
-          memory: 10Mi
-      extraVolumeMounts:
-      #The example below for volume mount
-      # - name: conf-fluentbit
-      #   mountPath: "/conf/credentials"
-      #   subPath: "credentials"
     uiapp:
-      image: europe-docker.pkg.dev/severalnines-public/ccx/ccx-ui-app:896
+      image: europe-docker.pkg.dev/severalnines-public/ccx/ccx-ui-app:909
       resources:
         requests:
           cpu: 1m
@@ -555,23 +531,23 @@ ccx:
     # - size_hints: list of supported number of nodes. map of "size: description"
     #
     # supported configurations:
-    # | code       | version     | type.code
-    # |------------|-------------|--------------------
-    # | mariadb    |       10.11 | replication
-    # | mariadb    |       10.11 | galera
-    # | mariadb    |       11.4  | replication
-    # | mariadb    |       11.4  | galera
-    # | percona    |       8     | replication
-    # | percona    |       8     | galera
-    # | microsoft  |       2019  | mssql_single
-    # | microsoft  |       2019  | mssql_ao_async
-    # | microsoft  |       2022  | mssql_single
-    # | microsoft  |       2022  | mssql_ao_async
-    # | postgresql |       11    | postgres_streaming
-    # | postgresql |       14    | postgres_streaming
-    # | postgresql |       15    | postgres_streaming
-    # | postgresql |       16    | postgres_streaming
-    # | redis      |       7     | redis
+    # | code            | version     | type.code
+    # |-----------------|-------------|--------------------
+    # | mariadb         |       10.11 | replication
+    # | mariadb         |       10.11 | galera
+    # | mariadb         |       11.4  | replication
+    # | mariadb         |       11.4  | galera
+    # | percona         |       8     | replication
+    # | percona         |       8     | galera
+    # | microsoft       |       2019  | mssql_single
+    # | microsoft       |       2019  | mssql_ao_async
+    # | microsoft       |       2022  | mssql_single
+    # | microsoft       |       2022  | mssql_ao_async
+    # | postgresql      |       11    | postgres_streaming
+    # | postgresql      |       14    | postgres_streaming
+    # | postgresql      |       15    | postgres_streaming
+    # | postgresql      |       16    | postgres_streaming
+    # | valkey_sentinel |       8     | valkey_sentinel
     #
     databases:
       - code: mariadb
@@ -630,6 +606,7 @@ ccx:
           - "15"
           - "16"
           - "17"
+          - "18"
         num_nodes:
           - 1
           - 2
@@ -940,14 +917,15 @@ ccx:
           - UTF8_IS_UTF8MB3
         vendors:
           - mariadb
-      - name: time_zone
-        description: "The current time zone. This variable is used to initialize the time zone for each client that connects."
-        type: "text"
-        default_value: "SYSTEM"
-        validation_options: "min=-13:59,max=+14:00"
-        vendors:
-          - mariadb
-          - percona
+      # remove timezone for testing
+      # - name: time_zone
+      #   description: "The current time zone. This variable is used to initialize the time zone for each client that connects."
+      #   type: "text"
+      #   default_value: "SYSTEM"
+      #   validation_options: "min=-13:59,max=+14:00"
+      #   vendors:
+      #     - mariadb
+      #     - percona
       - name: require_secure_transport
         description: "The current time zone. This variable is used to initialize the time zone for each client that connects."
         type: "text"
@@ -1108,11 +1086,15 @@ ccx:
         start_hour: 0 # start hour, 0-23
         end_hour: 6 # end hour, 0-23. Must be greater than start_hour
         interval_minutes: 15 # randomize interval in minutes, 0-60
+loki: {}
 fluentbit:
   enabled: true
   # Provide Ingress hostname of loki from ccxdeps. If not set, it will automatically preconfigure from ccxdeps.
   host:
   port: 443
+  auth:
+    http_user: ""
+    http_passwd: ""
   # Provide Fluent-bit extra output config to forward logs to another logging tool
   extraOutputConfig: |
 

@@ -1,0 +1,11 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: cmon-pdb
+  labels:
+    app: cmon
+spec:
+  maxUnavailable: 1
+  selector:
+    matchLabels:
+      app: cmon

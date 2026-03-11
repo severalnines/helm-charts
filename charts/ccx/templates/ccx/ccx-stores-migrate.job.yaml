@@ -29,11 +29,7 @@ spec:
                   fieldPath: metadata.namespace
             - name: PROMETHEUS_URL
               value: http://{{ include "ccx.prometheusHostname" . }}:9090
-          {{- with .Values.cmon.id }}
-            - name: DEFAULT_CONTROLLER_ID
-              value: {{ . }}
-          {{- end }}
-          {{- range $key, $val := .Values.ccx.services.stores_worker.env }}
+          {{- range $key, $val := .Values.ccx.services.stores_service.env }}
             - name: {{ $key }}
               value: {{ $val | quote }}
           {{- end }}
