@@ -52,8 +52,6 @@ spec:
                   name: {{ .Values.loki.ingressSecret }}
                   key: LOKI_PASSWORD
           {{- end }}
-            - name: PROMETHEUS_URL
-              value: "{{ if eq (include "ccx.prometheusSelectorName" .) .Values.prometheusHostname }}http://{{ include "ccx.prometheusSelectorName" . }}:9090{{ else }}http://{{ include "ccx.prometheusSelectorName" . }}:8481/select/0/prometheus{{ end }}"
             - name: POD_NAMESPACE
               valueFrom:
                 fieldRef:

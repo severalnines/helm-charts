@@ -63,8 +63,6 @@ spec:
                   fieldPath: metadata.namespace
             - name: ADDR
               value: "0.0.0.0:20002"
-            - name: PROMETHEUS_URL
-              value: http://{{ include "ccx.prometheusHostname" . }}:9090
             - name: BACKUPS_DB_DSN
               valueFrom:
                 secretKeyRef:
@@ -220,8 +218,6 @@ spec:
                   fieldPath: metadata.namespace
             - name: ADDR
               value: "0.0.0.0:18097"
-            - name: PROMETHEUS_URL
-              value: http://{{ include "ccx.prometheusHostname" . }}:9090
             {{ if .Values.autoscaling.storage.enabled }}
             - name: AUTOSCALE_STORAGE_THRESHOLD
               value: {{ .Values.autoscaling.storage.threshold | quote }}
