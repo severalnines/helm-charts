@@ -36,3 +36,4 @@ data:
   INGRESS_HOST: {{ include "ccx.ccxFQDN" . }}
   INGRESS_SECRETNAME: {{ .Values.ccx.ingress.ssl.secretName | default "ccx-ingress-cert" }}
   INGRESS_CLASSNAME: {{ .Values.ccx.ingress.ingressClassName | default "nginx" }}
+  PROMETHEUS_URL: http://{{ include "ccx.prometheusHostname" . }}:9090

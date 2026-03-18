@@ -34,8 +34,6 @@ spec:
           env:
             - name: CONFIG_FILE
               value: "/conf/ccx.yaml"
-            - name: PROMETHEUS_URL
-              value: http://{{ include "ccx.prometheusHostname" . }}:9090
             - name: POD_NAMESPACE
               valueFrom:
                 fieldRef:
