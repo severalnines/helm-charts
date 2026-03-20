@@ -37,6 +37,30 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.name
+        - name: migrate-configurations
+          image: {{ .Values.cmon.image | required ".Values.cmon.image is missing" }}
+        {{- if .Values.cmon.coreDumpEnable }}
+          securityContext:
+            privileged: true
+        {{- end }}
+          command: [ "/bin/sh", "-c" ]
+          args:
+            - cp /tmp/cmon.cnf /etc/cmon.cnf;
+              /usr/bin/check-cmon.sh;
+              echo "Starting configuration upgrade";
+              /usr/sbin/cmon --k8s --migrate-secrets --debug --nodaemon;
+              echo "Finishing configuration upgrade";
+          {{- if .Values.cmon.coreDumpEnable }}
+              sysctl -w kernel.core_pattern=/etc/cmon.d/core.%h.%e.%p.%t;
+          {{- end }}
+          volumeMounts:
+            - mountPath: /tmp/cmon.cnf
+              subPath: cmon.cnf
+              name: cmon-cnf-cfg
+            - mountPath: /etc/cmon.d/
+              name: cmon-master-pv
+            - mountPath: /var/lib/cmon
+              name: cmon-pv-var-lib-cmon
         - name: init-cmon
           image: {{ .Values.cmon.image | required ".Values.cmon.image is missing" }}
         {{- if .Values.cmon.coreDumpEnable }}
@@ -47,9 +71,9 @@ spec:
           args:
             - cp /tmp/cmon.cnf /etc/cmon.cnf;
               /usr/bin/check-cmon.sh;
-              echo "Starting upgrade";
+              echo "Starting database upgrade";
               /usr/sbin/cmon -u;
-              echo "Finishing upgrade";
+              echo "Finishing database upgrade";
           {{- if .Values.cmon.coreDumpEnable }}
               sysctl -w kernel.core_pattern=/etc/cmon.d/core.%h.%e.%p.%t;
           {{- end }}
@@ -58,7 +82,7 @@ spec:
               subPath: cmon.cnf
               name: cmon-cnf-cfg
             - mountPath: /etc/cmon.d/
-              name: cmon-master-pv 
+              name: cmon-master-pv
       containers:
         - name: cmon
           image: {{ .Values.cmon.image | required ".Values.cmon.image is missing" }}
