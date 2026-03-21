@@ -31,6 +31,14 @@ jobs:
         with:
           token: "${{ secrets.GITHUB_TOKEN }}"
 
+      - name: Update chart dependencies
+        run: |
+          for chart in charts/*/; do
+            if [ -f "${chart}Chart.yaml" ]; then
+              helm dependency update "${chart}"
+            fi
+          done
+
       - name: Release
         uses: helm/chart-releaser-action@v1.5.0
         env:
