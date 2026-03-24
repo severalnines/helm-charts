@@ -43,7 +43,7 @@ cmon:
     name: cmon
     user: cmon
     password: Super$3cr3t
-  image: severalnines/cmon:2.3.4-18291
+  image: severalnines/cmon:2.3.4-18313
   extra_args: [ ] # extra arguments for cmon binary
   resources:
     requests:
