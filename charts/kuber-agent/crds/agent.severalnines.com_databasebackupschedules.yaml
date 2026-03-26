@@ -102,6 +102,13 @@ spec:
                       Example: "Etc/UTC".
                     type: string
                 type: object
+              manageLifecycle:
+                default: true
+                description: |-
+                  ManageLifecycle specifies whether the controller should manage this schedule's lifecycle.
+                  When true (default), the controller reconciles and applies operator backup resources.
+                  When false, the schedule is imported/read-only - the controller only observes status.
+                type: boolean
               options:
                 description: Options contains backup-specific options
                 properties:
@@ -274,6 +281,13 @@ spec:
                 description: NextScheduled is when the next backup is scheduled
                 format: date-time
                 type: string
+              providerSummary:
+                additionalProperties:
+                  type: string
+                description: |-
+                  ProviderSummary contains GitOps PR metadata and provider-specific summary fields.
+                  Keys follow the convention "gitops.prNumber", "gitops.url", "gitops.branch", etc.
+                type: object
             type: object
         type: object
     served: true

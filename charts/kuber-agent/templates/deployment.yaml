@@ -97,7 +97,7 @@ spec:
         - name: FLUX_NAMESPACE
           value: {{ .Values.gitops.flux.namespace | quote }}
         {{- if .Values.gitops.enabled }}
-        - name: APPBUNDLE_GITOPS_ENABLED
+        - name: GITOPS_ENABLED
           value: "true"
         {{- end }}
         # AppBundle importer

@@ -425,6 +425,13 @@ spec:
                         type: object
                     type: object
                 type: object
+              manageLifecycle:
+                default: true
+                description: |-
+                  ManageLifecycle specifies whether the controller should manage this cluster's lifecycle.
+                  When true (default), the controller reconciles and applies operator resources.
+                  When false, the cluster is imported/read-only - the controller only observes status.
+                type: boolean
               namespace:
                 description: |-
                   Namespace specifies the namespace where the cluster should be deployed
@@ -1255,6 +1262,13 @@ spec:
                   Phase represents the current phase of the database cluster
                   (e.g., Pending, Creating, Running, Failed)
                 type: string
+              providerSummary:
+                additionalProperties:
+                  type: string
+                description: |-
+                  ProviderSummary contains GitOps PR metadata and provider-specific summary fields.
+                  Keys follow the convention "gitops.prNumber", "gitops.url", "gitops.branch", etc.
+                type: object
               restore:
                 description: |-
                   Restore tracks the latest restore attempt initiated for this cluster.
