@@ -9,6 +9,7 @@ image:
   pullPolicy: Always
   useDevelopmentImage: false # Set to true to use the developmentImageTag
   developmentImageTag: "main-dev-latest" # The tag for your 'latest' development build
+  pullSecrets: [] # Optional list of imagePullSecrets, e.g. [{name: regcred}]
 
 
 # Agent configuration
