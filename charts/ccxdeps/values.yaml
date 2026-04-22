@@ -19,7 +19,7 @@ ingress-nginx:
     addHeaders:
       Referrer-Policy: no-referrer
       X-Content-Type-Options: nosniff
-      X-Frame-Options: DENY
+      X-Frame-Options: SAMEORIGIN
       X-XSS-Protection: 1; mode=block
     config:
       allow-backend-server-header: "true"
