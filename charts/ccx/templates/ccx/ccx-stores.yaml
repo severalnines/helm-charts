@@ -42,6 +42,17 @@ spec:
           env:
             - name: CONFIG_FILE
               value: "/conf/ccx.yaml"
+            - name: INGRESS_ANNOTATIONS
+              value: |
+                {{- $annotations := dict }}
+                {{- if .Values.ccx.ingress.ssl.clusterIssuer }}
+                {{- $_ := set $annotations "kubernetes.io/tls-acme" "true" }}
+                {{- $_ := set $annotations "cert-manager.io/cluster-issuer" .Values.ccx.ingress.ssl.clusterIssuer }}
+                {{- end }}
+                {{- with .Values.ccx.ingress.annotations }}
+                {{- $_ := merge $annotations . }}
+                {{- end }}
+                {{ $annotations | toJson }}
             - name: POD_NAME
               valueFrom:
                 fieldRef:
@@ -67,17 +78,6 @@ spec:
                 secretKeyRef:
                   name: db-vpc
                   key: DB_DSN
-            - name: INGRESS_ANNOTATIONS
-              value: |
-                {{- $annotations := dict }}
-                {{- if .Values.ccx.ingress.ssl.clusterIssuer }}
-                {{- $_ := set $annotations "kubernetes.io/tls-acme" "true" }}
-                {{- $_ := set $annotations "cert-manager.io/cluster-issuer" .Values.ccx.ingress.ssl.clusterIssuer }}
-                {{- end }}
-                {{- with .Values.ccx.ingress.annotations }}
-                {{- $_ := merge $annotations . }}
-                {{- end }}
-                {{ $annotations | toJson }}
           {{- range $key, $val := .Values.ccx.services.stores_service.env }}
             - name: {{ $key }}
               value: {{ $val | quote }}
@@ -112,22 +112,6 @@ spec:
             - name: metrics
               containerPort: 9090
               protocol: TCP
-          livenessProbe:
-            httpGet:
-              path: /livez
-              port: metrics
-            initialDelaySeconds: 10
-            periodSeconds: 30
-            timeoutSeconds: 5
-            failureThreshold: 3
-          readinessProbe:
-            httpGet:
-              path: /readyz
-              port: metrics
-            initialDelaySeconds: 5
-            periodSeconds: 10
-            timeoutSeconds: 5
-            failureThreshold: 3
           volumeMounts:
             - name: conf-core
               mountPath: "/conf/ccx.yaml"
@@ -160,6 +144,19 @@ spec:
         - name: conf-fluentbit
           configMap:
             name: ccx-configmap-fluentbit
+        {{- end }}
+        {{- range .Values.ccx.services.stores_service.extraVolumes }}
+        {{- if not .name }}{{ fail "extraVolumes: each entry must have a 'name'" }}{{- end }}
+        {{- if and .secret .configMap }}{{ fail (printf "extraVolumes entry '%s': specify exactly one of 'secret' or 'configMap', not both" .name) }}{{- end }}
+        {{- if not (or .secret .configMap) }}{{ fail (printf "extraVolumes entry '%s': must specify exactly one of 'secret' or 'configMap'" .name) }}{{- end }}
+        - name: {{ .name }}
+          {{- if .secret }}
+          secret:
+            secretName: {{ .secret }}
+          {{- else }}
+          configMap:
+            name: {{ .configMap }}
+          {{- end }}
         {{- end }}
       {{ with .Values.ccx.services.stores_service.affinity }}
       affinity:
@@ -256,22 +253,6 @@ spec:
             - name: metrics
               containerPort: 9090
               protocol: TCP
-          livenessProbe:
-            httpGet:
-              path: /livez
-              port: metrics
-            initialDelaySeconds: 10
-            periodSeconds: 30
-            timeoutSeconds: 5
-            failureThreshold: 3
-          readinessProbe:
-            httpGet:
-              path: /readyz
-              port: metrics
-            initialDelaySeconds: 5
-            periodSeconds: 10
-            timeoutSeconds: 5
-            failureThreshold: 3
           resources:
             {{- toYaml .Values.ccx.services.stores_listener.resources | nindent 12 }}
       {{ with .Values.ccx.services.stores_listener.affinity }}

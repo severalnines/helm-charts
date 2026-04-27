@@ -11,7 +11,7 @@ crossOrigins:
 prometheusHostname:
 ## k8s storage class used for PVs across CCX. This is a global variable applied to all PVCs/PVs to simplify things.
 storageClassName:
-loki: {}
+
 # shared configuration across all units
 global:
   # default number of replicas for normal service units - this should be set to more than 1 in a production environment
@@ -30,6 +30,7 @@ autoscaling:
 
 ## this section allows deploying a single default cmon instance in the k8s cluster
 cmon:
+  enabled: true
   id: "00000000-0000-0000-0000-000000000000"
   user: cmon-user
   password: 8fcf2304e46f39fa70710583a41455fd39cc5408
@@ -43,7 +44,6 @@ cmon:
     user: cmon
     password: Super$3cr3t
   image: severalnines/cmon:2.3.4-18413
-  sshImage: severalnines/clustercontrol-ssh:2.5.0-1
   extra_args: [ ] # extra arguments for cmon binary
   resources:
     requests:
@@ -55,12 +55,11 @@ cmon:
         cpu: 10m
         memory: 10Mi
     image: severalnines/cmon_exporter-linux-amd64:29
-  
+  ccv2:
+    image: severalnines/cc-frontend:2.2.5
   license: # REQUIRED put your CMON license key here, base64 encoded
   coreDumpEnable: false
-ccv2:
-    image: europe-docker.pkg.dev/severalnines-public/clustercontrol/ccmgr:release-2.4.0-239
-    replicas: 1
+
 ## this section is for configuring specifics of the CCX system
 ccx:
   ## REQUIRED: list of k8s secrets containing cloud credentials
@@ -72,7 +71,6 @@ ccx:
 
   ## for providing DNS names to users. this should be a domain you can configure into externaldns
   userDomain: # "example.org"
-
 
   ## set admin credentials here
   ## if not set, they will be generated automatically, and you can read them from admin-users secret
@@ -97,8 +95,7 @@ ccx:
 
   ## default settings for all backend components
   backend:
-    image: europe-docker.pkg.dev/severalnines-public/ccx/ccx-backend:4299
-  
+    image: europe-docker.pkg.dev/severalnines-public/ccx/ccx-backend:3708
   ## postgresql server used by all backend components
   db:
     ## overwrite the below if you are using external DB for CCX
@@ -126,7 +123,6 @@ ccx:
       secretName: # use an existing k8s secret of type tls for CCX ingress
       clusterIssuer: # set this to your cert manager's cluster issuer or simply remove to not use one
     annotations: #Add the ability to specify annotations
-    whitelist:   #List of IP adresses to whitelist for the cc ui access. If empty, it will be publicly available. 
   ## NATS+JetStream server used by all backend components
   nats:
     server: ccxdeps-ccx-nats # your nats server name/address
@@ -479,14 +475,21 @@ ccx:
       # - name: conf-fluentbit
       #   mountPath: "/conf/credentials"
       #   subPath: "credentials"
+      extraVolumes:
+      # Mount a Secret as a volume (exactly one of 'secret' or 'configMap' is required per entry)
+      # - name: openstack-ca
+      #   secret: openstack-ca-cert        # name of an existing Kubernetes Secret
+      # Mount a ConfigMap as a volume
+      # - name: custom-config
+      #   configMap: my-configmap          # name of an existing Kubernetes ConfigMap
     uiapp:
-      image: europe-docker.pkg.dev/severalnines-public/ccx/ccx-ui-app:967
+      image: europe-docker.pkg.dev/severalnines-public/ccx/ccx-ui-app:909
       resources:
         requests:
           cpu: 1m
           memory: 10Mi
     uiauth:
-      image: europe-docker.pkg.dev/severalnines-public/ccx/ccx-ui-auth:32
+      image: europe-docker.pkg.dev/severalnines-public/ccx/ccx-ui-auth:9
       resources:
         requests:
           cpu: 1m
@@ -1090,6 +1093,7 @@ ccx:
         start_hour: 0 # start hour, 0-23
         end_hour: 6 # end hour, 0-23. Must be greater than start_hour
         interval_minutes: 15 # randomize interval in minutes, 0-60
+loki: {}
 fluentbit:
   enabled: true
   # Provide Ingress hostname of loki from ccxdeps. If not set, it will automatically preconfigure from ccxdeps.
