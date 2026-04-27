@@ -60,22 +60,6 @@ spec:
             - name: metrics
               containerPort: 9090
               protocol: TCP
-          livenessProbe:
-            httpGet:
-              path: /livez
-              port: metrics
-            initialDelaySeconds: 10
-            periodSeconds: 30
-            timeoutSeconds: 5
-            failureThreshold: 3
-          readinessProbe:
-            httpGet:
-              path: /readyz
-              port: metrics
-            initialDelaySeconds: 5
-            periodSeconds: 10
-            timeoutSeconds: 5
-            failureThreshold: 3
           volumeMounts:
             - name: config
               mountPath: "/conf"

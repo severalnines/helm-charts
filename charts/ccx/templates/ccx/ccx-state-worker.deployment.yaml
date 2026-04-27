@@ -31,61 +31,21 @@ spec:
       {{- end }}
       containers:
         - name: state-worker
-          image: {{ .Values.ccx.services.stores_service.image | default .Values.ccx.backend.image | required "No image set for stores" }}
-          command: ["/bin/ccx-stores", "work"]
+          image: {{ .Values.ccx.services.datastorestorage.image | default .Values.ccx.backend.image | required "No image set for state-worker" }}
+          command: [ "/bin/ccx-datastore-storage" ]
+          args:
+            - state-worker
           env:
             - name: CONFIG_FILE
               value: "/conf/ccx.yaml"
-            - name: POD_NAME
-              valueFrom:
-                fieldRef:
-                  fieldPath: metadata.name
-            - name: POD_NAMESPACE
-              valueFrom:
-                fieldRef:
-                  fieldPath: metadata.namespace
-            - name: BACKUPS_DB_DSN
-              valueFrom:
-                secretKeyRef:
-                  name: db-backup
-                  key: DB_DSN
-            - name: DEPLOYER_DB_DSN
-              valueFrom:
-                secretKeyRef:
-                  name: db-deployer
-                  key: DB_DSN
-            - name: VPCS_DB_DSN
-              valueFrom:
-                secretKeyRef:
-                  name: db-vpc
-                  key: DB_DSN
-            - name: INGRESS_ANNOTATIONS
-              value: |
-                {{- $annotations := dict }}
-                {{- if .Values.ccx.ingress.ssl.clusterIssuer }}
-                {{- $_ := set $annotations "kubernetes.io/tls-acme" "true" }}
-                {{- $_ := set $annotations "cert-manager.io/cluster-issuer" .Values.ccx.ingress.ssl.clusterIssuer }}
-                {{- end }}
-                {{- with .Values.ccx.ingress.annotations }}
-                {{- $_ := merge $annotations . }}
-                {{- end }}
-                {{ $annotations | toJson }}
-          {{- range $key, $val := .Values.ccx.services.stores_service.env }}
-            - name: {{ $key }}
-              value: {{ $val | quote }}
-          {{- end }}
-          {{- range $key, $val := .Values.ccx.services.backupstorage.env }}
-            - name: {{ $key }}
-              value: {{ $val | quote }}
-          {{- end }}
           {{- range $key, $val := .Values.ccx.services.datastorestorage.env }}
             - name: {{ $key }}
               value: {{ $val | quote }}
           {{- end }}
-          {{- range $key, $val := .Values.ccx.services.deployer.env }}
-            - name: {{ $key }}
-              value: {{ $val | quote }}
-          {{- end }}
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
           {{- if .Values.ccx.services.datastorestorage.workInterval }}
             - name: WORK_INTERVAL
               value : {{ .Values.ccx.services.datastorestorage.workInterval | quote }}
@@ -100,27 +60,20 @@ spec:
             - configMapRef:
                 name: ccx
             - secretRef:
-                name: cmon-credentials
-            - secretRef:
                 name: db
-          {{- range $name := .Values.ccx.cloudSecrets }}
-            - secretRef:
-                name: {{ $name }}
-          {{- end }}
           ports:
             - name: metrics
               containerPort: 9090
               protocol: TCP
           volumeMounts:
-            - name: conf-core
-              mountPath: "/conf/ccx.yaml"
-              subPath: "ccx.yaml"
+            - name: config
+              mountPath: "/conf"
           resources:
             {{- toYaml .Values.ccx.services.datastorestorage.resources | nindent 12 }}
       volumes:
-        - name: conf-core
+        - name: config
           configMap:
-            name: ccx-config-core
+            name: ccx-config
       {{ with .Values.ccx.services.datastorestorage.affinity }}
       affinity:
         {{ toYaml . | nindent 8 }}
