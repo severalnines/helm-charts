@@ -1,4 +1,3 @@
-{{ if ( and .Values.cmon .Values.cmon.enabled ) }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -6,11 +5,11 @@ metadata:
 data:
   config.js: |
     window.FEAS_ENV = {
-      CMON_API_URL: 'https://{{ include "ccx.ccFQDN" . }}/cmon/v2',
+      CMON_API_URL: '/',
       GIT_SHA: 'git_sha',
       GIT_BRANCH: 'git_branch',
       VERSION: 'version',
       DEBUG_ENABLED: true,
       DEBUG_LEVEL: 0,
+      REGISTRATION_ENABLED: false,
     };
-{{ end }}
