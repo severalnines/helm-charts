@@ -1,20 +1,22 @@
-{{ if ( and .Values.cmon .Values.cmon.enabled ) }}
----
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: {{ include "ccx.name" . }}-cmon-ingress
+  name: {{ include "ccx.name" . }}-ccv2-ingress
   annotations:
     kubernetes.io/tls-acme: "true"
     {{ if .Values.ccx.ingress.ssl.clusterIssuer }}
     cert-manager.io/cluster-issuer: {{ .Values.ccx.ingress.ssl.clusterIssuer }}
     {{ end }}
     nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
-    nginx.ingress.kubernetes.io/rewrite-target: /$1
+    nginx.ingress.kubernetes.io/rewrite-target: /
     nginx.ingress.kubernetes.io/ssl-redirect: "true"
     nginx.ingress.kubernetes.io/allow-cross-namespace-resources: "false"
     nginx.ingress.kubernetes.io/strict-validate-path-type: "true"
     nginx.ingress.kubernetes.io/annotations-risk-level: "High"
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+    {{- if .Values.ccx.ingress.whitelist  }}
+    nginx.ingress.kubernetes.io/whitelist-source-range: "{{ .Values.ccx.ingress.whitelist }}"
+    {{- end }}
 spec:
   ingressClassName: {{ .Values.ccx.ingress.ingressClassName | default "nginx" }}
   tls:
@@ -27,11 +29,11 @@ spec:
         paths:
           - backend:
               service:
-                name: cmon-master
+                name: ccv2-mcc
                 port:
-                  number: 80 #ccv2
-            path: /(.*)
-            pathType: ImplementationSpecific
+                  number: 19051 #ccv2
+            path: /
+            pathType: Prefix
 ---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
@@ -46,14 +48,6 @@ metadata:
     nginx.ingress.kubernetes.io/rewrite-target: /$1
     nginx.ingress.kubernetes.io/ssl-redirect: "true"
     nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
-
-    # ⚠️ Removed configuration-snippet
-    #
-    # nginx.ingress.kubernetes.io/configuration-snippet:
-    #   more_set_headers "Set-Cookie: $sent_http_set_cookie; Path=/";
-    #
-    # Reason: Critical-level annotations are disabled by default in ingress-nginx v1.12.0.
-    # Set-Cookie path manipulation isn't supported by standard annotations.
 spec:
   ingressClassName: {{ .Values.ccx.ingress.ingressClassName | default "nginx" }}
   tls:
@@ -102,7 +96,7 @@ spec:
                 name: cmon-master
                 port:
                   number: 9511
---- 
+---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
@@ -132,5 +126,3 @@ spec:
                 name: cmon-master
                 port:
                   number: 9511
----
-{{ end }}

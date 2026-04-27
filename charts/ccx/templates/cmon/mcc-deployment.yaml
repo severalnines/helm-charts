@@ -1,0 +1,126 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ccmgr-config
+data:
+  ccmgr.yaml: |
+    filename: /usr/share/ccmgr/ccmgr.yaml
+    webapproot: /var/www
+    fetch_jobs_hours: 12
+    fetch_backups_days: 7
+    instances:
+        - xid: ccx-local-controller
+          url: cmon-master:9501
+          name: local
+          frontend_url: localhost
+          cmon_ssh_host: cmon-master:9511
+    timeout: 120
+    logfile: /var/log/ccmgr/ccmgr.log
+    frontend_path: /var/www/frontend
+    port: 19051
+    session_ttl: 1800000000000
+    single_controller: ccx-local-controller
+    k8s_proxy_url: http://127.0.0.1:8080
+    kubernetes_enabled: false
+    pool_visible: true
+    license_proxy_url: https://severalnines.com/service/lic.php
+    {{- with .Values.ccv2.config }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+    web_server:
+        security:
+            frame_deny: true
+            sts_seconds: 31536000
+            sts_include_subdomains: true
+            sts_preload: false
+            force_sts_header: false
+            content_type_nosniff: true
+            browser_xss_filter: false
+            content_security_policy: "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; script-src 'self' 'nonce-{{`{{nonce}}`}}' 'strict-dynamic'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' https://severalnines.piwik.pro; worker-src 'self' blob:; form-action 'self'; upgrade-insecure-requests"
+            content_security_policy_report_only: true
+            referrer_policy: strict-origin-when-cross-origin
+            permissions_policy: "camera=(), microphone=(), geolocation=()"
+        gzip:
+            level: 1
+        frontend:
+            nonce_replacement_files:
+                - index.html
+    acme_enabled: false
+    acme_staging: false
+    acme_cache_dir: /usr/share/ccmgr/autocert-cache
+    http_port: 80
+    acme_accept_tos: true
+    acme_renew_before: 720h
+    acme_host_policy_strict: false
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ccv2-mcc
+  labels:
+    app: ccv2-mcc
+    run: ccv2-mcc
+spec:
+  selector:
+    matchLabels:
+      app: ccv2-mcc
+      run: ccv2-mcc
+  replicas: 1 # cannot be scaled
+  template:
+    metadata:
+      labels:
+        app: ccv2-mcc
+        run: ccv2-mcc
+      annotations:
+        checksum/ccmgr-config: {{ .Values.ccv2 | toJson | sha256sum }}
+    spec:
+      {{- if .Values.ccx.imagePullSecret }}
+      imagePullSecrets:
+        - name: {{ .Values.ccx.imagePullSecret }}
+      {{- end }}
+      containers:
+        - name: ccv2
+          image: {{ .Values.ccv2.image | required ".Values.ccv2.image is missing" }}
+          command:
+            - sh
+            - -c
+            - |
+              # Copy ccmgr config into writable data dir
+              cp /tmp/ccmgr-config/ccmgr.yaml /usr/share/ccmgr/ccmgr.yaml
+              # Inject ccmgr.js script into index.html if not present
+              INDEX="/var/www/frontend/index.html"
+              if [ -f "$INDEX" ] && ! grep -q 'ccmgr.js' "$INDEX"; then
+                sed -i 's|<script src="/config.js">|<script nonce="__NONCE__" src="/ccmgr.js"></script>\n        <script src="/config.js">|' "$INDEX"
+                echo "Injected ccmgr.js into index.html"
+              fi
+              exec /entrypoint.sh
+          ports:
+            - containerPort: 80
+              protocol: TCP
+              name: 80-port
+            - containerPort: 19051
+              protocol: TCP
+              name: 19051-port
+          volumeMounts:
+            - mountPath: /var/www/frontend/config.js
+              subPath: config.js
+              name: config-js-cfg
+            - mountPath: /etc/cmon.cnf
+              subPath: cmon.cnf
+              name: cmon-cnf-cfg
+            - mountPath: /tmp/ccmgr-config
+              name: ccmgr-config
+            - mountPath: /usr/share/ccmgr
+              name: ccmgr-data
+      volumes:
+        - name: cmon-cnf-cfg
+          secret:
+            secretName: cmon-cnf
+        - name: config-js-cfg
+          configMap:
+            name: config-js
+        - name: ccmgr-config
+          configMap:
+            name: ccmgr-config
+        - name: ccmgr-data
+          emptyDir: {}
