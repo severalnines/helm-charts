@@ -6,6 +6,9 @@ metadata:
   labels:
     {{- include "agent-operator.labels" . | nindent 4 }}
 rules:
+  - apiGroups: ["apiextensions.k8s.io"]
+    resources: ["customresourcedefinitions"]
+    verbs: ["get", "list", "watch"]
   - apiGroups: ["agent.severalnines.com"]
     resources:
       [
@@ -172,4 +175,46 @@ rules:
   - apiGroups: ["coordination.k8s.io"]
     resources: ["leases"]
     verbs: ["create", "update", "patch"]
+{{- if .Values.sops.enabled }}
+---
+# CLUS-7183: SOPS GitOps-secrets pipeline.
+# - sops-encryption watches `corev1.Secret` cluster-wide (Pattern A trigger).
+# - periodic sweep lists `SopsSecret` cluster-wide and filters by source-name label.
+# - observer/secret Gets `corev1.Secret` for WaitingOnSecretPR on parent reconcilers.
+#
+# All user-namespace access is READ-ONLY. The controller never writes
+# `corev1.Secret`s in user namespaces — neither data nor metadata. Pattern A
+# status surface lives on a CCR in the agent namespace (CCR-as-status), so
+# no user-Secret update permission is required. The CCR get/create/update/
+# delete verbs come from the write-mode role above (agent.severalnines.com /
+# clusterchangerequests).
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: s9s:sops-pipeline
+  labels:
+    {{- include "agent-operator.labels" . | nindent 4 }}
+rules:
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["isindir.github.com"]
+    resources: ["sopssecrets"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: s9s:sops-pipeline
+  labels:
+    {{- include "agent-operator.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: s9s:sops-pipeline
+subjects:
+  - kind: ServiceAccount
+    name: {{ if .Values.mode.write.enabled }}{{ .Values.rbac.serviceAccounts.write.name }}{{ else }}{{ .Values.rbac.serviceAccounts.agent.name }}{{ end }}
+    namespace: {{ include "agent-operator.namespace" . }}
+{{- end }}
 {{- end }}
