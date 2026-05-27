@@ -145,6 +145,16 @@ spec:
                   x-kubernetes-preserve-unknown-fields: true
                 minItems: 1
                 type: array
+              observe:
+                description: |-
+                  Observe configures the CCR controller's materialization-tracking
+                  behavior. When unset, observed-refs are derived from spec.objects
+                  and the CCR auto-deletes as soon as those resources exist (apply)
+                  or are gone (delete) on cluster — the historical default.
+                properties:
+                  autoStamp:
+                    type: boolean
+                type: object
               placement:
                 description: Placement controls how paths are computed for file-based
                   deliveries

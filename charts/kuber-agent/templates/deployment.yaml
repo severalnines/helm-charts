@@ -97,8 +97,30 @@ spec:
         - name: FLUX_NAMESPACE
           value: {{ .Values.gitops.flux.namespace | quote }}
         {{- if .Values.gitops.enabled }}
-        - name: APPBUNDLE_GITOPS_ENABLED
+        - name: GITOPS_ENABLED
           value: "true"
+        # GitOps mode requires the new translators (agent errors out otherwise)
+        - name: USE_NEW_TRANSLATORS
+          value: "true"
+        {{- end }}
+        # SOPS GitOps-secrets pipeline (CLUS-7183). Addon + controllers read
+        # POD_NAMESPACE for their agent namespace; SOPS_NAMESPACE is hardcoded
+        # in the addon's Config — no duplicate env vars needed here.
+        {{- if .Values.sops.enabled }}
+        - name: SOPS_ENABLED
+          value: "true"
+        {{- end }}
+        {{- if .Values.sops.byoKeys }}
+        - name: SOPS_BYO_KEYS
+          value: "true"
+        {{- end }}
+        {{- if .Values.sops.preInstalled }}
+        - name: SOPS_PRE_INSTALLED
+          value: "true"
+        {{- end }}
+        {{- if .Values.sops.keygenImage }}
+        - name: KEYGEN_IMAGE
+          value: {{ .Values.sops.keygenImage | quote }}
         {{- end }}
         # AppBundle importer
         - name: APPBUNDLE_IMPORT_ENABLED
