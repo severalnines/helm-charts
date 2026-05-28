@@ -9,6 +9,7 @@ image:
   pullPolicy: Always
   useDevelopmentImage: false # Set to true to use the developmentImageTag
   developmentImageTag: "main-dev-latest" # The tag for your 'latest' development build
+  pullSecrets: [] # Optional list of imagePullSecrets, e.g. [{name: regcred}]
 
 
 # Agent configuration
@@ -40,7 +41,7 @@ controllerManager:
         memory: 256Mi
   # Health probe configuration
   healthProbe:
-    port: 8081
+    port: 8082
 
   # Optional: run only a subset of controllers. Empty = all
   # Valid: databasecluster, databaseoperator, databasebackupschedule, databasebackup, appbundle, gc
@@ -53,7 +54,7 @@ dev:
   startupProbe:
     httpGet:
       path: /healthz
-      port: 8081
+      port: 8082
     failureThreshold: 120
     periodSeconds: 2
   disableProbes: true
@@ -63,6 +64,14 @@ dev:
     pvcName: operator-cache
     storageClassName: local-path
   resources: {}
+
+metrics:
+  enabled: true
+  port: 8081
+  secure: false
+  service:
+    enabled: true
+    type: ClusterIP
 
 
 rbac:
@@ -127,6 +136,27 @@ gitops:
   flux:
     namespace: "flux-system"
 
+# SOPS GitOps-secrets pipeline (CLUS-7183).
+# Pipeline activates when sops.enabled=true AND gitops.enabled=true.
+# Spec: Projects/kuber-cc-gitops-secrets/specs/.
+sops:
+  # Enables the sops-encryption controller and the SOPS addon (which
+  # installs sops-secrets-operator + the keygen Job).
+  enabled: false
+  # When true, the user pre-applies sops-age-key + sops-age-pubkey themselves
+  # and the addon ships only the AppBundle (no keygen Job + RBAC).
+  byoKeys: false
+  # When true, the user runs their own sops-secrets-operator out-of-band; the
+  # addon stands down (no AppBundle, no keygen).
+  preInstalled: false
+  # Keygen Job base image. Must ship kubectl pre-installed AND have apk
+  # available; alpine/k8s is the community image that fits both. The Job
+  # uses kubectl for the check-before-write gate (no package install needed
+  # on idempotent re-runs) and apk to fetch `age` only when keys must be
+  # generated. No off-the-shelf image bundles age + kubectl together; the
+  # project chose this combination over maintaining a custom keygen image.
+  keygenImage: "alpine/k8s:1.31.5"
+
 # AppBundle importer configuration
 appBundleImport:
   enabled: true               # Enable background importer to create AppBundle CRs from Argo/Flux
@@ -144,4 +174,3 @@ controllerAuth:
     value: ""
   provider: "github"   # keep option for future providers; current: github
   baseURL: ""          # optional base URL for GitHub Enterprise
-
