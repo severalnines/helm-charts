@@ -36,7 +36,7 @@ cmon:
   license: # YOUR LICENSE HERE
   sshKeysSecretName: # YOUR SSH keys secret name here
   # REQUIRED, ClusterControl id, if unsure, leave default
-  id: "00000000-0000-0000-0000-000000000000"
+  id: '00000000-0000-0000-0000-000000000000'
   # rpc username
   user: ccrpc
   # rpc password
@@ -50,46 +50,46 @@ cmon:
     name: cmon
     user: cmon
     password: cmon
-  image: severalnines/cmon:2.4.0-18159
-  devImage: severalnines/cmon:2.4.0-18159
+  image: severalnines/cmon:2.4.0-20548
+  devImage: severalnines/cmon:2.4.0-20548
   extra_args: # extra arguments for ClusterControl binary
     - -s
     - --no-log-db
     - -b 0.0.0.0
     - --mysql-connect-retries=5
     - -d
-#  resources:
-#    requests:
-#      cpu: 100m
-#      memory: 1Gi
+  #  resources:
+  #    requests:
+  #      cpu: 100m
+  #      memory: 1Gi
   sd:
     image: severalnines/cmon-sd:latest
     devImage: severalnines/cmon-sd:latest
-#    resources:
-#      requests:
-#        cpu: 100m
-#        memory: 1Gi
+  #    resources:
+  #      requests:
+  #        cpu: 100m
+  #        memory: 1Gi
   exporter:
     image: severalnines/cmon_exporter-linux-amd64:main
     devImage: severalnines/cmon_exporter-linux-amd64:main
-#    resources:
-#      requests:
-#        cpu: 100m
-#        memory: 1Gi
+  #    resources:
+  #      requests:
+  #        cpu: 100m
+  #        memory: 1Gi
   ccmgr:
-    image: europe-docker.pkg.dev/severalnines-public/clustercontrol/ccmgr:release-2.4.0-220
+    image: europe-docker.pkg.dev/severalnines-public/clustercontrol/ccmgr:latest
     devImage: europe-docker.pkg.dev/severalnines-public/clustercontrol/ccmgr:main-dev-latest
-#    resources:
-#      requests:
-#        cpu: 100m
-#        memory: 1Gi
+  #    resources:
+  #      requests:
+  #        cpu: 100m
+  #        memory: 1Gi
   kuberProxy:
-    image: europe-docker.pkg.dev/severalnines-public/clustercontrol/kuber-proxy:release-2.4.0
+    image: europe-docker.pkg.dev/severalnines-public/clustercontrol/kuber-proxy:latest
     devImage: europe-docker.pkg.dev/severalnines-public/clustercontrol/kuber-proxy:main-dev-latest
-#    resources:
-#      requests:
-#        cpu: 100m
-#        memory: 1Gi
+    #    resources:
+    #      requests:
+    #        cpu: 100m
+    #        memory: 1Gi
     env:
       HTTP_PORT: 8081
       GRPC_PORT: 50051
@@ -101,7 +101,7 @@ cmon:
       # PROXY_CERT_PATH: /path_to/server.crt
       # PROXY_KEY_PATH: /path_to/server.key
   ingress:
-  # Although not strictly necessary it's **strongly** recommended to use ingress for cmon
+    # Although not strictly necessary it's **strongly** recommended to use ingress for cmon
     enabled: true
     # OPTIONAL ingress class name
     ingressClassName: nginx
@@ -109,7 +109,6 @@ cmon:
     ssl:
       # OPTIONAL cluster issuer name
       clusterIssuer: # letsencrypt-prod
-
 
 # External dependencies and helm charts below
 # For exact documentation refer to the official helm chart documentation
@@ -121,7 +120,7 @@ mysql-innodbcluster:
     root:
       user: cmon
       password: cmon
-      host: "%"
+      host: '%'
   serverInstances: 1
   tls:
     useSelfSigned: true
@@ -135,7 +134,7 @@ mysql-innodbcluster:
 # Feel free to adjust as needed, however keep in mind required labels and annotations and service discovery
 monitoring:
   enabled: true
-  cmon_sd_url: &cmon_sd_url "http://cmon-master:8080"
+  cmon_sd_url: &cmon_sd_url 'http://cmon-master:8080'
   server:
     service:
       servicePort: 9090
@@ -146,14 +145,14 @@ monitoring:
       prometheus.io/scrape: 'true'
       prometheus.io/port: '8428'
     extraArgs:
-      envflag.enable: "true"
+      envflag.enable: 'true'
       envflag.prefix: VM_
       loggerFormat: json
       promscrape.maxScrapeSize: 56777216
       maxLabelsPerTimeseries: 99
     scrape:
       enabled: true
-      configMap: ""
+      configMap: ''
       ### below is standard victoria metrics config, change as needed
       ### provided is simple, default config
       config:
@@ -183,18 +182,18 @@ monitoring:
 ingress-nginx:
   controller:
     config:
-      allow-backend-server-header: "true"
-      allow-snippet-annotations: "true"
-      use-forwarded-headers: "true"
+      allow-backend-server-header: 'true'
+      allow-snippet-annotations: 'true'
+      use-forwarded-headers: 'true'
     kind: DaemonSet
     metrics:
       enabled: true
     publishService:
       enabled: true
     service:
-#      loadBalancerIP: xxx.xxx.xxx.xxx
-      externalTrafficPolicy: "Local"
+      #      loadBalancerIP: xxx.xxx.xxx.xxx
+      externalTrafficPolicy: 'Local'
       ports:
         50051-tcp: 50051
   tcp:
-    50051: "clustercontrol/cmon-master:50051"
+    50051: 'clustercontrol/cmon-master:50051'
