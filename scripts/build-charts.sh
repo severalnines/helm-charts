@@ -1,17 +1,15 @@
 #!/usr/bin/env bash
 #
-# Build (package) charts EXACTLY the way the release workflows do, so a PR can
+# Build (package) charts EXACTLY the way the release workflow does, so a PR can
 # be validated locally before it is opened:
 #
-#   - lint:           helm lint charts/*                  (.github/workflows/lint.yaml)
-#   - main release:   cr package <chart>                  (.github/workflows/release.yaml
-#                     via helm/chart-releaser-action — cr re-downloads dependencies
-#                     from Chart.yaml repositories; vendored tgz are IGNORED)
-#   - single release: helm package <chart> --dependency-update
-#                     (.github/workflows/relese-single.yaml)
+#   - lint:    helm lint charts/*   (.github/workflows/lint.yaml)
+#   - release: cr package <chart>   (.github/workflows/release.yaml via
+#              helm/chart-releaser-action — cr re-downloads dependencies from
+#              Chart.yaml repositories; vendored tgz are IGNORED)
 #
-# Both paths resolve dependencies from the repositories declared in Chart.yaml
-# (our GAR OCI mirror for clustercontrol) — anonymous pull, no auth needed.
+# Dependencies resolve from the repositories declared in Chart.yaml (our GAR
+# OCI mirror for clustercontrol) — anonymous pull, no auth needed.
 #
 # Usage:
 #   ./scripts/build-charts.sh [CHART_NAME ...]   # default: clustercontrol
@@ -61,9 +59,6 @@ for name in "${CHARTS[@]}"; do
 
   echo "==> cr package (release.yaml)"
   cr package "${chart}" --package-path "${PKG_DIR}" || fail=1
-
-  echo "==> helm package --dependency-update (relese-single.yaml)"
-  helm package "${chart}" --dependency-update --destination "${PKG_DIR}/single" || fail=1
 done
 
 echo
@@ -72,4 +67,4 @@ if (( fail )); then
   exit 1
 fi
 echo "BUILD OK — packages in ${PKG_DIR#"${REPO_ROOT}"/}:"
-ls -l "${PKG_DIR}" "${PKG_DIR}/single" 2>/dev/null | grep -v '^total\|:$' | sed 's/^/  /'
+ls -l "${PKG_DIR}" | grep -v '^total' | sed 's/^/  /'
