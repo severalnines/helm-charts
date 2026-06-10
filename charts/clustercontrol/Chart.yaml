@@ -18,10 +18,10 @@ dependencies:
     condition: createDatabases
   - name: victoria-metrics-single
     repository: https://victoriametrics.github.io/helm-charts/
-    version: 0.40.0
+    version: 0.9.16
     condition: monitoring.enabled
     alias: monitoring
   - name: ingress-nginx
     repository: https://kubernetes.github.io/ingress-nginx
-    version: 4.15.1
+    version: 4.11.8
     condition: ingressController.enabled
