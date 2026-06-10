@@ -25,6 +25,10 @@ createDatabases: true
 
 # MySQL operator configuration
 mysql-operator:
+  # chart 2.0.22 defaults to image tag 8.0.46-2.0.22 which was never published
+  # to container-registry.oracle.com; 8.0.45-2.0.21 is the latest 2.0.x image
+  image:
+    tag: 8.0.45-2.0.21
   envs:
     k8sClusterDomain: cluster.local
 # OPTIONAL install ingress controller? Set to false if you already have ingress controller installed in your cluster
@@ -116,6 +120,9 @@ cmon:
 
 mysql-innodbcluster:
   enabled: true
+  # keep the server on 8.0.45: the pinned operator image 2.0.21 (see
+  # mysql-operator.image.tag above) does not manage newer server versions
+  serverVersion: 8.0.45
   credentials:
     root:
       user: cmon
