@@ -10,11 +10,11 @@ appVersion: '2.4.0-20548'
 dependencies:
   - name: mysql-operator
     version: 2.0.21
-    repository: https://mysql.github.io/mysql-operator/
+    repository: file://localcharts/mysql-operator
     condition: installMysqlOperator
   - name: mysql-innodbcluster
     version: 2.0.21
-    repository: https://mysql.github.io/mysql-operator/
+    repository: file://localcharts/mysql-innodbcluster
     condition: createDatabases
   - name: victoria-metrics-single
     repository: https://victoriametrics.github.io/helm-charts/
