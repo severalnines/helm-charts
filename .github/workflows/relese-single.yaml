@@ -38,7 +38,7 @@ jobs:
         if: github.event_name == 'workflow_dispatch'
         run: |
           mkdir -p .cr-release-packages
-          helm package charts/${{ github.event.inputs.chart }} --destination .cr-release-packages
+          helm package charts/${{ github.event.inputs.chart }} --dependency-update --destination .cr-release-packages
 
       - name: Release Selected Chart
         uses: helm/chart-releaser-action@v1.5.0
