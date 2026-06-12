@@ -386,6 +386,11 @@ spec:
                 type: object
               sync:
                 properties:
+                  allowEmpty:
+                    description: |-
+                      AllowEmpty permits syncing applications that have zero resources.
+                      Useful for root app-of-apps when the GitOps repo might be empty.
+                    type: boolean
                   createNamespace:
                     type: boolean
                   prunePropagationPolicy:

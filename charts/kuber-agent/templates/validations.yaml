@@ -1,0 +1,31 @@
+{{- /*
+Chart-level validation for cross-field addon invariants. This template renders
+no resources; it fails `helm template/install` early for unsupported
+combinations.
+*/ -}}
+{{- if .Values.prometheusAgent.enabled -}}
+  {{- if and .Values.prometheusAgent.remoteWrite.auth.type (ne .Values.prometheusAgent.remoteWrite.auth.type "basic") -}}
+    {{- fail "prometheusAgent.remoteWrite.auth.type currently supports only \"basic\"" -}}
+  {{- end -}}
+  {{- if not (or .Values.prometheusStack.enabled .Values.prometheusStack.preInstalled) -}}
+    {{- fail "prometheusAgent.enabled=true requires prometheusStack.enabled=true or prometheusStack.preInstalled=true" -}}
+  {{- end -}}
+  {{- if not .Values.prometheusAgent.clusterLabel -}}
+    {{- fail "prometheusAgent.clusterLabel is required when prometheusAgent.enabled=true" -}}
+  {{- end -}}
+  {{- if not .Values.prometheusAgent.remoteWrite.url -}}
+    {{- fail "prometheusAgent.remoteWrite.url is required when prometheusAgent.enabled=true" -}}
+  {{- end -}}
+{{- end -}}
+{{- if or .Values.prometheusStack.prometheus.enabled .Values.prometheusStack.grafana.enabled -}}
+  {{- if not .Values.prometheusStack.enabled -}}
+    {{- fail "prometheusStack.enabled=true is required when enabling bundled Prometheus or Grafana" -}}
+  {{- end -}}
+{{- end -}}
+{{- $serviceTypes := list "ClusterIP" "NodePort" "LoadBalancer" -}}
+{{- if not (has .Values.prometheusStack.prometheus.service.type $serviceTypes) -}}
+  {{- fail "prometheusStack.prometheus.service.type must be ClusterIP, NodePort, or LoadBalancer" -}}
+{{- end -}}
+{{- if not (has .Values.prometheusStack.grafana.service.type $serviceTypes) -}}
+  {{- fail "prometheusStack.grafana.service.type must be ClusterIP, NodePort, or LoadBalancer" -}}
+{{- end -}}
