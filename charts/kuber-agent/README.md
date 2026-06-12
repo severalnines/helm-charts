@@ -34,7 +34,7 @@ helm install kuber-agent kuber-agent --repo https://severalnines.github.io/helm-
 | `namespaceOverride`                    | Override the namespace for resources                                                   | `""`                                                                   |
 | `createNamespace`                      | Create the namespace                                                                   | `true`                                                                 |
 | `controllerManager.replicas`           | Number of operator replicas                                                            | `1`                                                                    |
-| `controllerManager.healthProbe.port`   | Health/readiness probe port                                                            | `8081`                                                                 |
+| `controllerManager.healthProbe.port`   | Health/readiness probe port                                                            | `8082`                                                                 |
 | `controllerManager.controllers`        | List of enabled controllers (empty = all)                                              | `[]`                                                                   |
 | `controllerManager.manager.resources`  | Resource requests/limits for manager container                                         | see values.yaml                                                        |
 | `rbac.create`                          | Create RBAC resources                                                                  | `true`                                                                 |
@@ -47,6 +47,11 @@ helm install kuber-agent kuber-agent --repo https://severalnines.github.io/helm-
 | `rbac.clusterRead.includeSecrets`      | Also grant Secrets read cluster-wide (bind `s9s:cluster-read-extra` to default SA)     | `false`                                                                |
 | `mode.write.enabled`                   | Write mode: bind `s9s:cluster-write` cluster-wide to the write SA                      | `false`                                                                |
 | `proxy.grpcAddress`                    | ClusterControl proxy gRPC address                                                      | `host.docker.internal:50051`                                           |
+| `metrics.enabled`                      | Enable Prometheus metrics endpoint on the operator                                     | `true`                                                                 |
+| `metrics.port`                         | Prometheus metrics port                                                                | `8081`                                                                 |
+| `metrics.secure`                       | Serve metrics over HTTPS when true                                                     | `false`                                                                |
+| `metrics.service.enabled`              | Create a ClusterIP Service for metrics scraping                                        | `true`                                                                 |
+| `metrics.service.type`                 | Metrics Service type                                                                   | `ClusterIP`                                                            |
 | `cleanup.enabled`                      | Enable resource cleanup during uninstall                                               | `false`                                                                |
 | `cleanup.timeoutSeconds`               | Timeout for each cleanup phase                                                         | `300`                                                                  |
 | `cleanup.image.repository`             | Image repository for cleanup jobs (kubectl image)                                      | `bitnami/kubectl`                                                      |

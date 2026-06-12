@@ -69,9 +69,20 @@ spec:
           capabilities:
             drop:
             - "ALL"
+        {{- if .Values.metrics.enabled }}
+        ports:
+        - name: metrics
+          containerPort: {{ .Values.metrics.port }}
+          protocol: TCP
+        {{- end }}
         args:
         - "--health-probe-bind-address=:{{ .Values.controllerManager.healthProbe.port }}"
+        {{- if .Values.metrics.enabled }}
+        - "--metrics-bind-address=:{{ .Values.metrics.port }}"
+        {{- else }}
         - "--metrics-bind-address=0"
+        {{- end }}
+        - "--metrics-secure={{ ternary "true" "false" .Values.metrics.secure }}"
         - "--leader-elect"
         - "--env={{ .Values.env }}"
         {{- if .Values.controllerManager.controllers }}
@@ -97,8 +108,87 @@ spec:
         - name: FLUX_NAMESPACE
           value: {{ .Values.gitops.flux.namespace | quote }}
         {{- if .Values.gitops.enabled }}
-        - name: APPBUNDLE_GITOPS_ENABLED
+        - name: GITOPS_ENABLED
           value: "true"
+        # GitOps mode requires the new translators (agent errors out otherwise)
+        - name: USE_NEW_TRANSLATORS
+          value: "true"
+        {{- end }}
+        # SOPS GitOps-secrets pipeline (CLUS-7183). Addon + controllers read
+        # POD_NAMESPACE for their agent namespace; SOPS_NAMESPACE is hardcoded
+        # in the addon's Config — no duplicate env vars needed here.
+        {{- if .Values.sops.enabled }}
+        - name: SOPS_ENABLED
+          value: "true"
+        {{- end }}
+        {{- if .Values.sops.byoKeys }}
+        - name: SOPS_BYO_KEYS
+          value: "true"
+        {{- end }}
+        {{- if .Values.sops.preInstalled }}
+        - name: SOPS_PRE_INSTALLED
+          value: "true"
+        {{- end }}
+        {{- if .Values.sops.keygenImage }}
+        - name: KEYGEN_IMAGE
+          value: {{ .Values.sops.keygenImage | quote }}
+        {{- end }}
+        # Prometheus monitoring (CLUS-7569). Two addons share this block:
+        # prometheus-stack installs the upstream chart, prometheus-agent ships
+        # the PrometheusAgent CR. The password is intentionally NOT passed
+        # as an env var — the addon only reads the Secret name and the
+        # PrometheusAgent CR's basicAuth refs handle the resolution
+        # in-cluster.
+        {{- if .Values.prometheusStack.enabled }}
+        - name: PROMETHEUS_STACK_ENABLED
+          value: "true"
+        {{- end }}
+        {{- if .Values.prometheusStack.preInstalled }}
+        - name: PROMETHEUS_STACK_PRE_INSTALLED
+          value: "true"
+        {{- end }}
+        {{- if .Values.prometheusStack.chartVersion }}
+        - name: PROMETHEUS_STACK_CHART_VERSION
+          value: {{ .Values.prometheusStack.chartVersion | quote }}
+        {{- end }}
+        {{- if .Values.prometheusStack.prometheus.enabled }}
+        - name: PROMETHEUS_STACK_PROMETHEUS_ENABLED
+          value: "true"
+        {{- end }}
+        {{- if .Values.prometheusStack.prometheus.service.type }}
+        - name: PROMETHEUS_STACK_PROMETHEUS_SERVICE_TYPE
+          value: {{ .Values.prometheusStack.prometheus.service.type | quote }}
+        {{- end }}
+        {{- if .Values.prometheusStack.prometheus.service.nodePort }}
+        - name: PROMETHEUS_STACK_PROMETHEUS_NODE_PORT
+          value: {{ .Values.prometheusStack.prometheus.service.nodePort | quote }}
+        {{- end }}
+        {{- if .Values.prometheusStack.grafana.enabled }}
+        - name: PROMETHEUS_STACK_GRAFANA_ENABLED
+          value: "true"
+        {{- end }}
+        {{- if .Values.prometheusStack.grafana.service.type }}
+        - name: PROMETHEUS_STACK_GRAFANA_SERVICE_TYPE
+          value: {{ .Values.prometheusStack.grafana.service.type | quote }}
+        {{- end }}
+        {{- if .Values.prometheusStack.grafana.service.nodePort }}
+        - name: PROMETHEUS_STACK_GRAFANA_NODE_PORT
+          value: {{ .Values.prometheusStack.grafana.service.nodePort | quote }}
+        {{- end }}
+        {{- if .Values.prometheusAgent.enabled }}
+        - name: PROMETHEUS_AGENT_ENABLED
+          value: "true"
+        - name: PROMETHEUS_AGENT_CLUSTER_LABEL
+          value: {{ .Values.prometheusAgent.clusterLabel | quote }}
+        - name: PROMETHEUS_AGENT_REMOTE_WRITE_URL
+          value: {{ .Values.prometheusAgent.remoteWrite.url | quote }}
+        {{- $prometheusAgentAuthSecret := .Values.prometheusAgent.remoteWrite.auth.existingSecret }}
+        {{- if $prometheusAgentAuthSecret }}
+        - name: PROMETHEUS_AGENT_REMOTE_WRITE_EXISTING_SECRET
+          value: {{ $prometheusAgentAuthSecret | quote }}
+        {{- end }}
+        - name: PROMETHEUS_AGENT_REMOTE_WRITE_INSECURE_SKIP_VERIFY
+          value: {{ .Values.prometheusAgent.remoteWrite.tls.insecureSkipVerify | quote }}
         {{- end }}
         # AppBundle importer
         - name: APPBUNDLE_IMPORT_ENABLED
@@ -121,7 +211,7 @@ spec:
         - name: LOG_LEVEL
           value: {{ .Values.debug.logLevel }}
         {{- end }}
-        
+
         {{- if not (and .Values.dev.enabled .Values.dev.disableProbes) }}
         livenessProbe:
           httpGet:
@@ -159,4 +249,3 @@ spec:
         persistentVolumeClaim:
           claimName: {{ .Values.dev.persistentCache.pvcName }}
       {{- end }}
-        
