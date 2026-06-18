@@ -85,7 +85,7 @@ spec:
                           Claims lists the names of resources, defined in spec.resourceClaims,
                           that are used by this container.
 
-                          This is an alpha field and requires enabling the
+                          This field depends on the
                           DynamicResourceAllocation feature gate.
 
                           This field is immutable. It can only be set for containers.
@@ -308,7 +308,7 @@ spec:
                               Claims lists the names of resources, defined in spec.resourceClaims,
                               that are used by this container.
 
-                              This is an alpha field and requires enabling the
+                              This field depends on the
                               DynamicResourceAllocation feature gate.
 
                               This field is immutable. It can only be set for containers.
@@ -372,7 +372,7 @@ spec:
                               Claims lists the names of resources, defined in spec.resourceClaims,
                               that are used by this container.
 
-                              This is an alpha field and requires enabling the
+                              This field depends on the
                               DynamicResourceAllocation feature gate.
 
                               This field is immutable. It can only be set for containers.
@@ -432,6 +432,41 @@ spec:
                   When true (default), the controller reconciles and applies operator resources.
                   When false, the cluster is imported/read-only - the controller only observes status.
                 type: boolean
+              monitoring:
+                description: |-
+                  Monitoring configures observability surfaces for this cluster.
+                  Each operator's translator maps these to the operator's own per-cluster monitoring fields
+                  (e.g. CNPG's spec.monitoring.enablePodMonitor). Operators that don't expose
+                  per-cluster monitoring (e.g. MOCO ships PodMonitors at chart-install time) treat
+                  this as a no-op.
+                properties:
+                  enabled:
+                    description: |-
+                      Enabled is the master toggle. When false (or unset), no monitoring is
+                      configured regardless of the other fields. When true, the translator may
+                      configure operator-specific monitoring based on the additional flags below.
+                    type: boolean
+                  exporter:
+                    description: |-
+                      Exporter controls whether the translator injects a metric-exporter sidecar
+                      into instance pods. The exporter exposes the standard prom community metric
+                      families (mysql_*, etc.) that community dashboards expect, separate from
+                      any operator-bundled metrics the database may already emit.
+                      MOCO: injects mysqld_exporter sidecar on port 9104 (`mysqld-metrics`),
+                        reading the `moco-<cluster>` Secret for credentials.
+                      CNPG: no-op (CNPG ships its own metrics collector; the cnpg_* family already
+                        covers what mysqld_exporter would for MySQL).
+                      Requires Enabled=true.
+                    type: boolean
+                  podMonitor:
+                    description: |-
+                      PodMonitor controls whether the operator creates a per-cluster PodMonitor
+                      (or the equivalent ServiceMonitor) for this database cluster's instance pods.
+                      CNPG: maps to spec.monitoring.enablePodMonitor on the underlying Cluster CR.
+                      MOCO: no-op (PodMonitors are chart-shipped, not per-cluster).
+                      Requires Enabled=true.
+                    type: boolean
+                type: object
               namespace:
                 description: |-
                   Namespace specifies the namespace where the cluster should be deployed
@@ -484,7 +519,7 @@ spec:
                             Claims lists the names of resources, defined in spec.resourceClaims,
                             that are used by this container.
 
-                            This is an alpha field and requires enabling the
+                            This field depends on the
                             DynamicResourceAllocation feature gate.
 
                             This field is immutable. It can only be set for containers.
@@ -564,21 +599,22 @@ spec:
                 - size
                 type: object
               storageSpec:
-                description: StorageSpec defines the detailed storage requirements
-                  for the database cluster.
+                default:
+                  data:
+                    size: 10Gi
+                description: |-
+                  StorageSpec defines the detailed storage requirements for the database cluster.
+                  Defaulted at admission when omitted so a minimal manifest is deployable:
+                  every supported operator requires a data volume size, and a CR accepted
+                  without one would only fail later, deep in operator translation.
                 properties:
                   data:
+                    default:
+                      size: 10Gi
                     description: |-
-                      StorageVolume defines a single persistent volume for a database component.
-
-                      Priority order:
-                       1. When Template is provided it is used verbatim (after applying sane defaults),
-                          ignoring the legacy Size and StorageClass helpers.
-                       2. When Template is nil we fall back to constructing a PVC template from Size and
-                          StorageClass. Size therefore remains required for the legacy path.
-
-                      Deprecated helper fields (Size, StorageClass) are kept for backwards compatibility.
-                      Prefer setting Template for full control over the generated PVC.
+                      Data is defaulted at admission when the key is omitted. The default is
+                      scoped here (object level) rather than on StorageVolume.Size so that the
+                      optional named Volumes below never inherit an implicit size.
                     properties:
                       size:
                         description: |-
@@ -698,7 +734,7 @@ spec:
                               resources:
                                 description: |-
                                   resources represents the minimum resources the volume should have.
-                                  If RecoverVolumeExpansionFailure feature is enabled users are allowed to specify resource requirements
+                                  Users are allowed to specify resource requirements
                                   that are lower than previous value but must still be higher than capacity recorded in the
                                   status field of the claim.
                                   More info: https://kubernetes.io/docs/concepts/storage/persistent-volumes#resources
@@ -786,15 +822,13 @@ spec:
                                   volumeAttributesClassName may be used to set the VolumeAttributesClass used by this claim.
                                   If specified, the CSI driver will create or update the volume with the attributes defined
                                   in the corresponding VolumeAttributesClass. This has a different purpose than storageClassName,
-                                  it can be changed after the claim is created. An empty string value means that no VolumeAttributesClass
-                                  will be applied to the claim but it's not allowed to reset this field to empty string once it is set.
-                                  If unspecified and the PersistentVolumeClaim is unbound, the default VolumeAttributesClass
-                                  will be set by the persistentvolume controller if it exists.
+                                  it can be changed after the claim is created. An empty string or nil value indicates that no
+                                  VolumeAttributesClass will be applied to the claim. If the claim enters an Infeasible error state,
+                                  this field can be reset to its previous value (including nil) to cancel the modification.
                                   If the resource referred to by volumeAttributesClass does not exist, this PersistentVolumeClaim will be
                                   set to a Pending state, as reflected by the modifyVolumeStatus field, until such as a resource
                                   exists.
                                   More info: https://kubernetes.io/docs/concepts/storage/volume-attributes-classes/
-                                  (Beta) Using this field requires the VolumeAttributesClass feature gate to be enabled (off by default).
                                 type: string
                               volumeMode:
                                 description: |-
@@ -942,7 +976,7 @@ spec:
                                 resources:
                                   description: |-
                                     resources represents the minimum resources the volume should have.
-                                    If RecoverVolumeExpansionFailure feature is enabled users are allowed to specify resource requirements
+                                    Users are allowed to specify resource requirements
                                     that are lower than previous value but must still be higher than capacity recorded in the
                                     status field of the claim.
                                     More info: https://kubernetes.io/docs/concepts/storage/persistent-volumes#resources
@@ -1030,15 +1064,13 @@ spec:
                                     volumeAttributesClassName may be used to set the VolumeAttributesClass used by this claim.
                                     If specified, the CSI driver will create or update the volume with the attributes defined
                                     in the corresponding VolumeAttributesClass. This has a different purpose than storageClassName,
-                                    it can be changed after the claim is created. An empty string value means that no VolumeAttributesClass
-                                    will be applied to the claim but it's not allowed to reset this field to empty string once it is set.
-                                    If unspecified and the PersistentVolumeClaim is unbound, the default VolumeAttributesClass
-                                    will be set by the persistentvolume controller if it exists.
+                                    it can be changed after the claim is created. An empty string or nil value indicates that no
+                                    VolumeAttributesClass will be applied to the claim. If the claim enters an Infeasible error state,
+                                    this field can be reset to its previous value (including nil) to cancel the modification.
                                     If the resource referred to by volumeAttributesClass does not exist, this PersistentVolumeClaim will be
                                     set to a Pending state, as reflected by the modifyVolumeStatus field, until such as a resource
                                     exists.
                                     More info: https://kubernetes.io/docs/concepts/storage/volume-attributes-classes/
-                                    (Beta) Using this field requires the VolumeAttributesClass feature gate to be enabled (off by default).
                                   type: string
                                 volumeMode:
                                   description: |-
