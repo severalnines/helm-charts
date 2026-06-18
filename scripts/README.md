@@ -24,6 +24,8 @@ Currently only `charts/clustercontrol` uses the mirror.
 No version list in the script — chart versions are read from `Chart.yaml`,
 image tags from the rendered chart. Idempotent: anything already in GAR is
 skipped, so the mirror keeps every version forever.
+Rendered `tag@sha256` image refs are mirrored and checked by digest, so the
+mirror must contain the exact manifest the chart asks Kubernetes to pull.
 
 **Bumping a dependency:** edit the version in `Chart.yaml` → run the script →
 verify with `build-charts.sh` → commit. If upstream already pruned the version,

@@ -13,8 +13,9 @@
 #     migrated to our GAR, the original upstream is looked up in UPSTREAM_CHART_REPO
 #   - image tags come from rendering the chart (helm template), which resolves
 #     subchart defaults and values.yaml overrides; only images already pointing at
-#     our mirror are copied (the MySQL server/router tag is read from the rendered
-#     InnoDBCluster resource, since the operator pulls those at runtime)
+#     our mirror are copied; digest-pinned refs are copied and verified by digest
+#     (the MySQL server/router tag is read from the rendered InnoDBCluster
+#     resource, since the operator pulls those at runtime)
 # To bump a dependency: edit the chart, run this script, commit. The two maps
 # below only change when a NEW dependency/registry is introduced.
 #
@@ -90,12 +91,60 @@ copy_image() { # src dst — digest-preserving, all platforms
   fi
 }
 
+image_digest() {
+  local ref="$1"
+  if command -v crane >/dev/null; then
+    crane digest "${ref}"
+  elif command -v skopeo >/dev/null; then
+    skopeo inspect --format '{{.Digest}}' "docker://${ref}"
+  else
+    echo "ERR  need crane or skopeo to verify image digests" >&2; exit 1
+  fi
+}
+
+verify_digest() { # ref expected-digest label
+  local ref="$1" expected="$2" label="$3" actual
+  actual="$(image_digest "${ref}")" || {
+    echo "ERR  failed to resolve ${label} digest for ${ref}" >&2
+    exit 1
+  }
+  if [[ "${actual}" != "${expected}" ]]; then
+    echo "ERR  ${label} digest mismatch for ${ref}" >&2
+    echo "     expected ${expected}" >&2
+    echo "     actual   ${actual}" >&2
+    exit 1
+  fi
+}
+
 image_exists() {
-  local ref="$1" path tag
-  path="${ref#"${GAR_HOST}"/}"; tag="${path##*:}"; path="${path%:*}"
-  curl -fsS -o /dev/null "https://${GAR_HOST}/v2/${path}/manifests/${tag}" \
-    -H "Accept: application/vnd.docker.distribution.manifest.v2+json,application/vnd.oci.image.index.v1+json,application/vnd.docker.distribution.manifest.list.v2+json" \
-    2>/dev/null
+  local ref="$1" path manifest http err rc=0
+  path="${ref#"${GAR_HOST}"/}"
+  if [[ "${path}" == *@sha256:* ]]; then
+    manifest="${path##*@}"
+    path="${path%@*}"
+    path="${path%:*}"
+  else
+    manifest="${path##*:}"
+    path="${path%:*}"
+  fi
+  err="$(mktemp)"
+  http="$(curl -sS -o /dev/null -w '%{http_code}' "https://${GAR_HOST}/v2/${path}/manifests/${manifest}" \
+    -H "Accept: application/vnd.docker.distribution.manifest.v2+json,application/vnd.oci.image.manifest.v1+json,application/vnd.oci.image.index.v1+json,application/vnd.docker.distribution.manifest.list.v2+json" \
+    2>"${err}")" || rc=$?
+  if (( rc != 0 )); then
+    echo "ERR  failed checking ${ref}: $(<"${err}")" >&2
+    rm -f "${err}"
+    return 2
+  fi
+  rm -f "${err}"
+  case "${http}" in
+    200) return 0 ;;
+    404) return 1 ;;
+    *)
+      echo "ERR  failed checking ${ref}: registry returned HTTP ${http}" >&2
+      return 2
+      ;;
+  esac
 }
 
 mirror_chart_deps() { # chart_dir stage
@@ -153,10 +202,9 @@ mirror_chart_images() { # chart_dir stage
   local mysql_repo mysql_version
   mapfile -t images < <(
     {
-      # everything rendered as image: <our-mirror>/...  (digests dropped: tags
-      # are copied digest-preserving anyway)
+      # everything rendered as image: <our-mirror>/...
       yq -N -r '.. | select(has("image")) | .image' "${rendered}" 2>/dev/null \
-        | grep "^${GAR_MIRROR}/" | sed 's/@sha256:.*//' || true
+        | grep "^${GAR_MIRROR}/" || true
       # MySQL server/router/sidecar are pulled BY the operator, not rendered as
       # pods: derive them from the InnoDBCluster version + operator default repo
       mysql_repo="$(yq -N -r 'select(.kind == "Deployment") | .spec.template.spec.containers[].env[]? | select(.name == "MYSQL_OPERATOR_DEFAULT_REPOSITORY") | .value' "${rendered}" | head -1)"
@@ -173,19 +221,36 @@ mirror_chart_images() { # chart_dir stage
     return
   fi
 
-  local dst rel top src_host src
+  local dst rel top src_host src dst_copy expected exists_rc
   for dst in "${images[@]}"; do
     rel="${dst#"${GAR_MIRROR}"/}"               # e.g. mysql/community-server:8.0.45
     top="${rel%%/*}"                            # e.g. mysql
     src_host="${UPSTREAM_REGISTRY[${top}]:-}"
     [[ -n "${src_host}" ]] || { echo "ERR  no upstream registry mapped for '${top}' — add it to UPSTREAM_REGISTRY" >&2; exit 1; }
     src="${src_host}/${rel}"
+    dst_copy="${dst}"
+    expected=""
+    if [[ "${dst}" == *@sha256:* ]]; then
+      expected="${dst##*@}"
+      dst_copy="${dst%@*}"
+      if ! (( DRY_RUN )); then
+        verify_digest "${src}" "${expected}" "upstream source"
+      fi
+    fi
+
     if image_exists "${dst}"; then
       echo "OK   image ${rel} already in GAR"
       continue
+    else
+      exists_rc=$?
+      [[ ${exists_rc} -eq 1 ]] || exit "${exists_rc}"
     fi
-    echo "COPY ${src} -> ${dst}"
-    copy_image "${src}" "${dst}"
+    echo "COPY ${src} -> ${dst_copy}"
+    copy_image "${src}" "${dst_copy}"
+    if [[ -n "${expected}" && ! (( DRY_RUN )) ]]; then
+      image_exists "${dst}" || { echo "ERR  mirrored digest not found in GAR: ${dst}" >&2; exit 1; }
+      verify_digest "${dst_copy}" "${expected}" "mirrored tag"
+    fi
   done
 }
 
