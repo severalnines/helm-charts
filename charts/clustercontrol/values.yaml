@@ -24,8 +24,18 @@ installMysqlOperator: true
 createDatabases: true
 
 # MySQL operator configuration
+# Images are pulled from our Artifact Registry mirror (Oracle prunes old image
+# tags from container-registry.oracle.com, which breaks installs).
 mysql-operator:
+  image:
+    # operator deployment image: <registry>/<repository>/community-operator:<tag>
+    registry: europe-docker.pkg.dev
+    repository: severalnines-public/clustercontrol/mirror/mysql
   envs:
+    # registry/repository the operator itself pulls community-server,
+    # community-router and the sidecar (community-operator) images from
+    imagesDefaultRegistry: europe-docker.pkg.dev
+    imagesDefaultRepository: severalnines-public/clustercontrol/mirror/mysql
     k8sClusterDomain: cluster.local
 # OPTIONAL install ingress controller? Set to false if you already have ingress controller installed in your cluster
 ingressController:
@@ -136,6 +146,9 @@ monitoring:
   enabled: true
   cmon_sd_url: &cmon_sd_url 'http://cmon-master:8080'
   server:
+    image:
+      # mirrored from docker.io/victoriametrics/victoria-metrics
+      repository: europe-docker.pkg.dev/severalnines-public/clustercontrol/mirror/victoriametrics/victoria-metrics
     service:
       servicePort: 9090
       clusterIP: null
@@ -181,6 +194,15 @@ monitoring:
 
 ingress-nginx:
   controller:
+    image:
+      # mirrored from registry.k8s.io/ingress-nginx/controller
+      # (digest is preserved by the mirror copy, chart default digest still applies)
+      registry: europe-docker.pkg.dev/severalnines-public/clustercontrol/mirror
+    admissionWebhooks:
+      patch:
+        image:
+          # mirrored from registry.k8s.io/ingress-nginx/kube-webhook-certgen
+          registry: europe-docker.pkg.dev/severalnines-public/clustercontrol/mirror
     config:
       allow-backend-server-header: 'true'
       allow-snippet-annotations: 'true'
