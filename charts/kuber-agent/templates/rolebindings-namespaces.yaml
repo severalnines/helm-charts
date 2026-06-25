@@ -23,6 +23,7 @@ subjects:
   name: {{ $.Values.rbac.serviceAccounts.write.name }}
   namespace: {{ $opNs }}
 {{- end }}
+{{- if $.Values.mode.write.enabled }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
@@ -39,5 +40,6 @@ subjects:
 - kind: ServiceAccount
   name: {{ $.Values.rbac.serviceAccounts.agent.name }}
   namespace: {{ $opNs }}
+{{- end }}
 {{- end }}
 {{- end }}
