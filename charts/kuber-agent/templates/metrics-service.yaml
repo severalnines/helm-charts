@@ -6,6 +6,8 @@ metadata:
   namespace: {{ include "agent-operator.namespace" . }}
   labels:
     {{- include "agent-operator.labels" . | nindent 4 }}
+    # Distinguishes this Service for the ServiceMonitor's label selector.
+    app.kubernetes.io/component: metrics
 spec:
   type: {{ .Values.metrics.service.type }}
   selector:
