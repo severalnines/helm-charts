@@ -44,11 +44,11 @@ spec:
 
   resources:
     requests:
-      cpu: 100m
-      memory: 100Mi
+      cpu: {{ dig "resources" "requests" "cpu" "100m" .Values.postgresql }}
+      memory: {{ dig "resources" "requests" "memory" "100Mi" .Values.postgresql }}
     limits:
-      cpu: 500m
-      memory: 500Mi
+      cpu: {{ dig "resources" "limits" "cpu" "500m" .Values.postgresql }}
+      memory: {{ dig "resources" "limits" "memory" "500Mi" .Values.postgresql }}
   {{- with .Values.postgresql.clone }}
   clone:
     {{- toYaml . | nindent 4 }}

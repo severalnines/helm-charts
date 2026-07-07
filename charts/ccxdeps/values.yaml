@@ -80,6 +80,7 @@ external-dns:
 oracle-mysql-operator:
   enabled: true
   fullnameOverride: mysql-operator
+  disableLookups: true
   envs:
     k8sClusterDomain: cluster.local
 # installation and configuration option for mysql innodb
@@ -267,9 +268,15 @@ ccx-monitoring:
   kube-state-metrics:
     enabled: false
 
+cert-manager:
+  enabled: false
+  crds:
+    enabled: true
+email: "some@email.com"
+
 keycloak:
   fullnameOverride: "ccxdeps-keycloak"
-  enabled: true
+  enabled: false
   global:
     security:
       allowInsecureImages: true
@@ -296,9 +303,3 @@ keycloak:
   resources:
     requests:
       memory: 100Mi
-  
-cert-manager:
-  enabled: false
-  crds:
-    enabled: true
-email: "some@email.com"
