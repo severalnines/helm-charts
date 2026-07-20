@@ -1,7 +1,7 @@
 #CCX cluster name - should be unique
 cluster_name: &cluster_name "ccx"
 ccx_host: &ccx_host "ccx"
-cmon_sd_url: &cmon_sd_url "http://cmon-master.production:8080"
+cmon_sd_url: &cmon_sd_url "http://cmon-master.ccx:8080"
 # by default this sets to release.name-victoria-metrics-single-server
 # change if necessary
 victoria_metrics_url: &victoria_metrics_url "http://ccx-monitoring-victoria-metrics-single-server:9090"
@@ -393,7 +393,6 @@ victoria-metrics-single:
               replacement: *cluster_name
             - target_label: use_cmon_sd
               replacement: true
-              
 
         ### END CMON SERVICE DISCOVERY
 
@@ -414,6 +413,14 @@ victoria-metrics-alert:
     notifier:
       alertmanager:
         url: *alertmanager_url
+
+    # Required because the anomaly detection rules (AnomalyAdaptive* groups below) contain
+    # recording rules - vmalert refuses to start if recording rules exist with no remoteWrite
+    # target, since their results have nowhere to be persisted.
+    remote:
+      write:
+        # vmalert appends /api/v1/write itself - do not include the path here.
+        url: "http://ccx-monitoring-victoria-metrics-single-server:9090"
 
     #get at least 2 instances on different nodes
     replicaCount: 2
@@ -790,6 +797,215 @@ victoria-metrics-alert:
               summary: Upload of backup failed for datastore {{ $labels.name }} {{ $labels.cid }} cluster {{ $labels.cluster }}
               description: "Uploading backup failed for {{ $labels.name }}\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
 
+        # Anomaly detection, "adaptive" strategy, from https://github.com/grafana/promql-anomaly-detection
+        # Any metric tagged with anomaly_name/anomaly_type (see "Anomaly Tagging" group below) gets
+        # mean/stddev-based upper/lower bands computed here, with a 26h smoothing window.
+        - name: AnomalyAdaptiveShortTerm
+          rules:
+          - record: anomaly:adaptive:threshold_by_covar
+            expr: |-
+              0.5
+          - record: anomaly:adaptive:sparse_threshold
+            expr: |-
+              5/60
+          - record: anomaly:adaptive:stddev_multiplier
+            expr: |-
+              2
+          - record: anomaly:adaptive:margin_multiplier
+            expr: |-
+              0.5
+          - record: anomaly:adaptive:select
+            expr: |-
+              (
+                {anomaly_name!="", anomaly_type="requests", anomaly_select="", anomaly_strategy=~"^$|adaptive"} > 0
+                unless avg_over_time({anomaly_name!="", anomaly_type="requests", anomaly_select="", anomaly_strategy=~"^$|adaptive"}[1h]) < on() group_left anomaly:adaptive:sparse_threshold
+              )
+              OR
+              {anomaly_name!="", anomaly_type="latency", anomaly_select="", anomaly_strategy=~"^$|adaptive"} > 0
+              OR
+              {anomaly_name!="", anomaly_type="errors", anomaly_select="", anomaly_strategy=~"^$|adaptive"} > 0
+              OR
+              {anomaly_name!="", anomaly_type="resource", anomaly_select="", anomaly_strategy=~"^$|adaptive"} > 0
+              OR
+              {anomaly_name!="", anomaly_select="", anomaly_strategy=~"^$|adaptive"} > 0
+            labels:
+              anomaly_select: "1"
+              anomaly_strategy: adaptive
+          - record: anomaly:adaptive:avg_1h
+            expr: |-
+              avg_over_time(anomaly:adaptive:select[1h])
+          - record: anomaly:adaptive:stddev_1h:filtered
+            expr: |-
+              stddev_over_time(anomaly:adaptive:select[1h]) > anomaly:adaptive:avg_1h * on() group_left anomaly:adaptive:threshold_by_covar
+          - record: anomaly:adaptive:stddev_st
+            expr: |-
+              avg_over_time(anomaly:adaptive:stddev_1h:filtered[26h])
+          - record: anomaly:level
+            expr: |-
+              anomaly:adaptive:select
+          - record: anomaly:lower_band
+            expr: |-
+              clamp_min(
+                min without(prediction_type)
+                (
+                    label_replace(
+                        last_over_time(anomaly:adaptive:avg_1h[2m]) - last_over_time(anomaly:adaptive:stddev_st[2m]) * on() group_left anomaly:adaptive:stddev_multiplier,
+                        "prediction_type", "short_term", "", ""
+                    )
+                    or
+                    label_replace(
+                        last_over_time(anomaly:adaptive:avg_1h[2m]) - last_over_time(anomaly:adaptive:avg_1h[2m]) * on() group_left anomaly:adaptive:margin_multiplier,
+                        "prediction_type", "margin", "", ""
+                    )
+                    or
+                    label_replace(
+                        last_over_time(anomaly:adaptive:lower_band_lt[10m]),
+                        "prediction_type", "long_term", "", ""
+                    )
+                ),
+                0
+              )
+          - record: anomaly:upper_band
+            expr: |-
+              max without(prediction_type)
+              (
+                label_replace(
+                    last_over_time(anomaly:adaptive:avg_1h[2m]) + last_over_time(anomaly:adaptive:stddev_st[2m]) * on() group_left anomaly:adaptive:stddev_multiplier,
+                    "prediction_type", "short_term", "", ""
+                )
+                or
+                label_replace(
+                    last_over_time(anomaly:adaptive:avg_1h[2m]) + last_over_time(anomaly:adaptive:avg_1h[2m]) * on() group_left anomaly:adaptive:margin_multiplier,
+                    "prediction_type", "margin", "", ""
+                )
+                or
+                label_replace(
+                    last_over_time(anomaly:adaptive:upper_band_lt[10m]),
+                    "prediction_type", "long_term", "", ""
+                )
+              )
+
+        # Long term bands run on a coarser 5m interval (upstream recommendation) since they look back
+        # 1d/1w and don't need to react quickly.
+        - name: AnomalyAdaptiveLongTerm
+          interval: 5m
+          rules:
+          - record: anomaly:adaptive:upper_band_lt
+            expr: |-
+              max without(look_back)
+              (
+                label_replace(
+                    avg_over_time(anomaly:adaptive:select[1h] offset 167h30m)
+                    +
+                    stddev_over_time(anomaly:adaptive:select[1h] offset 167h30m)
+                            * on() group_left anomaly:adaptive:stddev_multiplier,
+                "look_back", "1w", "", ""
+                )
+                or
+                label_replace(
+                    avg_over_time(anomaly:adaptive:select[1h] offset 23h30m)
+                    +
+                    stddev_over_time(anomaly:adaptive:select[1h] offset 23h30m)
+                            * on() group_left anomaly:adaptive:stddev_multiplier,
+                "look_back", "1d", "", ""
+                )
+              )
+          - record: anomaly:adaptive:lower_band_lt
+            expr: |-
+              min without(look_back)
+              (
+                label_replace(
+                            avg_over_time(anomaly:adaptive:select[1h] offset 167h30m)
+                            -
+                            stddev_over_time(anomaly:adaptive:select[1h] offset 167h30m)
+                            * on() group_left anomaly:adaptive:stddev_multiplier,
+                "look_back", "1w", "", ""
+                )
+                or
+                label_replace(
+                            avg_over_time(anomaly:adaptive:select[1h] offset 23h30m)
+                            -
+                            stddev_over_time(anomaly:adaptive:select[1h] offset 23h30m)
+                            * on() group_left anomaly:adaptive:stddev_multiplier,
+                "look_back", "1d", "", ""
+                )
+              )
+
+        - name: AnomalyAdaptiveAlerts
+          rules:
+          - alert: AnomalyDetected
+            for: 5m
+            expr: >
+              last_over_time(anomaly:level[2m]) < last_over_time(anomaly:lower_band{anomaly_strategy="adaptive"}[2m])
+              or
+              last_over_time(anomaly:level[2m]) > last_over_time(anomaly:upper_band{anomaly_strategy="adaptive"}[2m])
+            labels:
+              severity: warning
+              anomaly_strategy: adaptive
+            annotations:
+              title: 'Anomaly detected on {{ $labels.anomaly_name }} ({{ $labels.instance }})'
+              summary: '{{ $labels.anomaly_name }} is outside its expected range on {{ $labels.instance }}.'
+              description: "Anomaly detected for {{ $labels.anomaly_name }}\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+
+        # Tags existing metrics with anomaly_name/anomaly_type so the groups above pick them up.
+        # job label matches this repo's node-exporter scrape config (values.yaml "kubernetes-node-exporter"),
+        # not upstream's example "node_exporter" job name.
+        - name: AnomalyTaggingNodeExporter
+          rules:
+          - record: anomaly:resource:cpu
+            expr: |-
+              (((count by (instance, job) (count(node_cpu_seconds_total{job=~"kubernetes-node-exporter"}) by (cpu, instance, job)))
+              -
+              avg by (instance, job) (sum by (instance, mode, job)(irate(node_cpu_seconds_total{mode='idle',job=~"kubernetes-node-exporter"}[5m])))) * 100)
+              /
+              count by(instance, job) (count(node_cpu_seconds_total{job=~"kubernetes-node-exporter"}) by (cpu, instance, job))
+            labels:
+              anomaly_name: "node_cpu"
+              anomaly_type: "resource"
+              anomaly_strategy: "adaptive"
+          - record: anomaly:resource:memory
+            expr: |-
+              100 -
+              (
+                avg by (instance, job) (node_memory_MemAvailable_bytes{job=~"kubernetes-node-exporter"}) /
+                avg by (instance, job) (node_memory_MemTotal_bytes{job=~"kubernetes-node-exporter"})
+              * 100
+              )
+            labels:
+              anomaly_name: "node_memory"
+              anomaly_type: "resource"
+              anomaly_strategy: "adaptive"
+
+        # Per-pod anomaly detection, cluster-wide (all namespaces).
+        # container="" is deliberately excluded: cAdvisor's own pod-level cgroup
+        # rollup is ambiguous/duplicated (two different values seen for the same
+        # pod in testing)
+        # job/instance are kept (job is always "kubernetes-nodes-cadvisor" here,
+        # instance is the node the pod happens to be scheduled on) purely so the
+        # existing Anomalies dashboard's job/instance selectors don't filter these
+        # series out - they're not meaningful identity for a pod the way they are
+        # for a node.
+        - name: AnomalyTaggingPods
+          rules:
+          - record: anomaly:resource:pod_cpu
+            expr: |-
+              sum by (namespace, pod, job, instance) (
+                irate(container_cpu_usage_seconds_total{container!="", container!="POD"}[5m])
+              )
+            labels:
+              anomaly_name: "pod_cpu"
+              anomaly_type: "resource"
+              anomaly_strategy: "adaptive"
+          - record: anomaly:resource:pod_memory
+            expr: |-
+              sum by (namespace, pod, job, instance) (
+                container_memory_working_set_bytes{container!="", container!="POD"}
+              ) / 1048576
+            labels:
+              anomaly_name: "pod_memory"
+              anomaly_type: "resource"
+              anomaly_strategy: "adaptive"
+
 
 alertmanager:
   #set enabled to false to disable this app
@@ -889,7 +1105,9 @@ grafana:
   podAnnotations:
     prometheus.io/scrape: 'true'
     prometheus.io/port: '3000'
-
+  persistence:
+    enabled: true
+    size: 5Gi
   ingress:
     enabled: true
     # For Kubernetes >= 1.18 you should specify the ingress-controller via the field ingressClassName
@@ -917,11 +1135,11 @@ grafana:
     datasources:
       enabled: true
 
-victoria-metrics-agent:
-  enabled: false
+# victoria-metrics-agent:
+#   enabled: 
 
 node-exporter:
-  enabled: true
+  enabled: false
 
 prometheus-blackbox-exporter:
   enabled: false
@@ -960,3 +1178,85 @@ loki:
         - secretName: loki-gateway-tls
           hosts:
             - loki.local
+# In case you have loki installed somewhere manually or with ccxdeps helm chart, set the following variable to your hostname.
+# Make sure that X-Scope-OrgID header is set with value "ccx"
+# lokiHostname: 
+
+
+victoria-metrics-cluster:
+  enabled: false
+  vmselect:
+    resources:
+      limits:
+        cpu: 500m
+        memory: 1000Mi
+      requests:
+        cpu: 50m
+        memory: 64Mi
+  vmstorage:
+    persistentVolume:
+      size: 100Gi
+    resources: 
+      limits:
+        cpu: 2000m
+        memory: 3072Mi
+      requests:
+        cpu: 500m
+        memory: 512Mi
+    horizontalPodAutoscaler:
+      enabled: true
+      maxReplicas: 3
+      minReplicas: 2
+      metrics: 
+      - type: Resource
+        resource:
+          name: memory
+          target:
+            type: Utilization
+            averageUtilization: 75
+      behavior:
+        scaleDown:
+          selectPolicy: Disabled
+
+victoria-metrics-agent:
+  enabled: false
+  remoteWrite: 
+  - url: "http://observability-victoria-metrics-cluster-vminsert.observability.svc.cluster.local:8480/insert/0/prometheus/"
+  service:
+    enabled: true
+    servicePort: 9090
+  # resource:
+  #   limits:
+  #     cpu: 2000m
+  #     memory: 6000Mi
+  #   requests:
+  #     cpu: 100m
+  #     memory: 128Mi
+  persistentVolume:
+    enabled: true
+  horizontalPodAutoscaling:
+    maxReplicas: 3
+  config:
+    global:
+      scrape_interval: 2m
+      external_labels:
+        cluster: ccx
+        #use_cmon_sd is required DO NOT REMOVE
+        use_cmon_sd: true
+        #monitor: clustercontrol is required DO NOT REMOVE
+        monitor: clustercontrol
+    # scrape_configs:
+    #   - job_name: 'vmcluster'
+    #     static_configs:
+    #     - targets: ['vmc-victoria-metrics-cluster-vmselect:8481', 'vmc-victoria-metrics-cluster-vminsert:8480', 'vmc-victoria-metrics-cluster-vmstorage:8482']
+  # extraScrapeConfigs: 
+
+
+promtail:
+  enabled: false
+  tolerations: []
+  config:
+    clients:
+      - url: http://ccx-monitoring-loki-gateway.svc.cluster.local/loki/api/v1/push
+        tenant_id: ccx
+      

@@ -29,6 +29,9 @@ configMapGenerator:
 - name: dashboard-victoria
   files: [ General/victoria.json ]
 
+- name: dashboard-anomalies
+  files: [ General/anomalies.json ]
+
 - name: dashboard-vmalert
   files: [ General/vmalert.json ]
 
