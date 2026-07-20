@@ -1,0 +1,15 @@
+{{- if .Values.grafana.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  annotations:
+    meta.helm.sh/release-name: {{ .Release.Name }}
+    meta.helm.sh/release-namespace: {{ .Release.Namespace }}
+  name: ccx-dashboard
+  labels:
+    grafana_dashboard: "1"
+    app.kubernetes.io/managed-by: "Helm"  
+data: 
+  ccx.json: |
+{{ (.Files.Get "dashboards/CCX/CCX_status.json") | indent 4 }}
+{{- end }}

@@ -1,0 +1,79 @@
+{{- if and .Values.grafana.enabled (empty .Values.grafana.datasources) }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ccx-grafana-datasources
+  annotations:
+    meta.helm.sh/release-name: {{ .Release.Name }}
+    meta.helm.sh/release-namespace: {{ .Release.Namespace }}
+  labels:
+    grafana_datasource: "1"
+    app.kubernetes.io/managed-by: "Helm"
+data:
+  grafana_datasource.yaml: |-
+    apiVersion: 1
+    datasources:
+{{- if index .Values "victoria-metrics-single" "enabled" }}
+      - name: Metrics
+        isDefault: true
+        orgId: 1
+        type: prometheus
+        typeLogoUrl: public/app/plugins/datasource/prometheus/img/prometheus_logo.svg
+        access: proxy
+        url: http://{{ .Release.Name }}-victoria-metrics-single-server.{{ include "monitoring.namespace" . }}:9090
+        basicAuth: false
+        jsonData:
+          keepCookies: []
+          timeInterval: 1m
+        readOnly: false
+{{- end }}
+{{- if index .Values "victoria-metrics-cluster" "enabled" }}
+      - name: VM-Cluster
+        isDefault: true
+        orgId: 1
+        type: prometheus
+        typeLogoUrl: public/app/plugins/datasource/prometheus/img/prometheus_logo.svg
+        access: proxy
+        url: http://{{ .Release.Name }}-victoria-metrics-cluster-vmselect.{{ include "monitoring.namespace" . }}:8481/select/0/prometheus
+        basicAuth: false
+        jsonData:
+          keepCookies: []
+          timeInterval: 1m
+        readOnly: false
+{{- end }}
+{{- if .Values.alertmanager.enabled }}
+      - name: Alertmanager
+        isDefault: false
+        orgId: 1
+        type: alertmanager
+        typeLogoUrl: public/app/plugins/datasource/alertmanager/img/logo.svg
+        access: proxy
+        url: http://{{ .Release.Name }}-alertmanager.{{ include "monitoring.namespace" . }}:9093
+        basicAuth: false
+        jsonData:
+          implementation: prometheus
+          keepCookies: []
+          timeInterval: 1m
+        readOnly: false
+{{- end }}
+{{- if .Values.loki.enabled }}
+      - name: loki
+        type: loki
+        access: proxy
+        url: http://loki-read.{{ .Release.Namespace }}:3100
+        jsonData:
+          httpHeaderName1: "X-Scope-OrgID"
+        secureJsonData:
+          httpHeaderValue1: "ccx"
+{{- end }}
+{{- if .Values.lokiHostname }}
+      - name: loki-ccx
+        type: loki
+        access: proxy
+        url: http://{{ .Values.lokiHostname }}:3100
+        jsonData:
+          httpHeaderName1: "X-Scope-OrgID"
+        secureJsonData:
+          httpHeaderValue1: "ccx"
+{{- end }}
+{{- end }}

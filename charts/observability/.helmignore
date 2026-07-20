@@ -23,4 +23,4 @@
 *.tmproj
 .vscode/
 #json
-*.json
+# *.json
