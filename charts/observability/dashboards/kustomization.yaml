@@ -56,6 +56,12 @@ configMapGenerator:
 - name: dashboard-cert-manager
   files: [ K8s/cert-manager.json ]
 
+- name: dashboard-ingress-nginx
+  files: [ K8s/ingress-nginx.json ]
+
+- name: dashboard-external-dns
+  files: [ K8s/external-dns.json ]
+
 - name: dashboard-k8s-views-global
   files: [ K8s/k8s-views-global.json ]
 

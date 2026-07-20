@@ -1,0 +1,296 @@
+{
+   "__inputs": [ ],
+   "__requires": [ ],
+   "description": "Minimal external-dns overview: record counts, TXT:A ownership ratio, and sync/reconcile health.",
+   "editable": true,
+   "links": [ ],
+   "panels": [
+      {
+         "collapsed": false,
+         "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+         "id": 1,
+         "title": "Overview",
+         "type": "row"
+      },
+      {
+         "datasource": { "type": "prometheus", "uid": "$datasource" },
+         "fieldConfig": {
+            "defaults": {
+               "thresholds": {
+                  "steps": [
+                     { "color": "green", "value": 0 }
+                  ]
+               },
+               "unit": "short"
+            }
+         },
+         "gridPos": { "h": 4, "w": 6, "x": 0, "y": 1 },
+         "id": 2,
+         "options": {
+            "reduceOptions": { "calcs": [ "lastNotNull" ] }
+         },
+         "pluginVersion": "v11.4.0",
+         "targets": [
+            {
+               "datasource": { "type": "prometheus", "uid": "$datasource" },
+               "expr": "sum(\n  external_dns_controller_verified_records\n)\n"
+            }
+         ],
+         "title": "Managed DNS Records",
+         "type": "stat"
+      },
+      {
+         "datasource": { "type": "prometheus", "uid": "$datasource" },
+         "fieldConfig": {
+            "defaults": {
+               "thresholds": {
+                  "steps": [
+                     { "color": "red", "value": 0 },
+                     { "color": "yellow", "value": 0.5 },
+                     { "color": "green", "value": 0.90000000000000002 }
+                  ]
+               },
+               "unit": "percentunit"
+            }
+         },
+         "gridPos": { "h": 4, "w": 6, "x": 6, "y": 1 },
+         "id": 3,
+         "options": {
+            "reduceOptions": { "calcs": [ "lastNotNull" ] }
+         },
+         "pluginVersion": "v11.4.0",
+         "targets": [
+            {
+               "datasource": { "type": "prometheus", "uid": "$datasource" },
+               "expr": "sum(\n  external_dns_registry_records{record_type=\"txt\"}\n)\n/\nsum(\n  external_dns_registry_records{record_type=\"a\"}\n)\n"
+            }
+         ],
+         "title": "TXT:A Ownership Ratio",
+         "type": "stat"
+      },
+      {
+         "datasource": { "type": "prometheus", "uid": "$datasource" },
+         "fieldConfig": {
+            "defaults": {
+               "thresholds": {
+                  "steps": [
+                     { "color": "green", "value": 0 },
+                     { "color": "red", "value": 1 }
+                  ]
+               },
+               "unit": "short"
+            }
+         },
+         "gridPos": { "h": 4, "w": 6, "x": 12, "y": 1 },
+         "id": 4,
+         "options": {
+            "reduceOptions": { "calcs": [ "lastNotNull" ] }
+         },
+         "pluginVersion": "v11.4.0",
+         "targets": [
+            {
+               "datasource": { "type": "prometheus", "uid": "$datasource" },
+               "expr": "external_dns_controller_consecutive_soft_errors\n"
+            }
+         ],
+         "title": "Consecutive Soft Errors",
+         "type": "stat"
+      },
+      {
+         "datasource": { "type": "prometheus", "uid": "$datasource" },
+         "fieldConfig": {
+            "defaults": {
+               "thresholds": {
+                  "steps": [
+                     { "color": "green", "value": 0 },
+                     { "color": "yellow", "value": 300 },
+                     { "color": "red", "value": 900 }
+                  ]
+               },
+               "unit": "s"
+            }
+         },
+         "gridPos": { "h": 4, "w": 6, "x": 18, "y": 1 },
+         "id": 5,
+         "options": {
+            "reduceOptions": { "calcs": [ "lastNotNull" ] }
+         },
+         "pluginVersion": "v11.4.0",
+         "targets": [
+            {
+               "datasource": { "type": "prometheus", "uid": "$datasource" },
+               "expr": "time() - external_dns_controller_last_sync_timestamp_seconds\n"
+            }
+         ],
+         "title": "Time Since Last Sync",
+         "type": "stat"
+      },
+      {
+         "collapsed": false,
+         "gridPos": { "h": 1, "w": 24, "x": 0, "y": 5 },
+         "id": 6,
+         "title": "Records",
+         "type": "row"
+      },
+      {
+         "datasource": { "type": "prometheus", "uid": "$datasource" },
+         "fieldConfig": {
+            "defaults": { "unit": "short" }
+         },
+         "gridPos": { "h": 8, "w": 24, "x": 0, "y": 6 },
+         "id": 7,
+         "options": {
+            "footer": { "enablePagination": false },
+            "sortBy": [
+               { "desc": true, "displayName": "Registry" }
+            ]
+         },
+         "pluginVersion": "v11.4.0",
+         "targets": [
+            {
+               "datasource": { "type": "prometheus", "uid": "$datasource" },
+               "expr": "external_dns_registry_records",
+               "format": "table",
+               "instant": true
+            },
+            {
+               "datasource": { "type": "prometheus", "uid": "$datasource" },
+               "expr": "external_dns_source_records",
+               "format": "table",
+               "instant": true
+            }
+         ],
+         "title": "Records by Type (Registry vs. Source)",
+         "transformations": [
+            {
+               "id": "merge"
+            },
+            {
+               "id": "organize",
+               "options": {
+                  "excludeByName": { "Time": true },
+                  "indexByName": { "record_type": 0, "Value #A": 1, "Value #B": 2 },
+                  "renameByName": {
+                     "record_type": "Type",
+                     "Value #A": "Registry",
+                     "Value #B": "Source"
+                  }
+               }
+            }
+         ],
+         "type": "table"
+      },
+      {
+         "datasource": { "type": "prometheus", "uid": "$datasource" },
+         "fieldConfig": {
+            "defaults": {
+               "custom": { "spanNulls": false },
+               "unit": "percentunit"
+            }
+         },
+         "gridPos": { "h": 8, "w": 24, "x": 0, "y": 14 },
+         "id": 8,
+         "options": {
+            "legend": { "showLegend": false },
+            "tooltip": { "mode": "single", "sort": "none" }
+         },
+         "pluginVersion": "v11.4.0",
+         "targets": [
+            {
+               "datasource": { "type": "prometheus", "uid": "$datasource" },
+               "expr": "sum(\n  external_dns_registry_records{record_type=\"txt\"}\n)\n/\nsum(\n  external_dns_registry_records{record_type=\"a\"}\n)\n",
+               "legendFormat": "TXT:A ratio"
+            }
+         ],
+         "title": "TXT Ownership Coverage Over Time",
+         "type": "timeseries"
+      },
+      {
+         "collapsed": false,
+         "gridPos": { "h": 1, "w": 24, "x": 0, "y": 22 },
+         "id": 9,
+         "title": "Sync & Errors",
+         "type": "row"
+      },
+      {
+         "datasource": { "type": "prometheus", "uid": "$datasource" },
+         "fieldConfig": {
+            "defaults": {
+               "custom": { "spanNulls": false },
+               "unit": "short"
+            }
+         },
+         "gridPos": { "h": 8, "w": 12, "x": 0, "y": 23 },
+         "id": 10,
+         "options": {
+            "legend": {
+               "calcs": [ "sum" ],
+               "displayMode": "table",
+               "placement": "right",
+               "showLegend": true
+            },
+            "tooltip": { "mode": "multi", "sort": "desc" }
+         },
+         "pluginVersion": "v11.4.0",
+         "targets": [
+            {
+               "datasource": { "type": "prometheus", "uid": "$datasource" },
+               "expr": "sum(\n  rate(\n    external_dns_registry_errors_total[$__rate_interval]\n  )\n)\n",
+               "legendFormat": "registry"
+            },
+            {
+               "datasource": { "type": "prometheus", "uid": "$datasource" },
+               "expr": "sum(\n  rate(\n    external_dns_source_errors_total[$__rate_interval]\n  )\n)\n",
+               "legendFormat": "source"
+            }
+         ],
+         "title": "Error Rate",
+         "type": "timeseries"
+      },
+      {
+         "datasource": { "type": "prometheus", "uid": "$datasource" },
+         "fieldConfig": {
+            "defaults": {
+               "custom": { "spanNulls": false },
+               "unit": "short"
+            }
+         },
+         "gridPos": { "h": 8, "w": 12, "x": 12, "y": 23 },
+         "id": 11,
+         "options": {
+            "legend": { "showLegend": false },
+            "tooltip": { "mode": "single", "sort": "none" }
+         },
+         "pluginVersion": "v11.4.0",
+         "targets": [
+            {
+               "datasource": { "type": "prometheus", "uid": "$datasource" },
+               "expr": "external_dns_controller_consecutive_soft_errors\n",
+               "legendFormat": "consecutive soft errors"
+            }
+         ],
+         "title": "Consecutive Soft Errors Over Time",
+         "type": "timeseries"
+      }
+   ],
+   "schemaVersion": 39,
+   "tags": [ "k8s", "external-dns" ],
+   "templating": {
+      "list": [
+         {
+            "current": { "selected": true, "text": "default", "value": "default" },
+            "label": "Data source",
+            "name": "datasource",
+            "query": "prometheus",
+            "type": "datasource"
+         }
+      ]
+   },
+   "time": {
+      "from": "now-1h",
+      "to": "now"
+   },
+   "timezone": "utc",
+   "title": "external-dns",
+   "uid": "external-dns-overview-8xnq"
+}

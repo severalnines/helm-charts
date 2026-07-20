@@ -1,0 +1,15 @@
+{{- if and .Values.grafana.enabled (has "externalDNS" .Values.externalToolsMonitoring) }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ccx-external-dns-dashboard
+  annotations:
+    meta.helm.sh/release-name: {{ .Release.Name }}
+    meta.helm.sh/release-namespace: {{ .Release.Namespace }}
+  labels:
+    grafana_dashboard: "1"
+    app.kubernetes.io/managed-by: "Helm"
+data:
+  external-dns.json: |
+{{ (.Files.Get "dashboards/K8s/external-dns.json") | indent 4 }}
+{{- end }}
