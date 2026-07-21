@@ -1138,6 +1138,14 @@ grafana:
 # victoria-metrics-agent:
 #   enabled: 
 
+# List of external tools to enable Grafana dashboards for (see templates/dashboards/*.yaml).
+# Add/remove entries to turn a component's dashboard on/off; anything not listed is disabled.
+# Supported values: ingressController, certManager, externalDNS
+# The underlying scrape jobs and alert rules are always defined but self-gating: they simply find
+# no targets/never fire if the component isn't installed, matching this chart's existing convention
+# for other optional components (e.g. MySQL/PostgreSQL/Vault alerts).
+externalToolsMonitoring: []
+
 node-exporter:
   enabled: false
 
