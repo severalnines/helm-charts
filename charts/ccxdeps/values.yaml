@@ -95,7 +95,16 @@ mysql-innodbcluster:
   serverConfig:
     mycnf: |-
       [mysqld]
-      binlog_expire_logs_seconds=604800
+      binlog_expire_logs_seconds=259200
+      slow_query_log=ON
+      long_query_time=2
+      innodb_buffer_pool_size=512M
+      loose_group_replication_message_cache_size=256M
+      innodb_redo_log_capacity=128M
+      performance_schema=ON
+      performance_schema_digests_size=10000
+      loose_group_replication_member_expel_timeout=30
+      loose_group_replication_autorejoin_tries=5
   tls:
     useSelfSigned: true
   datadirVolumeClaimTemplate:
