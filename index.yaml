@@ -1381,6 +1381,53 @@ entries:
     version: 0.5.0
   ccxdeps:
   - apiVersion: v2
+    created: "2026-07-22T13:08:42.804290866Z"
+    dependencies:
+    - condition: installOperators
+      name: postgres-operator
+      repository: https://opensource.zalando.com/postgres-operator/charts/postgres-operator
+      version: 1.14.0
+    - condition: ingressController.enabled
+      name: ingress-nginx
+      repository: https://kubernetes.github.io/ingress-nginx
+      version: 4.13.0
+    - condition: nats.enabled
+      name: nats
+      repository: https://nats-io.github.io/k8s/helm/charts/
+      version: 1.3.10
+    - condition: external-dns.enabled
+      name: external-dns
+      repository: https://kubernetes-sigs.github.io/external-dns/
+      version: 1.19.0
+    - alias: oracle-mysql-operator
+      condition: oracle-mysql-operator.enabled
+      name: mysql-operator
+      repository: https://mysql.github.io/mysql-operator/
+      version: 2.2.8
+    - condition: mysql-innodbcluster.enabled
+      name: mysql-innodbcluster
+      repository: https://mysql.github.io/mysql-operator/
+      version: 2.2.8
+    - condition: ccx-monitoring.enabled
+      name: ccx-monitoring
+      repository: https://severalnines.github.io/helm-charts/
+      version: 0.6.5
+    - condition: cert-manager.enabled
+      name: cert-manager
+      repository: oci://quay.io/jetstack/charts
+      version: 1.19.1
+    - condition: keycloak.enabled
+      name: keycloak
+      repository: oci://registry-1.docker.io/bitnamicharts
+      version: 24.8.1
+    description: A Helm chart for deploying CCX dependencies
+    digest: abbaa49a970abb46c41a7830e872341905a69e944aba9ff3a0605c3a1e8b189c
+    name: ccxdeps
+    type: application
+    urls:
+    - https://github.com/severalnines/helm-charts/releases/download/ccxdeps-0.6.19/ccxdeps-0.6.19.tgz
+    version: 0.6.19
+  - apiVersion: v2
     created: "2026-07-07T10:42:02.00155174Z"
     dependencies:
     - condition: installOperators
@@ -2522,4 +2569,4 @@ entries:
     urls:
     - https://github.com/severalnines/helm-charts/releases/download/kuber-agent-0.1.0/kuber-agent-0.1.0.tgz
     version: 0.1.0
-generated: "2026-07-21T10:15:20.823668061Z"
+generated: "2026-07-22T13:08:42.804565104Z"
