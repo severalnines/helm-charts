@@ -184,6 +184,11 @@ victoria-metrics-single:
                 regex: (.+):(.+)
                 replacement: ${1}:9100
                 target_label: __address__
+              # Carries the k8s Node name onto every node_exporter series so Host*
+              # alerts share a `node` label with kube-state-metrics node-condition
+              # alerts - required for Alertmanager inhibition to match them up.
+              - source_labels: [__meta_kubernetes_node_name]
+                target_label: node
               - target_label: cluster
                 replacement: *cluster_name
 
@@ -586,6 +591,33 @@ victoria-metrics-alert:
             annotations:
               summary: "PVC {{ $labels.persistentvolumeclaim }} on {{ $labels.namespace }} is almost full"
               description: "PVC {{ $labels.persistentvolumeclaim }} on {{ $labels.namespace }} is using more than 90% of its capacity. Usage: {{ $value | humanizePercentage }}."
+
+        - name: Node Conditions
+          rules:
+          - alert: KubeNodeNotReady
+            expr: kube_node_status_condition{condition="Ready",status="false"} == 1
+            for: 5m
+            labels:
+              severity: critical
+            annotations:
+              summary: Node {{ $labels.node }} is NotReady
+              description: "Node {{ $labels.node }} has been NotReady for more than 5 minutes.\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+          - alert: DiskPressure
+            expr: kube_node_status_condition{condition="DiskPressure",status="true"} == 1
+            for: 2m
+            labels:
+              severity: warning
+            annotations:
+              summary: Node {{ $labels.node }} has DiskPressure
+              description: "Node {{ $labels.node }} has been under DiskPressure for more than 2 minutes.\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+          - alert: MemoryPressure
+            expr: kube_node_status_condition{condition="MemoryPressure",status="true"} == 1
+            for: 2m
+            labels:
+              severity: warning
+            annotations:
+              summary: Node {{ $labels.node }} has MemoryPressure
+              description: "Node {{ $labels.node }} has been under MemoryPressure for more than 2 minutes.\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
 
         - name: Hosts alerts
           rules:
@@ -1046,6 +1078,18 @@ alertmanager:
         - receiver: slack-notifications
       repeat_interval: 24h
 
+    # A node in trouble (NotReady / DiskPressure / MemoryPressure) fires its own
+    # alert plus a wave of per-node Host* alerts (node_exporter) from the same
+    # underlying failure. Suppress the Host* flood so only the node-level alert
+    # is actionable. Requires `node` to be a common label on both sides - see
+    # the `node` relabeling added to the kubernetes-node-exporter scrape job.
+    inhibit_rules:
+      - source_matchers:
+          - alertname=~"KubeNodeNotReady|DiskPressure|MemoryPressure"
+        target_matchers:
+          - alertname=~"Host.*"
+        equal: ['node']
+
     receivers:
     - name: webhook-alerts
       webhook_configs:
@@ -1162,6 +1206,15 @@ karma:
 loki:
   enabled: false
   loki:
+    compactor:
+      compaction_interval: 10m
+      delete_request_store: filesystem
+      retention_delete_delay: 1h
+      retention_delete_worker_count: 50
+      retention_enabled: true
+      working_directory: /var/loki/compactor
+    limits_config:
+        retention_period: 720h
     schemaConfig:
       configs:
         - from: 2024-04-01
