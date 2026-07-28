@@ -447,51 +447,55 @@ victoria-metrics-alert:
           rules:
           - alert: Cluster Failed
             # Condition for alerting
-            expr: cmon_cluster_failed == 1
-            for: 3m
+            expr: increase(cmon_cluster_failed_total[5m]) > 0
+            for: 0m
             # Annotation - additional informational labels to store more information
             annotations:
-              title: 'Cluster {{ $labels.ClusterName }} is FAILED'
-              summary: '{{ $labels.ClusterName }} has been down for more than 3 minutes.'
+              title: 'A cluster is FAILED (ControllerId {{ $labels.ControllerId }})'
+              summary: 'cmon reported at least one cluster in failed state in the last 5 minutes.'
+              runbook_url: "https://docs.severalnines.com/ccx/admin/Troubleshooting/Troubleshooting/#cluster-failed-degraded-or-failed-to-init"
             # Labels - additional labels to be attached to the alert
             labels:
               severity: 'critical'
 
           - alert: Cluster Degraded
             # Condition for alerting
-            expr: cmon_cluster_degraded == 1
-            for: 3m
+            expr: increase(cmon_cluster_degraded_total[5m]) > 0
+            for: 0m
             # Annotation - additional informational labels to store more information
             annotations:
-              title: 'Cluster {{ $labels.ClusterName }} is DEGRADED'
-              summary: '{{ $labels.ClusterName }} has been degraded for more than 3 minutes.'
+              title: 'A cluster is DEGRADED (ControllerId {{ $labels.ControllerId }})'
+              summary: 'cmon reported at least one cluster in degraded state in the last 5 minutes.'
+              runbook_url: "https://docs.severalnines.com/ccx/admin/Troubleshooting/Troubleshooting/#cluster-failed-degraded-or-failed-to-init"
             # Labels - additional labels to be attached to the alert
             labels:
               severity: 'warning'
 
-          - alert: Datastore Repair Failed
+          # TODO - missing metrics for this alert to be functioning
+          # - alert: Datastore Repair Failed
+          #   # Condition for alerting
+          #   expr: increase(datastores_repairs_failed[5m]) > 0
+          #   for: 0m
+          #   # Annotation - additional informational labels to store more information
+          #   annotations:
+          #     title: 'Datastore {{ $labels.datastore }} repair has FAILED'
+          #     summary: '{{ $labels.datastore }} Datastore repair job has failed.'
+          #   # Labels - additional labels to be attached to the alert
+          #   labels:
+          #     severity: 'critical'
+
+          - alert: Cluster Failed to Init
             # Condition for alerting
-            expr: increase(datastores_repairs_failed[5m]) > 0
+            expr: increase(cmon_cluster_failed_init_total[5m]) > 0
             for: 0m
             # Annotation - additional informational labels to store more information
             annotations:
-              title: 'Datastore {{ $labels.datastore }} repair has FAILED'
-              summary: '{{ $labels.datastore }} Datastore repair job has failed.'
+              title: 'A cluster failed to initialize (ControllerId {{ $labels.ControllerId }})'
+              summary: 'cmon reported at least one cluster failing to initialize in the last 5 minutes.'
+              runbook_url: "https://docs.severalnines.com/ccx/admin/Troubleshooting/Troubleshooting/#cluster-failed-degraded-or-failed-to-init"
             # Labels - additional labels to be attached to the alert
             labels:
               severity: 'critical'
-            
-          - alert: Cluster Failed to Init
-            # Condition for alerting
-            expr: cmon_cluster_failed_init > 0
-            for: 0m
-            # Annotation - additional informational labels to store more information
-            annotations:
-              title: 'Cluster {{ $labels.ClusterName }} failed to initialize on {{ $labels.ControllerId }}'
-              summary: '{{ $labels.ClusterName }} failed to initialize on {{ $labels.ControllerId }}.'
-            # Labels - additional labels to be attached to the alert
-            labels:
-              severity: 'critical'	      
 
         - name: CCX Alerts
           rules:
@@ -499,18 +503,20 @@ victoria-metrics-alert:
             expr: increase(admin_users_total[1m]) > 0
             for: 0m
             labels:
-              severity: info 
+              severity: info
             annotations:
-              summary: New user has signed up on {{ $labels.instance }})
+              summary: New user has signed up on {{ $labels.instance }}
               description: "New user has signed up \n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+              runbook_url: "https://docs.severalnines.com/ccx/admin/Troubleshooting/Troubleshooting/#new-user-and-datastore-created"
           - alert: Datastore Created
             expr: increase(admin_datastores_total{status="all"}[1m]) > 0
             for: 0m
             labels:
-              severity: info 
+              severity: info
             annotations:
               summary: New datastore created on {{ $labels.instance }})
               description: "New datastore \n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+              runbook_url: "https://docs.severalnines.com/ccx/admin/Troubleshooting/Troubleshooting/#new-user-and-datastore-created"
 
         - name: Deployment status
           rules:
@@ -518,6 +524,7 @@ victoria-metrics-alert:
             labels:
               namespace: "{{ .Labels.namespace }}"
               name: "{{ .Labels.deployment }}"
+              severity: critical
             expr: kube_deployment_status_replicas_available < 1
             for: 5m
             annotations:
@@ -525,6 +532,7 @@ victoria-metrics-alert:
                 {{ .Labels.deployment }} in {{ .Labels.namespace }}
               summary: >
                 {{ .Labels.deployment }} in {{ .Labels.namespace }} has 0 replicas running for last 5 minutes
+              runbook_url: "https://docs.severalnines.com/ccx/admin/Troubleshooting/Troubleshooting/#service-down"
 
         - name: Statefulset status
           rules:
@@ -532,11 +540,13 @@ victoria-metrics-alert:
             labels:
               namespace: "{{ .Labels.namespace }}"
               name: "{{ .Labels.statefulset }}"
+              severity: critical
             expr: kube_statefulset_status_replicas_available < 1
             for: 5m
             annotations:
               summary: >
                 {{ .Labels.statefulset }} in {{ .Labels.namespace }} has 0 replicas running for last 5 minutes
+              runbook_url: "https://docs.severalnines.com/ccx/admin/Troubleshooting/Troubleshooting/#service-down"
 
         - name: Metrics alerts
           rules:
@@ -548,6 +558,7 @@ victoria-metrics-alert:
             annotations:
               summary: Victoria metrics job missing (instance {{ $labels.instance }})
               description: "A Victoria Metrics job has disappeared\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+              runbook_url: "https://docs.severalnines.com/ccx/admin/Troubleshooting/Troubleshooting/#metrics-stack-self-monitoring"
           - alert: MetricsTargetMissing
             expr: up == 0
             for: 10m
@@ -556,6 +567,7 @@ victoria-metrics-alert:
             annotations:
               summary: Metrics target missing (instance {{ $labels.instance }})
               description: "A Metrics target has disappeared. An exporter might be crashed.\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+              runbook_url: "https://docs.severalnines.com/ccx/admin/Troubleshooting/Troubleshooting/#metrics-stack-self-monitoring"
           - alert: MetricsAllTargetsMissing
             expr: sum by (job) (up) == 0
             for: 10m
@@ -564,6 +576,7 @@ victoria-metrics-alert:
             annotations:
               summary: Metrics all targets missing (instance {{ $labels.instance }})
               description: "A Metrics job does not have living target anymore.\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+              runbook_url: "https://docs.severalnines.com/ccx/admin/Troubleshooting/Troubleshooting/#metrics-stack-self-monitoring"
 
         - name: Kubernetes Apps
           rules:
@@ -575,6 +588,7 @@ victoria-metrics-alert:
             annotations:
               summary: Kubernetes container oom killer (instance {{ $labels.instance }})
               description: "Container {{ $labels.container }} in pod {{ $labels.namespace }}/{{ $labels.pod }} has been OOMKilled {{ $value }} times in the last 10 minutes.\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+              runbook_url: "https://docs.severalnines.com/ccx/admin/Troubleshooting/Troubleshooting/#kubernetes-container-oom-killer"
           - alert: KubernetesPodCrashLooping
             expr: (sum(increase(kube_pod_container_status_restarts_total[10m])) by (container, instance, pod, namespace)) > 1
             for: 15m
@@ -583,6 +597,7 @@ victoria-metrics-alert:
             annotations:
               summary: Container {{ $labels.container }} in Pod {{ $labels.namespace }}/{{ $labels.pod }} restarting more than once times during ten minutes.
               description: "Pod {{ $labels.pod }} restarting more than once during last ten minutes.\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+              runbook_url: "https://docs.severalnines.com/ccx/admin/Troubleshooting/Troubleshooting/#kubernetes-pod-crash-looping"
           - alert: PVCVolumeUsage
             expr: (kubelet_volume_stats_used_bytes / kubelet_volume_stats_capacity_bytes) > 0.90
             for: 5m
@@ -591,6 +606,7 @@ victoria-metrics-alert:
             annotations:
               summary: "PVC {{ $labels.persistentvolumeclaim }} on {{ $labels.namespace }} is almost full"
               description: "PVC {{ $labels.persistentvolumeclaim }} on {{ $labels.namespace }} is using more than 90% of its capacity. Usage: {{ $value | humanizePercentage }}."
+              runbook_url: "https://docs.severalnines.com/ccx/admin/Troubleshooting/Troubleshooting/#pvc-volume-usage"
 
         - name: Node Conditions
           rules:
@@ -602,6 +618,7 @@ victoria-metrics-alert:
             annotations:
               summary: Node {{ $labels.node }} is NotReady
               description: "Node {{ $labels.node }} has been NotReady for more than 5 minutes.\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+              runbook_url: "https://docs.severalnines.com/ccx/admin/Troubleshooting/Troubleshooting/#kubernetes-node-not-ready"
           - alert: DiskPressure
             expr: kube_node_status_condition{condition="DiskPressure",status="true"} == 1
             for: 2m
@@ -610,6 +627,7 @@ victoria-metrics-alert:
             annotations:
               summary: Node {{ $labels.node }} has DiskPressure
               description: "Node {{ $labels.node }} has been under DiskPressure for more than 2 minutes.\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+              runbook_url: "https://docs.severalnines.com/ccx/admin/Troubleshooting/Troubleshooting/#kubernetes-disk-and-memory-pressure"
           - alert: MemoryPressure
             expr: kube_node_status_condition{condition="MemoryPressure",status="true"} == 1
             for: 2m
@@ -618,6 +636,7 @@ victoria-metrics-alert:
             annotations:
               summary: Node {{ $labels.node }} has MemoryPressure
               description: "Node {{ $labels.node }} has been under MemoryPressure for more than 2 minutes.\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+              runbook_url: "https://docs.severalnines.com/ccx/admin/Troubleshooting/Troubleshooting/#kubernetes-disk-and-memory-pressure"
 
         - name: Hosts alerts
           rules:
@@ -629,14 +648,16 @@ victoria-metrics-alert:
             annotations:
               summary: Host out of memory (instance {{ $labels.instance }})
               description: "Node memory is filling up (< 10% left)\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
-          - alert: HostMemoryUnderMemoryPressure
+              runbook_url: "https://docs.severalnines.com/ccx/admin/Troubleshooting/Troubleshooting/#host-out-of-memory"
+          - alert: HostMemoryUnderPressure
             expr: rate(node_vmstat_pgmajfault[1m]) > 1000
             for: 2m
             labels:
               severity: warning
             annotations:
-              summary: Host memory under memory pressure (instance {{ $labels.instance }})
+              summary: Host memory under pressure (instance {{ $labels.instance }})
               description: "The node is under heavy memory pressure. High rate of major page faults\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+              runbook_url: "https://docs.severalnines.com/ccx/admin/Troubleshooting/Troubleshooting/#host-memory-under-pressure"
           - alert: HostUnusualDiskReadRate
             expr: sum by (instance) (rate(node_disk_read_bytes_total[2m])) / 1024 / 1024 > 50
             for: 5m
@@ -645,6 +666,7 @@ victoria-metrics-alert:
             annotations:
               summary: Host unusual disk read rate (instance {{ $labels.instance }})
               description: "Disk is probably reading too much data (> 50 MB/s)\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+              runbook_url: "https://docs.severalnines.com/ccx/admin/Troubleshooting/Troubleshooting/#host-unusual-disk-io-rate"
           - alert: HostUnusualDiskWriteRate
             expr: sum by (instance) (rate(node_disk_written_bytes_total[2m])) / 1024 / 1024 > 50
             for: 5m
@@ -653,6 +675,7 @@ victoria-metrics-alert:
             annotations:
               summary: Host unusual disk write rate (instance {{ $labels.instance }})
               description: "Disk is probably writing too much data (> 50 MB/s)\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+              runbook_url: "https://docs.severalnines.com/ccx/admin/Troubleshooting/Troubleshooting/#host-unusual-disk-io-rate"
           - alert: HostAutoScaleDiskSpaceReached
             expr: (1 - (node_filesystem_avail_bytes{mountpoint ="/data"} / node_filesystem_size_bytes{mountpoint ="/data"})) * 100 > 70
             for: 2m
@@ -662,6 +685,7 @@ victoria-metrics-alert:
             annotations:
                 summary: "Disk autoscale threshold has been reached on instance {{ $labels.instance }} {{ $value }}%"
                 description: "Disk usage on instance {{ $labels.instance }} is above the autoscale threshold. Current usage: {{ $value }}%"
+                runbook_url: "https://docs.severalnines.com/ccx/admin/Troubleshooting/Troubleshooting/#disk-autoscaling-issues"
           # Please add ignored mountpoints in node_exporter parameters like
           # "--collector.filesystem.ignored-mount-points=^/(sys|proc|dev|run)($|/)".
           # Same rule using "node_filesystem_free_bytes" will fire when disk fills for non-root users.
@@ -674,6 +698,7 @@ victoria-metrics-alert:
             annotations:
               summary: Host out of disk space (instance {{ $labels.instance }})
               description: "Disk is almost full (< 10% left)\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+              runbook_url: "https://docs.severalnines.com/ccx/admin/Troubleshooting/Troubleshooting/#host-out-of-disk-space"
           # Please add ignored mountpoints in node_exporter parameters like
           # "--collector.filesystem.ignored-mount-points=^/(sys|proc|dev|run)($|/)".
           # Same rule using "node_filesystem_free_bytes" will fire when disk fills for non-root users.
@@ -685,6 +710,7 @@ victoria-metrics-alert:
             annotations:
               summary: Host disk will fill in 24 hours (instance {{ $labels.instance }})
               description: "Filesystem is predicted to run out of space within the next 24 hours at current write rate\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+              runbook_url: "https://docs.severalnines.com/ccx/admin/Troubleshooting/Troubleshooting/#host-disk-will-fill-in-24-hours"
           - alert: HostOutOfInodes
             expr: node_filesystem_files_free{mountpoint ="/rootfs"} / node_filesystem_files{mountpoint="/rootfs"} * 100 < 10 and ON (instance, device, mountpoint) node_filesystem_readonly{mountpoint="/rootfs"} == 0
             for: 5m
@@ -693,6 +719,7 @@ victoria-metrics-alert:
             annotations:
               summary: Host out of inodes (instance {{ $labels.instance }})
               description: "Disk is almost running out of available inodes (< 10% left)\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+              runbook_url: "https://docs.severalnines.com/ccx/admin/Troubleshooting/Troubleshooting/#host-out-of-inodes"
           - alert: HostHighCpuLoad
             expr: 100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[2m])) * 100) > 80
             for: 0m
@@ -701,6 +728,7 @@ victoria-metrics-alert:
             annotations:
               summary: Host high CPU load (instance {{ $labels.instance }})
               description: "CPU load is > 80%\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+              runbook_url: "https://docs.severalnines.com/ccx/admin/Troubleshooting/Troubleshooting/#host-high-cpu-load"
           - alert: HostCpuStealNoisyNeighbor
             expr: avg by(instance) (rate(node_cpu_seconds_total{mode="steal"}[5m])) * 100 > 10
             for: 0m
@@ -709,6 +737,7 @@ victoria-metrics-alert:
             annotations:
               summary: Host CPU steal noisy neighbor (instance {{ $labels.instance }})
               description: "CPU steal is > 10%. A noisy neighbor is killing VM performances or a spot instance may be out of credit.\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+              runbook_url: "https://docs.severalnines.com/ccx/admin/Troubleshooting/Troubleshooting/#host-cpu-steal-noisy-neighbor"
           - alert: HostCpuHighIowait
             expr: avg by (instance) (rate(node_cpu_seconds_total{mode="iowait"}[5m])) * 100 > 5
             for: 0m
@@ -717,6 +746,7 @@ victoria-metrics-alert:
             annotations:
               summary: Host CPU high iowait (instance {{ $labels.instance }})
               description: "CPU iowait > 5%. A high iowait means that you are disk or network bound.\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+              runbook_url: "https://docs.severalnines.com/ccx/admin/Troubleshooting/Troubleshooting/#host-cpu-high-iowait"
           # 1000 context switches is an arbitrary number.
           # Alert threshold depends on nature of application.
           # Please read: https://github.com/samber/awesome-prometheus-alerts/issues/58
@@ -728,6 +758,7 @@ victoria-metrics-alert:
             annotations:
               summary: Host context switching (instance {{ $labels.instance }})
               description: "Context switching is growing on node (> 1000 / s)\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+              runbook_url: "https://docs.severalnines.com/ccx/admin/Troubleshooting/Troubleshooting/#host-context-switching"
           - alert: HostOomKillDetected
             expr: increase(node_vmstat_oom_kill[1m]) > 0
             for: 0m
@@ -736,6 +767,7 @@ victoria-metrics-alert:
             annotations:
               summary: Host OOM kill detected (instance {{ $labels.instance }})
               description: "OOM kill detected\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+              runbook_url: "https://docs.severalnines.com/ccx/admin/Troubleshooting/Troubleshooting/#host-oom-kill-detected"
         - name: MySQL Alerts
           rules:
           - alert: MysqlTooManyConnections(>80%)
@@ -746,6 +778,7 @@ victoria-metrics-alert:
             annotations:
               summary: MySQL too many connections (> 80%) (instance {{ $labels.instance }})
               description: "More than 80% of MySQL connections are in use on {{ $labels.instance }}\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+              runbook_url: "https://docs.severalnines.com/ccx/admin/Troubleshooting/Troubleshooting/#mysql-too-many-connections"
           - alert: MysqlSlaveReplicationLag
             expr: mysql_slave_status_master_server_id > 0 and ON (instance) (mysql_slave_status_seconds_behind_master - mysql_slave_status_sql_delay) > 30
             for: 1m
@@ -754,6 +787,7 @@ victoria-metrics-alert:
             annotations:
               summary: MySQL Slave replication lag (instance {{ $labels.instance }})
               description: "MySQL replication lag on {{ $labels.instance }}\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+              runbook_url: "https://docs.severalnines.com/ccx/admin/Troubleshooting/Troubleshooting/#mysql-slave-replication-lag"
         - name: PostgreSQL Alerts
           rules:
           - alert: PostgresqlExporterError
@@ -763,7 +797,8 @@ victoria-metrics-alert:
               severity: warning
             annotations:
               summary: Postgresql exporter error (instance {{ $labels.instance }})
-              description: "Postgresql exporter is showing errors. A query may be buggy in query.yaml\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+              description: "Postgresql exporter's last scrape failed. Check the exporter's logs to see which query failed and why.\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+              runbook_url: "https://docs.severalnines.com/ccx/admin/Troubleshooting/Troubleshooting/#postgresql-exporter-error"
           - alert: PostgresqlTooManyConnections
             expr: sum by (datname) (pg_stat_activity_count{datname!~"template.*|postgres"}) > pg_settings_max_connections * 0.8
             for: 2m
@@ -772,6 +807,7 @@ victoria-metrics-alert:
             annotations:
               summary: Postgresql too many connections (instance {{ $labels.instance }})
               description: "PostgreSQL instance has too many connections (> 80%).\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+              runbook_url: "https://docs.severalnines.com/ccx/admin/Troubleshooting/Troubleshooting/#postgresql-too-many-connections"
           - alert: PostgresqlDeadLocks
             expr: increase(pg_stat_database_deadlocks{datname!~"template.*|postgres"}[1m]) > 5
             for: 0m
@@ -780,6 +816,7 @@ victoria-metrics-alert:
             annotations:
               summary: Postgresql dead locks (instance {{ $labels.instance }})
               description: "PostgreSQL has dead-locks\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+              runbook_url: "https://docs.severalnines.com/ccx/admin/Troubleshooting/Troubleshooting/#postgresql-dead-locks"
           - alert: PostgresqlHighRollbackRate
             expr: rate(pg_stat_database_xact_rollback{datname!~"template.*"}[3m]) / rate(pg_stat_database_xact_commit{datname!~"template.*"}[3m]) > 0.02
             for: 0m
@@ -788,46 +825,28 @@ victoria-metrics-alert:
             annotations:
               summary: Postgresql high rollback rate (instance {{ $labels.instance }})
               description: "Ratio of transactions being aborted compared to committed is > 2 %\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
-
-        - name: Vault Alerts
-          rules:
-          - alert: VaultDown
-            expr: up{job="vault"} == 0
-            for: 5m
-            labels:
-              severity: critical
-            annotations:
-              summary: Vault is missing metrics at (instance {{ $labels.instance }} job {{ $labels.job }} cluster {{ $labels.cluster }})
-              description: |
-                Vault may be down or not accesible!
-                Please see https://ccx-monitoring.s9s-dev.net/vm/targets for more information.
-          - alert: VaultSealed
-            expr: vault_core_unsealed == 0
-            for: 5m
-            labels:
-              severity: critical
-            annotations:
-              summary: Vault sealed (instance {{ $labels.instance }} cluster {{ $labels.cluster }} )
-              description: "Vault instance is sealed on {{ $labels.instance }}\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+              runbook_url: "https://docs.severalnines.com/ccx/admin/Troubleshooting/Troubleshooting/#postgresql-high-rollback-rate"
 
         - name: Backup Alerts
           rules:
           - alert: Backup Failed
-            expr: cmon_cluster_backup_failed == 1
-            for: 2m
+            expr: increase(cmon_alarms_backup_failed_total[10m]) > 0
+            for: 0m
             labels:
               severity: warning
             annotations:
-              summary: Backup failed for datastore {{ $labels.name }} {{ $labels.cid }} cluster {{ $labels.cluster }}
-              description: "Backup failed for {{ $labels.name }}\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
-          - alert: Backup Upload Failed
-            expr: cmon_cluster_backup_failed == 1
-            for: 2m
+              summary: A datastore backup failed
+              description: "cmon reported at least one new backup failure alarm in the last 10 minutes. This metric is controller-wide and does not identify which datastore failed.\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+              runbook_url: "https://docs.severalnines.com/ccx/admin/Troubleshooting/Troubleshooting/#troubleshooting-datastore-backups-failing"
+          - alert: CCX Internal Backup Job Failed
+            expr: kube_job_status_failed{namespace="ccx", job_name=~"logical-backup-acid-ccx-.*|ccxdeps-ccx-s3-backup-schedule.*"} > 0
+            for: 5m
             labels:
               severity: warning
             annotations:
-              summary: Upload of backup failed for datastore {{ $labels.name }} {{ $labels.cid }} cluster {{ $labels.cluster }}
-              description: "Uploading backup failed for {{ $labels.name }}\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+              summary: A CCX internal control-plane backup job failed (job {{ $labels.job_name }})
+              description: "The Kubernetes Job {{ $labels.job_name }} backing up CCX's own control-plane database (not a customer datastore) has failed.\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+              runbook_url: "https://docs.severalnines.com/ccx/admin/Troubleshooting/Troubleshooting/#mysql-and-postgres-operator-backup-and-restore-validation"
 
         # Anomaly detection, "adaptive" strategy, from https://github.com/grafana/promql-anomaly-detection
         # Any metric tagged with anomaly_name/anomaly_type (see "Anomaly Tagging" group below) gets
@@ -978,6 +997,7 @@ victoria-metrics-alert:
               title: 'Anomaly detected on {{ $labels.anomaly_name }} ({{ $labels.instance }})'
               summary: '{{ $labels.anomaly_name }} is outside its expected range on {{ $labels.instance }}.'
               description: "Anomaly detected for {{ $labels.anomaly_name }}\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+              runbook_url: "https://docs.severalnines.com/ccx/admin/Troubleshooting/Troubleshooting/#anomaly-detected"
 
         # Tags existing metrics with anomaly_name/anomaly_type so the groups above pick them up.
         # job label matches this repo's node-exporter scrape config (values.yaml "kubernetes-node-exporter"),
@@ -1088,7 +1108,7 @@ alertmanager:
           - alertname=~"KubeNodeNotReady|DiskPressure|MemoryPressure"
         target_matchers:
           - alertname=~"Host.*"
-        equal: ['node']
+        equal: ['cluster', 'node']
 
     receivers:
     - name: webhook-alerts

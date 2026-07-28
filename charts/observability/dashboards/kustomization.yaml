@@ -23,6 +23,12 @@ configMapGenerator:
 - name: dashboard-mysql
   files: [ DB/mysql.json ]
 
+- name: dashboard-mysql-innodb-ccx
+  files: [ DB/mysql-innodb-ccx.json ]
+
+- name: dashboard-postgres12-monitor
+  files: [ DB/postgres12-monitor.json ]
+
 - name: dashboard-redis
   files: [ DB/redis.json ]
 
