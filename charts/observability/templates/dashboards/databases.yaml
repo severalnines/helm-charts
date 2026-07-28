@@ -9,13 +9,21 @@ metadata:
   labels:
     grafana_dashboard: "1"
     app.kubernetes.io/managed-by: "Helm"  
-data: 
+data:
   mssql.json: |
 {{ (.Files.Get "dashboards/DB/mssql.json") | indent 4 }}
-  mysql.json: |
-{{ (.Files.Get "dashboards/DB/mysql.json") | indent 4 }}
   redis.json: |
 {{ (.Files.Get "dashboards/DB/redis.json") | indent 4 }}
+  mysql.json: |
+{{ (.Files.Get "dashboards/DB/mysql.json") | indent 4 }}
   postgres.json: |
 {{ (.Files.Get "dashboards/DB/postgres.json") | indent 4 }}
+{{- if has "cmonDb" .Values.externalToolsMonitoring }}
+  mysql-innodb-ccx.json: |
+{{ (.Files.Get "dashboards/DB/mysql-innodb-ccx.json") | indent 4 }}
+{{- end }}
+{{- if has "ccxDb" .Values.externalToolsMonitoring }}
+  postgres12-monitor.json: |
+{{ (.Files.Get "dashboards/DB/postgres12-monitor.json") | indent 4 }}
+{{- end }}
 {{- end }}
