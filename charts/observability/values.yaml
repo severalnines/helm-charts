@@ -1088,7 +1088,7 @@ alertmanager:
           - alertname=~"KubeNodeNotReady|DiskPressure|MemoryPressure"
         target_matchers:
           - alertname=~"Host.*"
-        equal: ['node']
+        equal: ['cluster', 'node']
 
     receivers:
     - name: webhook-alerts
