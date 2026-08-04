@@ -64,6 +64,12 @@ postgres-operator:
 postgresql:
   replicas: 1
   storageClass:
+  # adds a postgres_exporter sidecar to the acid-ccx cluster, using the
+  # operator-managed postgres superuser credentials so pg_stat_database
+  # metrics are visible across all databases in the cluster
+  metrics:
+    enabled: false
+    image: quay.io/prometheuscommunity/postgres-exporter:v0.20.1
 # installation and configuration option for external-dns
 external-dns:
   enabled: false
@@ -117,6 +123,38 @@ mysql-innodbcluster:
       resources:
         requests:
           memory: "1024Mi"
+  # enables the operator's built-in mysqld_exporter sidecar (creates a local
+  # "mysqlmetrics" DB user via auth_socket and publishes /metrics on the
+  # "metrics" port of the <release>-instances service).
+  # NOTE: pinned to v0.14.0 on purpose, not the current stable release.
+  # The operator writes the exporter's my.cnf with "socket=unix:///var/run/..."
+  # (unix:// prefix included). mysqld_exporter <=0.14.0 strips that prefix
+  # correctly; 0.15.0+ changed my.cnf handling and either fails to parse the
+  # file at all ("no user specified in section or parent", seen on v0.19.0)
+  # or takes the socket value literally and tries to open a file named
+  # "unix://..." (seen on v0.15.1) -- confirmed both ways against the mysql
+  # 2.2.8 operator on stefan-development-cluster. Don't bump this without
+  # retesting mysql_up against a real cluster.
+  metrics:
+    enable: false
+    image: prom/mysqld-exporter:v0.14.0
+    # intended to enable the Table/Schema Storage, Performance Schema I/O, and
+    # InnoDB Internal Metrics sections of the MySQL InnoDB Cluster Grafana
+    # dashboard. CURRENTLY A NO-OP: confirmed live (container args on the
+    # running ccxdeps-0 metrics container) that mysql-operator 2.2.8 does not
+    # apply spec.metrics.options to the exporter container at all -- this is
+    # the same bug as https://bugs.mysql.com/bug.php?id=113196, just also
+    # reproduced here on a newer operator version than the one in that report.
+    # Left in place so those three dashboard sections start working for free
+    # the moment mysql-operator ships a fix, with nothing to change on our end.
+    options:
+      - --collect.info_schema.tables
+      - --collect.perf_schema.tableiowaits
+      - --collect.info_schema.innodb_metrics
+  instanceService:
+    annotations:
+      prometheus.io/scrape: "true"
+      prometheus.io/port: "9104"
 # installation and configuration option for monitoring
 ccx-monitoring:
   enabled: true

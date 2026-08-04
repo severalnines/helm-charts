@@ -1,4 +1,5 @@
 {{ if .Values.createDatabases }}
+{{- $pgClusterName := "acid-ccx" }}
 kind: "postgresql"
 apiVersion: "acid.zalan.do/v1"
 
@@ -54,4 +55,28 @@ spec:
     {{- toYaml . | nindent 4 }}
   {{- end }}
   enableLogicalBackup: {{ .Values.postgresql.enableLogicalBackup | default false }}
+  {{- if (dig "metrics" "enabled" false .Values.postgresql) }}
+  podAnnotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "9187"
+  sidecars:
+  - name: postgres-exporter
+    image: {{ required "postgresql.metrics.image is required when postgresql.metrics.enabled is true" (dig "metrics" "image" "" .Values.postgresql) }}
+    ports:
+    - name: metrics
+      containerPort: 9187
+    env:
+    - name: DATA_SOURCE_URI
+      value: "localhost:5432/postgres?sslmode=disable"
+    - name: DATA_SOURCE_USER
+      valueFrom:
+        secretKeyRef:
+          name: postgres.{{ $pgClusterName }}.credentials.postgresql.acid.zalan.do
+          key: username
+    - name: DATA_SOURCE_PASS
+      valueFrom:
+        secretKeyRef:
+          name: postgres.{{ $pgClusterName }}.credentials.postgresql.acid.zalan.do
+          key: password
+  {{- end }}
 {{ end }}
