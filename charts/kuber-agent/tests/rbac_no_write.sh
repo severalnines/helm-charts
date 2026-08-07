@@ -42,6 +42,25 @@ render_no_write_flux() {
     --set sops.enabled=true
 }
 
+# Prints the s9s:sops-pipeline ClusterRole document only. Keeping this parser
+# inside the chart test lets us assert rule scope without relying on yq or a
+# live Kubernetes API.
+sops_pipeline_role() {
+  awk '
+    function flush() {
+      if (kind == "ClusterRole" && name == "s9s:sops-pipeline") printf "%s", doc
+      kind = ""; name = ""; doc = ""
+    }
+    $0 == "---" { flush(); next }
+    {
+      doc = doc $0 ORS
+      if ($1 == "kind:" && kind == "") kind = $2
+      if (kind != "" && $1 == "name:" && name == "") name = $2
+    }
+    END { flush() }
+  '
+}
+
 rolebinding_namespaces() {
   awk '
     $0 == "kind: RoleBinding" { in_rb = 1; name = ""; namespace = ""; next }
@@ -119,3 +138,23 @@ for namespace in observability sops-secrets; do
     exit 1
   fi
 done
+
+# Restricted/no-write mode must never receive cluster-wide plaintext Secret
+# reads from the SOPS role. Pattern A deliberately reports rbac_denied until
+# namespace-scoped informers exist; the SopsSecret sweep capability remains
+# cluster-wide. Unrestricted/write mode keeps the convenience Secret watch.
+restricted_sops_role="$(render_no_write | sops_pipeline_role)"
+if grep -Fq 'resources: ["secrets"]' <<<"$restricted_sops_role"; then
+  echo "no-write mode rendered cluster-wide plaintext Secret read in s9s:sops-pipeline" >&2
+  exit 1
+fi
+if ! grep -Fq 'resources: ["sopssecrets"]' <<<"$restricted_sops_role"; then
+  echo "no-write mode did not retain cluster-wide SopsSecret read in s9s:sops-pipeline" >&2
+  exit 1
+fi
+
+write_sops_role="$(render_write | sops_pipeline_role)"
+if ! grep -Fq 'resources: ["secrets"]' <<<"$write_sops_role"; then
+  echo "write mode did not retain cluster-wide plaintext Secret read in s9s:sops-pipeline" >&2
+  exit 1
+fi
