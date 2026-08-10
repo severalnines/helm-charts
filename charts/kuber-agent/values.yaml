@@ -31,6 +31,14 @@ createNamespace: true
 # Controller manager configuration
 controllerManager:
   replicas: 1
+  # Leader election guards against two managers acting at once. With a
+  # single replica there is no second manager to guard against, and the
+  # cost is real: controller-runtime EXITS when it cannot renew the lease,
+  # so every transient API-server blip restarts the agent, drops its gRPC
+  # stream to the proxy, and fails in-flight requests. Observed on
+  # cc-test5: 43 restarts in 10 days, all "leader election lost".
+  # Turn this on only when running more than one replica.
+  leaderElect: false
   manager:
     resources:
       limits:
@@ -72,6 +80,12 @@ metrics:
   service:
     enabled: true
     type: ClusterIP
+  serviceMonitor:
+    # Rendered only when the Prometheus Operator CRDs are present in the
+    # cluster (Argo re-render picks it up after the prometheus-stack addon
+    # installs them). Set false to opt out of bundled-Prometheus scraping.
+    enabled: true
+    interval: 30s
 
 
 rbac:
@@ -143,7 +157,9 @@ gitops:
 # Spec: docs/observability/features/prometheus-agent.md.
 prometheusStack:
   # Activates the `prometheus-community/kube-prometheus-stack` delivery addon.
-  # By default it installs operator/CRDs only (decisions-log.md D13); bundled
+  # By default it installs operator/CRDs only (the upstream standalone
+  # prometheus-operator chart is deprecated, so the stack chart with
+  # non-operator components disabled replaces it); bundled
   # Prometheus and Grafana are opt-in below.
   enabled: false
   # User runs Prometheus Operator/CRDs out-of-band. With no bundled components
@@ -194,8 +210,10 @@ prometheusAgent:
     # Required when enabled=true.
     url: ""
     auth:
-      # Only `basic` is wired in v1 (none / bearer / mTLS deferred — see
-      # decisions-log.md D11). The PrometheusAgent CR's
+      # Only `basic` is wired in v1 (none / bearer / mTLS deferred: basic
+      # matches the existing cmon-side Prometheus and keeps the install
+      # one-knob; the underlying CR fields stay in scope for later). The
+      # PrometheusAgent CR's
       # `remoteWrite.basicAuth` references the Secret named below.
       type: basic
       # Secret with keys `username` + `password`. The chart never creates this
@@ -215,6 +233,18 @@ prometheusAgent:
 sops:
   # Enables the sops-encryption controller and the SOPS addon (which
   # installs sops-secrets-operator + the keygen Job).
+  #
+  # Single source of truth (CLUS-7411): this one value renders BOTH the
+  # SOPS_ENABLED env var and the s9s:sops-pipeline ClusterRole. Unrestricted
+  # mode includes cluster-wide Secret + SopsSecret reads. Restricted mode
+  # intentionally omits plaintext Secret read and retains only SopsSecret
+  # read; until Pattern A has per-granted-namespace informers, its capability
+  # probe disables the watchers with one WARN
+  # ("SOPS Pattern A disabled: missing RBAC") and
+  # kuber_sops_pattern_a_status{status="rbac_denied"}=1 instead of hammering
+  # the API server with Forbidden list/watch retries. Pattern B (CCR
+  # apply-path encryption) keeps working either way.
+  # Requires gitops.enabled=true (enforced in templates/validations.yaml).
   enabled: false
   # When true, the user pre-applies sops-age-key + sops-age-pubkey themselves
   # and the addon ships only the AppBundle (no keygen Job + RBAC).
