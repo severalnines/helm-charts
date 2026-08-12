@@ -110,10 +110,15 @@ spec:
         {{- if .Values.gitops.enabled }}
         - name: GITOPS_ENABLED
           value: "true"
-        # GitOps mode requires the new translators (agent errors out otherwise)
+        {{- end }}
+        # New (pure) translators are the only supported path; the legacy
+        # translators are retired and will never be re-enabled. Hardwired on —
+        # GitOps mode requires it and SSA mode is safe with it (the
+        # resolveApplier gate is one-directional; a nil applier falls back to
+        # SSA in the adapters). The env var itself goes away once the operator
+        # stops reading it.
         - name: USE_NEW_TRANSLATORS
           value: "true"
-        {{- end }}
         # SOPS GitOps-secrets pipeline (CLUS-7183). Addon + controllers read
         # POD_NAMESPACE for their agent namespace; SOPS_NAMESPACE is hardcoded
         # in the addon's Config — no duplicate env vars needed here.

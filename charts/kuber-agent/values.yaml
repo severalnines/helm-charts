@@ -72,6 +72,12 @@ metrics:
   service:
     enabled: true
     type: ClusterIP
+  serviceMonitor:
+    # Rendered only when the Prometheus Operator CRDs are present in the
+    # cluster (Argo re-render picks it up after the prometheus-stack addon
+    # installs them). Set false to opt out of bundled-Prometheus scraping.
+    enabled: true
+    interval: 30s
 
 
 rbac:
