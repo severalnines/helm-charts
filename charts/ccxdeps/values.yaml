@@ -111,6 +111,8 @@ mysql-innodbcluster:
       performance_schema_digests_size=10000
       loose_group_replication_member_expel_timeout=30
       loose_group_replication_autorejoin_tries=5
+      replica_parallel_workers=1
+      loose_group_replication_exit_state_action=READ_ONLY
   tls:
     useSelfSigned: true
   datadirVolumeClaimTemplate:
