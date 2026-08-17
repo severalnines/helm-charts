@@ -410,6 +410,32 @@ victoria-metrics-alert:
       prometheus.io/scrape: 'true'
       prometheus.io/port: '8880'
 
+    ingress:
+      enabled: false
+      annotations:
+        kubernetes.io/ingress.class: nginx
+        nginx.ingress.kubernetes.io/ssl-redirect: "true"
+        cert-manager.io/cluster-issuer: letsencrypt-prod
+        nginx.ingress.kubernetes.io/auth-type: basic
+        nginx.ingress.kubernetes.io/auth-secret: vmalert-basic-auth
+        nginx.ingress.kubernetes.io/auth-realm: "Authentication Required"
+      hosts:
+        - name: CHANGE_ME
+          path: /
+      tls:
+        - secretName: vmalert-cert
+          hosts:
+            - CHANGE_ME
+      # ingressClassName: nginx
+
+    extraArgs:
+      external.url:
+      # grafana_url is referenced as {{ $externalLabels.grafana_url }} in the
+      # dashboard_url annotations below - set it once here to your Grafana
+      # ingress URL (no trailing slash) and every alert's "Dashboard" Slack
+      # button picks it up, without having to edit each annotation.
+      external.label: "grafana_url=CHANGE_ME"
+
     # vmalert reads metrics from source, next section represents its configuration. It can be any service which supports
     # MetricsQL or PromQL.
     datasource:
@@ -451,8 +477,8 @@ victoria-metrics-alert:
             for: 0m
             # Annotation - additional informational labels to store more information
             annotations:
-              title: 'A cluster is FAILED (ControllerId {{ $labels.ControllerId }})'
-              summary: 'cmon reported at least one cluster in failed state in the last 5 minutes.'
+              summary: "Cluster `{{ $labels.ControllerId }}` has FAILED"
+              description: "cmon reported this cluster in a failed state within the last 5 minutes. This typically means the cluster is fully down or unrecoverable without intervention — check cmon's own logs and the cluster's current state for details on what triggered the failure."
               runbook_url: "https://severalnines.github.io/ccx-docs/docs/admin/Troubleshooting/#cluster-failed-degraded-or-failed-to-init"
             # Labels - additional labels to be attached to the alert
             labels:
@@ -464,8 +490,8 @@ victoria-metrics-alert:
             for: 0m
             # Annotation - additional informational labels to store more information
             annotations:
-              title: 'A cluster is DEGRADED (ControllerId {{ $labels.ControllerId }})'
-              summary: 'cmon reported at least one cluster in degraded state in the last 5 minutes.'
+              summary: "Cluster `{{ $labels.ControllerId }}` is DEGRADED"
+              description: "cmon reported this cluster in a degraded state within the last 5 minutes. Degraded typically means the cluster is still operating but with reduced capacity or redundancy (e.g. a node down, replication lag) — worth investigating before it potentially escalates to a full failure."
               runbook_url: "https://severalnines.github.io/ccx-docs/docs/admin/Troubleshooting/#cluster-failed-degraded-or-failed-to-init"
             # Labels - additional labels to be attached to the alert
             labels:
@@ -484,14 +510,14 @@ victoria-metrics-alert:
           #   labels:
           #     severity: 'critical'
 
-          - alert: Cluster Failed to Init
+          - alert: Cluster Failed to Initialize
             # Condition for alerting
             expr: increase(cmon_cluster_failed_init_total[5m]) > 0
             for: 0m
             # Annotation - additional informational labels to store more information
             annotations:
-              title: 'A cluster failed to initialize (ControllerId {{ $labels.ControllerId }})'
-              summary: 'cmon reported at least one cluster failing to initialize in the last 5 minutes.'
+              summary: "Cluster `{{ $labels.ControllerId }}` failed to initialize"
+              description: "cmon reported this cluster failing during initialization within the last 5 minutes. This usually means cluster creation never completed successfully — check cmon's job log for this cluster to see what step failed."
               runbook_url: "https://severalnines.github.io/ccx-docs/docs/admin/Troubleshooting/#cluster-failed-degraded-or-failed-to-init"
             # Labels - additional labels to be attached to the alert
             labels:
@@ -499,53 +525,51 @@ victoria-metrics-alert:
 
         - name: CCX Alerts
           rules:
-          - alert: New User
+          - alert: NewUser
             expr: increase(admin_users_total[1m]) > 0
             for: 0m
             labels:
               severity: info
             annotations:
-              summary: New user has signed up on {{ $labels.instance }}
-              description: "New user has signed up \n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+              summary: "A new user has signed up"
+              description: "{{ $value }} new user(s) signed up in the last minute. This is an informational event, not an issue — no action needed unless you're tracking signups for a specific reason."
               runbook_url: "https://severalnines.github.io/ccx-docs/docs/admin/Troubleshooting/#new-user-and-datastore-created"
-          - alert: Datastore Created
+          - alert: DatastoreCreated
             expr: increase(admin_datastores_total{status="all"}[1m]) > 0
             for: 0m
             labels:
               severity: info
             annotations:
-              summary: New datastore created on {{ $labels.instance }})
-              description: "New datastore \n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+              summary: "A new datastore has been created"
+              description: "{{ $value }} new datastore(s) created in the last minute. This is an informational event, not an issue — no action needed unless you're tracking datastore creation for a specific reason."
               runbook_url: "https://severalnines.github.io/ccx-docs/docs/admin/Troubleshooting/#new-user-and-datastore-created"
 
         - name: Deployment status
           rules:
-          - alert: service-down
+          - alert: DeploymentDown
             labels:
-              namespace: "{{ .Labels.namespace }}"
-              name: "{{ .Labels.deployment }}"
+              namespace: "{{ $labels.namespace }}"
+              name: "{{ $labels.deployment }}"
               severity: critical
             expr: kube_deployment_status_replicas_available < 1
             for: 5m
             annotations:
-              title: >
-                {{ .Labels.deployment }} in {{ .Labels.namespace }}
-              summary: >
-                {{ .Labels.deployment }} in {{ .Labels.namespace }} has 0 replicas running for last 5 minutes
+              summary: "Deployment `{{ $labels.deployment }}` in `{{ $labels.namespace }}` has 0 available replicas"
+              description: "This Deployment has had zero available replicas for at least 5 minutes, meaning the service it backs is likely fully unavailable. Check pod status and recent events in the namespace to find out why replicas aren't coming up (crash loop, failed scheduling, resource limits, etc.)."
               runbook_url: "https://severalnines.github.io/ccx-docs/docs/admin/Troubleshooting/#service-down"
 
         - name: Statefulset status
           rules:
-          - alert: service-down
+          - alert: StatefulSetDown
             labels:
-              namespace: "{{ .Labels.namespace }}"
-              name: "{{ .Labels.statefulset }}"
+              namespace: "{{ $labels.namespace }}"
+              name: "{{ $labels.statefulset }}"
               severity: critical
             expr: kube_statefulset_status_replicas_available < 1
             for: 5m
             annotations:
-              summary: >
-                {{ .Labels.statefulset }} in {{ .Labels.namespace }} has 0 replicas running for last 5 minutes
+              summary: "StatefulSet `{{ $labels.statefulset }}` in `{{ $labels.namespace }}` has 0 available replicas"
+              description: "This StatefulSet has had zero available replicas for at least 5 minutes, meaning the service it backs is likely fully unavailable. Check pod status and recent events in the namespace to find out why replicas aren't coming up (crash loop, failed scheduling, resource limits, etc.)."
               runbook_url: "https://severalnines.github.io/ccx-docs/docs/admin/Troubleshooting/#service-down"
 
         - name: Metrics alerts
@@ -556,8 +580,8 @@ victoria-metrics-alert:
             labels:
               severity: warning
             annotations:
-              summary: Victoria metrics job missing (instance {{ $labels.instance }})
-              description: "A Victoria Metrics job has disappeared\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+              summary: "VictoriaMetrics scrape target `{{ $labels.job }}` has disappeared"
+              description: "The victoriametrics job is no longer being scraped — this is the metrics backend itself, so if it's down, other alerts and dashboards may also be unreliable or delayed. Check whether the VictoriaMetrics pod is running and whether it's still reachable from the scrape config."
               runbook_url: "https://severalnines.github.io/ccx-docs/docs/admin/Troubleshooting/#metrics-stack-self-monitoring"
           - alert: MetricsTargetMissing
             expr: up == 0
@@ -565,8 +589,8 @@ victoria-metrics-alert:
             labels:
               severity: critical
             annotations:
-              summary: Metrics target missing (instance {{ $labels.instance }})
-              description: "A Metrics target has disappeared. An exporter might be crashed.\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+              summary: "Metrics target `{{ $labels.job }}` on `{{ $labels.instance }}` is down"
+              description: "This scrape target has been unreachable for 10 minutes — the exporter process may have crashed, the pod may have restarted, or there could be a network/firewall issue between VictoriaMetrics and this target. Check whether the exporter is running and whether its metrics port is reachable."
               runbook_url: "https://severalnines.github.io/ccx-docs/docs/admin/Troubleshooting/#metrics-stack-self-monitoring"
           - alert: MetricsAllTargetsMissing
             expr: sum by (job) (up) == 0
@@ -574,8 +598,8 @@ victoria-metrics-alert:
             labels:
               severity: critical
             annotations:
-              summary: Metrics all targets missing (instance {{ $labels.instance }})
-              description: "A Metrics job does not have living target anymore.\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+              summary: "All targets for job `{{ $labels.job }}` are down"
+              description: "Every single instance of this scrape job has been unreachable for 10 minutes — this is broader than a single exporter failing, it means the whole job category has no surviving targets. This could indicate a widespread outage, a misconfigured scrape job, or a service-wide crash. Check the job's scrape config and whether the underlying service/deployment is healthy."
               runbook_url: "https://severalnines.github.io/ccx-docs/docs/admin/Troubleshooting/#metrics-stack-self-monitoring"
 
         - name: Kubernetes Apps
@@ -586,26 +610,28 @@ victoria-metrics-alert:
             labels:
               severity: critical
             annotations:
-              summary: Kubernetes container oom killer (instance {{ $labels.instance }})
-              description: "Container {{ $labels.container }} in pod {{ $labels.namespace }}/{{ $labels.pod }} has been OOMKilled {{ $value }} times in the last 10 minutes.\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+              summary: "Container `{{ $labels.container }}` OOMKilled in `{{ $labels.namespace }}/{{ $labels.pod }}`"
+              description: "This container has been OOMKilled {{ $value }} time(s) in the last 10 minutes. This usually means it's hitting its memory limit — check whether the limit is too low for its actual usage, or whether there's a memory leak."
               runbook_url: "https://severalnines.github.io/ccx-docs/docs/admin/Troubleshooting/#kubernetes-container-oom-killer"
+              dashboard_url: "{{ $externalLabels.grafana_url }}/d/k8s_views_pods/kubernetes-views-pods?orgId=1&var-datasource=PA58DA793C7250F1B&var-namespace={{ $labels.namespace }}&var-pod={{ $labels.pod }}&var-resolution=30s"
           - alert: KubernetesPodCrashLooping
             expr: (sum(increase(kube_pod_container_status_restarts_total[10m])) by (container, instance, pod, namespace)) > 1
             for: 15m
             labels:
               severity: critical
             annotations:
-              summary: Container {{ $labels.container }} in Pod {{ $labels.namespace }}/{{ $labels.pod }} restarting more than once times during ten minutes.
-              description: "Pod {{ $labels.pod }} restarting more than once during last ten minutes.\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+              summary: "Container `{{ $labels.container }}` in `{{ $labels.namespace }}/{{ $labels.pod }}` is crash looping"
+              description: "This container has restarted more than once in the last 10 minutes. Common causes: application errors on startup, failing health/liveness checks, missing config or secrets, or a bad image/deploy. Check the container's logs and recent events for the actual failure reason."
               runbook_url: "https://severalnines.github.io/ccx-docs/docs/admin/Troubleshooting/#kubernetes-pod-crash-looping"
+              dashboard_url: "{{ $externalLabels.grafana_url }}/d/k8s_views_pods/kubernetes-views-pods?orgId=1&var-datasource=PA58DA793C7250F1B&var-namespace={{ $labels.namespace }}&var-pod={{ $labels.pod }}&var-resolution=30s"
           - alert: PVCVolumeUsage
-            expr: (kubelet_volume_stats_used_bytes / kubelet_volume_stats_capacity_bytes) > 0.90
+            expr: (kubelet_volume_stats_used_bytes / kubelet_volume_stats_capacity_bytes) > 0.80
             for: 5m
             labels:
               severity: critical
             annotations:
-              summary: "PVC {{ $labels.persistentvolumeclaim }} on {{ $labels.namespace }} is almost full"
-              description: "PVC {{ $labels.persistentvolumeclaim }} on {{ $labels.namespace }} is using more than 90% of its capacity. Usage: {{ $value | humanizePercentage }}."
+              summary: "PVC `{{ $labels.persistentvolumeclaim }}` on `{{ $labels.namespace }}` is almost full"
+              description: "This PVC is using more than 80% of its capacity ({{ $value | humanizePercentage }}). If usage keeps growing, the pod using this volume may fail to write once it's completely full — consider resizing the PVC or investigating what's consuming the space."
               runbook_url: "https://severalnines.github.io/ccx-docs/docs/admin/Troubleshooting/#pvc-volume-usage"
 
         - name: Node Conditions
@@ -616,27 +642,30 @@ victoria-metrics-alert:
             labels:
               severity: critical
             annotations:
-              summary: Node {{ $labels.node }} is NotReady
-              description: "Node {{ $labels.node }} has been NotReady for more than 5 minutes.\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+              summary: "Node `{{ $labels.node }}` is NotReady"
+              description: "This node has been NotReady for more than 5 minutes. This usually means kubelet has stopped reporting in, or the node has a network/resource issue preventing it from being scheduled to. Check the node's kubelet status and system resources."
               runbook_url: "https://severalnines.github.io/ccx-docs/docs/admin/Troubleshooting/#kubernetes-node-not-ready"
+              dashboard_url: "{{ $externalLabels.grafana_url }}/d/k8s_views_nodes/kubernetes-views-nodes?orgId=1&var-job=node-exporter&var-datasource=c56ad79b-b6df-425f-9ad8-5b0497d40d79&var-resolution=30s&var-node={{ $labels.node }}&var-instance={{ $labels.node }}"
           - alert: DiskPressure
             expr: kube_node_status_condition{condition="DiskPressure",status="true"} == 1
             for: 2m
             labels:
               severity: warning
             annotations:
-              summary: Node {{ $labels.node }} has DiskPressure
-              description: "Node {{ $labels.node }} has been under DiskPressure for more than 2 minutes.\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+              summary: "Node `{{ $labels.node }}` is under disk pressure"
+              description: "This node has been under disk pressure for more than 2 minutes, meaning it's running low on available disk space or inodes. Kubernetes may start evicting pods from this node to free up space. Check disk usage on the node and clean up if needed."
               runbook_url: "https://severalnines.github.io/ccx-docs/docs/admin/Troubleshooting/#kubernetes-disk-and-memory-pressure"
+              dashboard_url: "{{ $externalLabels.grafana_url }}/d/k8s_views_nodes/kubernetes-views-nodes?orgId=1&var-job=node-exporter&var-datasource=c56ad79b-b6df-425f-9ad8-5b0497d40d79&var-resolution=30s&var-node={{ $labels.node }}&var-instance={{ $labels.node }}"
           - alert: MemoryPressure
             expr: kube_node_status_condition{condition="MemoryPressure",status="true"} == 1
             for: 2m
             labels:
               severity: warning
             annotations:
-              summary: Node {{ $labels.node }} has MemoryPressure
-              description: "Node {{ $labels.node }} has been under MemoryPressure for more than 2 minutes.\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+              summary: "Node `{{ $labels.node }}` is under memory pressure"
+              description: "This node has been under memory pressure for more than 2 minutes, meaning available memory is running low. Kubernetes may start evicting pods from this node to free up memory. Check what's consuming memory on the node and whether workloads need better limits or the node needs more capacity."
               runbook_url: "https://severalnines.github.io/ccx-docs/docs/admin/Troubleshooting/#kubernetes-disk-and-memory-pressure"
+              dashboard_url: "{{ $externalLabels.grafana_url }}/d/k8s_views_nodes/kubernetes-views-nodes?orgId=1&var-job=node-exporter&var-datasource=c56ad79b-b6df-425f-9ad8-5b0497d40d79&var-resolution=30s&var-node={{ $labels.node }}&var-instance={{ $labels.node }}"
 
         - name: Hosts alerts
           rules:
@@ -646,36 +675,40 @@ victoria-metrics-alert:
             labels:
               severity: warning
             annotations:
-              summary: Host out of memory (instance {{ $labels.instance }})
-              description: "Node memory is filling up (< 10% left)\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+              summary: "Host `{{ $labels.instance }}` is low on memory"
+              description: "Available memory on this host has dropped below 10%. Check what's consuming memory — a runaway process, memory leak, or workloads that need better resource limits."
               runbook_url: "https://severalnines.github.io/ccx-docs/docs/admin/Troubleshooting/#host-out-of-memory"
+              dashboard_url: "{{ $externalLabels.grafana_url }}/d/rYdddlPWk/node-exporter-full?orgId=1&var-datasource=c56ad79b-b6df-425f-9ad8-5b0497d40d79&var-job=node-exporter&var-node={{ $labels.node }}"         
           - alert: HostMemoryUnderPressure
             expr: rate(node_vmstat_pgmajfault[1m]) > 1000
             for: 2m
             labels:
               severity: warning
             annotations:
-              summary: Host memory under pressure (instance {{ $labels.instance }})
-              description: "The node is under heavy memory pressure. High rate of major page faults\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+              summary: "Host `{{ $labels.instance }}` is under memory pressure"
+              description: "This host has a high rate of major page faults, meaning it's frequently swapping data from disk due to insufficient available memory. This degrades performance and often precedes an out-of-memory condition — check memory usage and consider adding capacity or reducing workload."
               runbook_url: "https://severalnines.github.io/ccx-docs/docs/admin/Troubleshooting/#host-memory-under-pressure"
+              dashboard_url: "{{ $externalLabels.grafana_url }}/d/rYdddlPWk/node-exporter-full?orgId=1&var-datasource=c56ad79b-b6df-425f-9ad8-5b0497d40d79&var-job=node-exporter&var-node={{ $labels.node }}"
           - alert: HostUnusualDiskReadRate
-            expr: sum by (instance) (rate(node_disk_read_bytes_total[2m])) / 1024 / 1024 > 50
-            for: 5m
+            expr: sum by (instance, node) (rate(node_disk_read_bytes_total[2m])) / 1024 / 1024 > 50
+            for: 10m
             labels:
               severity: warning
             annotations:
-              summary: Host unusual disk read rate (instance {{ $labels.instance }})
-              description: "Disk is probably reading too much data (> 50 MB/s)\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+              summary: "Host `{{ $labels.instance }}` has an unusual disk read rate"
+              description: "This host is reading more than 50 MB/s from disk, sustained over 5 minutes. This could be a legitimate heavy workload (backup, large query, batch job) or a symptom of something misbehaving — check what process is driving the I/O and whether it's expected."
               runbook_url: "https://severalnines.github.io/ccx-docs/docs/admin/Troubleshooting/#host-unusual-disk-io-rate"
+              dashboard_url: "{{ $externalLabels.grafana_url }}/d/rYdddlPWk/node-exporter-full?orgId=1&var-datasource=c56ad79b-b6df-425f-9ad8-5b0497d40d79&var-job=node-exporter&var-node={{ $labels.node }}"
           - alert: HostUnusualDiskWriteRate
-            expr: sum by (instance) (rate(node_disk_written_bytes_total[2m])) / 1024 / 1024 > 50
-            for: 5m
+            expr: sum by (instance, node) (rate(node_disk_written_bytes_total[2m])) / 1024 / 1024 > 50
+            for: 10m
             labels:
               severity: warning
             annotations:
-              summary: Host unusual disk write rate (instance {{ $labels.instance }})
-              description: "Disk is probably writing too much data (> 50 MB/s)\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+              summary: "Host `{{ $labels.instance }}` has an unusual disk write rate"
+              description: "This host is writing more than 50 MB/s to disk, sustained over 5 minutes. This could be a legitimate heavy workload (backup, large write batch, log rotation) or a symptom of something misbehaving — check what process is driving the I/O and whether it's expected."
               runbook_url: "https://severalnines.github.io/ccx-docs/docs/admin/Troubleshooting/#host-unusual-disk-io-rate"
+              dashboard_url: "{{ $externalLabels.grafana_url }}/d/rYdddlPWk/node-exporter-full?orgId=1&var-datasource=c56ad79b-b6df-425f-9ad8-5b0497d40d79&var-job=node-exporter&var-node={{ $labels.node }}"
           - alert: HostAutoScaleDiskSpaceReached
             expr: (1 - (node_filesystem_avail_bytes{mountpoint ="/data"} / node_filesystem_size_bytes{mountpoint ="/data"})) * 100 > 70
             for: 2m
@@ -683,9 +716,10 @@ victoria-metrics-alert:
               severity: warning
               alert_category: webhook-alerts
             annotations:
-                summary: "Disk autoscale threshold has been reached on instance {{ $labels.instance }} {{ $value }}%"
-                description: "Disk usage on instance {{ $labels.instance }} is above the autoscale threshold. Current usage: {{ $value }}%"
+                summary: "Host `{{ $labels.instance }}` has reached its disk autoscale threshold ({{ $value | humanize }}%)"
+                description: "Disk usage on `/data` has exceeded 70%, which is the threshold configured to trigger autoscaling. If autoscaling is working correctly, more disk space should be provisioned automatically — if usage keeps climbing past this point, check whether the autoscale mechanism itself is functioning."
                 runbook_url: "https://severalnines.github.io/ccx-docs/docs/admin/Troubleshooting/#disk-autoscaling-issues"
+                dashboard_url: "{{ $externalLabels.grafana_url }}/d/rYdddlPWk/node-exporter-full?orgId=1&var-datasource=c56ad79b-b6df-425f-9ad8-5b0497d40d79&var-job=node-exporter&var-node={{ $labels.node }}"
           # Please add ignored mountpoints in node_exporter parameters like
           # "--collector.filesystem.ignored-mount-points=^/(sys|proc|dev|run)($|/)".
           # Same rule using "node_filesystem_free_bytes" will fire when disk fills for non-root users.
@@ -696,9 +730,10 @@ victoria-metrics-alert:
               severity: critical
               alert_category: webhook-alerts
             annotations:
-              summary: Host out of disk space (instance {{ $labels.instance }})
-              description: "Disk is almost full (< 10% left)\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+              summary: "Host `{{ $labels.instance }}` is almost out of disk space on `{{ $labels.mountpoint }}`"
+              description: "Available space on this filesystem has dropped below 10%. If it fills completely, writes may start failing and services relying on this disk could break. Check what's consuming space and whether it can be cleaned up or expanded."
               runbook_url: "https://severalnines.github.io/ccx-docs/docs/admin/Troubleshooting/#host-out-of-disk-space"
+              dashboard_url: "{{ $externalLabels.grafana_url }}/d/rYdddlPWk/node-exporter-full?orgId=1&var-datasource=c56ad79b-b6df-425f-9ad8-5b0497d40d79&var-job=node-exporter&var-node={{ $labels.node }}"
           # Please add ignored mountpoints in node_exporter parameters like
           # "--collector.filesystem.ignored-mount-points=^/(sys|proc|dev|run)($|/)".
           # Same rule using "node_filesystem_free_bytes" will fire when disk fills for non-root users.
@@ -708,45 +743,50 @@ victoria-metrics-alert:
             labels:
               severity: warning
             annotations:
-              summary: Host disk will fill in 24 hours (instance {{ $labels.instance }})
-              description: "Filesystem is predicted to run out of space within the next 24 hours at current write rate\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+              summary: "Host `{{ $labels.instance }}` is predicted to run out of space on `{{ $labels.mountpoint }}` within 24 hours"
+              description: "Based on the current write rate over the last hour, this filesystem is projected to fill up within 24 hours. This gives you a window to act before it becomes critical — check what's growing and whether it can be cleaned up, rotated, or the volume expanded proactively."
               runbook_url: "https://severalnines.github.io/ccx-docs/docs/admin/Troubleshooting/#host-disk-will-fill-in-24-hours"
+              dashboard: "{{ $externalLabels.grafana_url }}/d/rYdddlPWk/node-exporter-full?orgId=1&var-datasource=c56ad79b-b6df-425f-9ad8-5b0497d40d79&var-job=node-exporter&var-node={{ $labels.node }}"
           - alert: HostOutOfInodes
             expr: node_filesystem_files_free{mountpoint ="/rootfs"} / node_filesystem_files{mountpoint="/rootfs"} * 100 < 10 and ON (instance, device, mountpoint) node_filesystem_readonly{mountpoint="/rootfs"} == 0
             for: 5m
             labels:
               severity: warning
             annotations:
-              summary: Host out of inodes (instance {{ $labels.instance }})
-              description: "Disk is almost running out of available inodes (< 10% left)\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+              summary: "Host `{{ $labels.instance }}` is almost out of inodes on `{{ $labels.mountpoint }}`"
+              description: "Fewer than 10% of available inodes remain on this filesystem. Inodes are a separate limit from disk space — you can run out of inodes even with plenty of free space left, usually caused by a very large number of small files. If this fills up, new files can't be created even though there's disk space available. Check for directories with excessive file counts (e.g. logs, temp files, or a leaking process)."
               runbook_url: "https://severalnines.github.io/ccx-docs/docs/admin/Troubleshooting/#host-out-of-inodes"
+              dashboard_url: "{{ $externalLabels.grafana_url }}/d/rYdddlPWk/node-exporter-full?orgId=1&var-datasource=c56ad79b-b6df-425f-9ad8-5b0497d40d79&var-job=node-exporter&var-node={{ $labels.node }}"
           - alert: HostHighCpuLoad
-            expr: 100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[2m])) * 100) > 80
-            for: 0m
+            expr: 100 - (avg by(instance, node) (rate(node_cpu_seconds_total{mode="idle"}[2m])) * 100) > 80
+            for: 1m
             labels:
               severity: warning
             annotations:
-              summary: Host high CPU load (instance {{ $labels.instance }})
-              description: "CPU load is > 80%\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+              summary: "Host `{{ $labels.instance }}` has high CPU load"
+              description: "CPU usage on this host has exceeded 80%. Check what process is driving the load — this could be a legitimate spike in traffic/work, an inefficient query, or a runaway process."
               runbook_url: "https://severalnines.github.io/ccx-docs/docs/admin/Troubleshooting/#host-high-cpu-load"
+              dashboard_url: "{{ $externalLabels.grafana_url }}/d/rYdddlPWk/node-exporter-full?orgId=1&var-datasource=c56ad79b-b6df-425f-9ad8-5b0497d40d79&var-job=node-exporter&var-node={{ $labels.node }}"
           - alert: HostCpuStealNoisyNeighbor
-            expr: avg by(instance) (rate(node_cpu_seconds_total{mode="steal"}[5m])) * 100 > 10
-            for: 0m
+            expr: avg by(instance, node) (rate(node_cpu_seconds_total{mode="steal"}[5m])) * 100 > 10
+            for: 1m
             labels:
               severity: warning
             annotations:
-              summary: Host CPU steal noisy neighbor (instance {{ $labels.instance }})
-              description: "CPU steal is > 10%. A noisy neighbor is killing VM performances or a spot instance may be out of credit.\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+              summary: "Host `{{ $labels.instance }}` is experiencing CPU steal"
+              description: "CPU steal time has exceeded 10% on this host. This means the hypervisor is taking CPU cycles away from this VM — usually caused by a noisy neighbor on the same physical host, or a spot/burstable instance running out of allotted credit. This isn't something you can fix on the VM itself; check with the cloud provider or consider moving to a different instance."
               runbook_url: "https://severalnines.github.io/ccx-docs/docs/admin/Troubleshooting/#host-cpu-steal-noisy-neighbor"
+              dashboard_url: "{{ $externalLabels.grafana_url }}/d/rYdddlPWk/node-exporter-full?orgId=1&var-datasource=c56ad79b-b6df-425f-9ad8-5b0497d40d79&var-job=node-exporter&var-node={{ $labels.node }}"
           - alert: HostCpuHighIowait
-            expr: avg by (instance) (rate(node_cpu_seconds_total{mode="iowait"}[5m])) * 100 > 5
-            for: 0m
+            expr: avg by (instance, node) (rate(node_cpu_seconds_total{mode="iowait"}[5m])) * 100 > 5
+            for: 1m
             labels:
               severity: warning
             annotations:
-              summary: Host CPU high iowait (instance {{ $labels.instance }})
-              description: "CPU iowait > 5%. A high iowait means that you are disk or network bound.\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+              summary: "Host `{{ $labels.instance }}` has high CPU iowait"
+              description: "CPU iowait has exceeded 5% on this host, meaning the CPU is spending significant time waiting on disk or network I/O rather than doing work. Check disk read/write rates and network activity on this host to identify what's causing the bottleneck."
               runbook_url: "https://severalnines.github.io/ccx-docs/docs/admin/Troubleshooting/#host-cpu-high-iowait"
+              dashboard_url: "{{ $externalLabels.grafana_url }}/d/rYdddlPWk/node-exporter-full?orgId=1&var-datasource=c56ad79b-b6df-425f-9ad8-5b0497d40d79&var-job=node-exporter&var-node={{ $labels.node }}"
           # 1000 context switches is an arbitrary number.
           # Alert threshold depends on nature of application.
           # Please read: https://github.com/samber/awesome-prometheus-alerts/issues/58
@@ -756,38 +796,42 @@ victoria-metrics-alert:
             labels:
               severity: warning
             annotations:
-              summary: Host context switching (instance {{ $labels.instance }})
-              description: "Context switching is growing on node (> 1000 / s)\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+              summary: "Host `{{ $labels.instance }}` has a high context switch rate"
+              description: "This host is averaging more than 1000 context switches per second per CPU. High context switching often indicates CPU oversubscription, too many competing processes/threads, or inefficient application behavior — check running processes and whether this host is over-provisioned for its workload."
               runbook_url: "https://severalnines.github.io/ccx-docs/docs/admin/Troubleshooting/#host-context-switching"
+              dashboard_url: "{{ $externalLabels.grafana_url }}/d/rYdddlPWk/node-exporter-full?orgId=1&var-datasource=c56ad79b-b6df-425f-9ad8-5b0497d40d79&var-job=node-exporter&var-node={{ $labels.node }}"
           - alert: HostOomKillDetected
             expr: increase(node_vmstat_oom_kill[1m]) > 0
             for: 0m
             labels:
               severity: critical
             annotations:
-              summary: Host OOM kill detected (instance {{ $labels.instance }})
-              description: "OOM kill detected\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+              summary: "Host `{{ $labels.instance }}` had a process OOM killed"
+              description: "The kernel forcibly terminated a process on this host to free memory. This means the host ran critically low on available memory — check system logs (`dmesg` or `journalctl -k`) to identify which process was killed and investigate whether it's a memory leak, undersized limits, or genuine memory pressure on the host."
               runbook_url: "https://severalnines.github.io/ccx-docs/docs/admin/Troubleshooting/#host-oom-kill-detected"
+              dashboard_url: "{{ $externalLabels.grafana_url }}/d/rYdddlPWk/node-exporter-full?orgId=1&var-datasource=c56ad79b-b6df-425f-9ad8-5b0497d40d79&var-job=node-exporter&var-node={{ $labels.node }}"
         - name: MySQL Alerts
           rules:
-          - alert: MysqlTooManyConnections(>80%)
+          - alert: MysqlTooManyConnections
             expr: max_over_time(mysql_global_status_threads_connected[1m]) / mysql_global_variables_max_connections * 100 > 80
             for: 2m
             labels:
               severity: warning
             annotations:
-              summary: MySQL too many connections (> 80%) (instance {{ $labels.instance }})
-              description: "More than 80% of MySQL connections are in use on {{ $labels.instance }}\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+              summary: "MySQL on `{{ $labels.instance }}` has too many connections"
+              description: "More than 80% of the configured max_connections limit is currently in use. If this keeps climbing, new connections will start being rejected. Check for connection leaks in the application, unclosed connections, or whether max_connections needs to be raised for current load."
               runbook_url: "https://severalnines.github.io/ccx-docs/docs/admin/Troubleshooting/#mysql-too-many-connections"
+              dashboard_url: "{{ $externalLabels.grafana_url }}/d/549c2bf8936f7767ea6ac47c47b00f2a/mysql-dashboard?orgId=1&var-datasource=PA58DA793C7250F1B&var-job=cmon-sd-elastx&var-instance={{ $labels.instance }}"
           - alert: MysqlSlaveReplicationLag
             expr: mysql_slave_status_master_server_id > 0 and ON (instance) (mysql_slave_status_seconds_behind_master - mysql_slave_status_sql_delay) > 30
             for: 1m
             labels:
               severity: warning
             annotations:
-              summary: MySQL Slave replication lag (instance {{ $labels.instance }})
-              description: "MySQL replication lag on {{ $labels.instance }}\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+              summary: "MySQL replica on `{{ $labels.instance }}` is lagging behind its source"
+              description: "This replica is more than 30 seconds behind its source database. If this keeps growing, reads from this replica may return stale data, and failover to this replica would lose recent writes. Check replication status and whether the replica is under heavy load or has a slow query bottleneck."
               runbook_url: "https://severalnines.github.io/ccx-docs/docs/admin/Troubleshooting/#mysql-slave-replication-lag"
+              dashboard_url: "{{ $externalLabels.grafana_url }}/d/549c2bf8936f7767ea6ac47c47b00f2a/mysql-dashboard?orgId=1&var-datasource=PA58DA793C7250F1B&var-job=cmon-sd-elastx&var-instance={{ $labels.instance }}"
         - name: PostgreSQL Alerts
           rules:
           - alert: PostgresqlExporterError
@@ -796,56 +840,60 @@ victoria-metrics-alert:
             labels:
               severity: warning
             annotations:
-              summary: Postgresql exporter error (instance {{ $labels.instance }})
-              description: "Postgresql exporter's last scrape failed. Check the exporter's logs to see which query failed and why.\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+              summary: "Postgres exporter on `{{ $labels.instance }}` failed its last scrape"
+              description: "The postgres_exporter's last scrape attempt failed, meaning metrics for this instance may be stale or missing. Check the exporter's logs to see which query failed — often caused by a permissions issue, a schema change, or the database being temporarily unreachable."
               runbook_url: "https://severalnines.github.io/ccx-docs/docs/admin/Troubleshooting/#postgresql-exporter-error"
+              dashboard_url: "{{ $externalLabels.grafana_url }}/d/000000039/postgresql-database?var-interval=5m&orgId=1&var-datasource=PA58DA793C7250F1B&var-instance={{ $labels.instance }}&var-datname=$__all&var-mode=$__all&var-job=$__all"
           - alert: PostgresqlTooManyConnections
-            expr: sum by (datname) (pg_stat_activity_count{datname!~"template.*|postgres"}) > pg_settings_max_connections * 0.8
+            expr: sum by (datname, instance) (pg_stat_activity_count{datname!~"template.*|postgres"}) > pg_settings_max_connections * 0.8
             for: 2m
             labels:
               severity: warning
             annotations:
-              summary: Postgresql too many connections (instance {{ $labels.instance }})
-              description: "PostgreSQL instance has too many connections (> 80%).\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+              summary: "Postgres on `{{ $labels.instance }}` has too many connections to `{{ $labels.datname }}`"
+              description: "More than 80% of the configured max_connections limit is currently in use on this database. If this keeps climbing, new connections will start being rejected. Check for connection leaks in the application, unclosed connections, or whether max_connections needs to be raised for current load."
               runbook_url: "https://severalnines.github.io/ccx-docs/docs/admin/Troubleshooting/#postgresql-too-many-connections"
+              dashboard_url: "{{ $externalLabels.grafana_url }}/d/000000039/postgresql-database?var-interval=5m&orgId=1&var-datasource=PA58DA793C7250F1B&var-instance={{ $labels.instance }}&var-datname={{ $labels.datname }}&var-mode=$__all&var-job=$__all"
           - alert: PostgresqlDeadLocks
             expr: increase(pg_stat_database_deadlocks{datname!~"template.*|postgres"}[1m]) > 5
             for: 0m
             labels:
               severity: warning
             annotations:
-              summary: Postgresql dead locks (instance {{ $labels.instance }})
-              description: "PostgreSQL has dead-locks\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+              summary: "Postgres database `{{ $labels.datname }}` on `{{ $labels.instance }}` is hitting deadlocks"
+              description: "{{ $value | humanize }} deadlocks detected in the last minute on this database. Deadlocks usually indicate two or more transactions are competing for the same rows in conflicting order — check application query patterns and transaction ordering, especially recent code changes or increased concurrent load."
               runbook_url: "https://severalnines.github.io/ccx-docs/docs/admin/Troubleshooting/#postgresql-dead-locks"
+              dashboard_url: "{{ $externalLabels.grafana_url }}/d/000000039/postgresql-database?var-interval=5m&orgId=1&var-datasource=PA58DA793C7250F1B&var-instance={{ $labels.instance }}&var-datname={{ $labels.datname }}&var-mode=$__all&var-job=$__all"
           - alert: PostgresqlHighRollbackRate
             expr: rate(pg_stat_database_xact_rollback{datname!~"template.*"}[3m]) / rate(pg_stat_database_xact_commit{datname!~"template.*"}[3m]) > 0.02
             for: 0m
             labels:
               severity: warning
             annotations:
-              summary: Postgresql high rollback rate (instance {{ $labels.instance }})
-              description: "Ratio of transactions being aborted compared to committed is > 2 %\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+              summary: "Postgres database `{{ $labels.datname }}` on `{{ $labels.instance }}` has a high rollback rate"
+              description: "More than 2% of transactions on this database are being rolled back rather than committed. This often points to application-level errors, failed constraint checks, or deadlocks/lock timeouts causing transactions to abort. Check application logs and recent query errors for the actual cause."
               runbook_url: "https://severalnines.github.io/ccx-docs/docs/admin/Troubleshooting/#postgresql-high-rollback-rate"
+              dashboard_url: "{{ $externalLabels.grafana_url }}/d/000000039/postgresql-database?var-interval=5m&orgId=1&var-datasource=PA58DA793C7250F1B&var-instance={{ $labels.instance }}&var-datname={{ $labels.datname }}&var-mode=$__all&var-job=$__all"
 
         - name: Backup Alerts
           rules:
-          - alert: Backup Failed
+          - alert: BackupFailed
             expr: increase(cmon_alarms_backup_failed_total[10m]) > 0
             for: 0m
             labels:
               severity: warning
             annotations:
-              summary: A datastore backup failed
-              description: "cmon reported at least one new backup failure alarm in the last 10 minutes. This metric is controller-wide and does not identify which datastore failed.\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+              summary: "A datastore backup has failed"
+              description: "cmon reported at least one new backup failure alarm in the last 10 minutes. Note: this metric is controller-wide and doesn't identify which specific datastore failed — check the cmon controller UI or logs to find the affected datastore and the actual failure reason."
               runbook_url: "https://severalnines.github.io/ccx-docs/docs/admin/Troubleshooting/#troubleshooting-datastore-backups-failing"
-          - alert: CCX Internal Backup Job Failed
+          - alert: CCXInternalBackupJobFailed
             expr: kube_job_status_failed{namespace="ccx", job_name=~"logical-backup-acid-ccx-.*|ccxdeps-ccx-s3-backup-schedule.*"} > 0
             for: 5m
             labels:
               severity: warning
             annotations:
-              summary: A CCX internal control-plane backup job failed (job {{ $labels.job_name }})
-              description: "The Kubernetes Job {{ $labels.job_name }} backing up CCX's own control-plane database (not a customer datastore) has failed.\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+              summary: "CCX internal backup job `{{ $labels.job_name }}` failed"
+              description: "This Kubernetes Job backs up CCX's own control-plane database (not a customer datastore) and has failed. Check the job's logs (`kubectl logs job/{{ $labels.job_name }} -n {{ $labels.namespace }}`) to see why it failed."
               runbook_url: "https://severalnines.github.io/ccx-docs/docs/admin/Troubleshooting/#mysql-and-postgres-operator-backup-and-restore-validation"
 
         # Anomaly detection, "adaptive" strategy, from https://github.com/grafana/promql-anomaly-detection
@@ -860,8 +908,14 @@ victoria-metrics-alert:
             expr: |-
               5/60
           - record: anomaly:adaptive:stddev_multiplier
+            #At 2 stddev, ~4.5% of evaluations fall outside the band by
+            # chance alone even for a well-behaved metric, and with every tagged
+            # node/pod CPU+memory series evaluated continuously, that compounds into
+            # frequent Slack noise. 3 stddev (the standard "3-sigma rule") cuts the
+            # chance-driven exceedance rate to ~0.27% (~17x fewer) while still
+            # reliably catching genuinely large deviations.
             expr: |-
-              2
+              3
           - record: anomaly:adaptive:margin_multiplier
             expr: |-
               0.5
@@ -936,10 +990,8 @@ victoria-metrics-alert:
                 )
               )
 
-        # Long term bands run on a coarser 5m interval (upstream recommendation) since they look back
-        # 1d/1w and don't need to react quickly.
         - name: AnomalyAdaptiveLongTerm
-          interval: 5m
+          interval: 15m
           rules:
           - record: anomaly:adaptive:upper_band_lt
             expr: |-
@@ -985,7 +1037,7 @@ victoria-metrics-alert:
         - name: AnomalyAdaptiveAlerts
           rules:
           - alert: AnomalyDetected
-            for: 5m
+            for: 15m
             expr: >
               last_over_time(anomaly:level[2m]) < last_over_time(anomaly:lower_band{anomaly_strategy="adaptive"}[2m])
               or
@@ -994,10 +1046,10 @@ victoria-metrics-alert:
               severity: warning
               anomaly_strategy: adaptive
             annotations:
-              title: 'Anomaly detected on {{ $labels.anomaly_name }} ({{ $labels.instance }})'
-              summary: '{{ $labels.anomaly_name }} is outside its expected range on {{ $labels.instance }}.'
-              description: "Anomaly detected for {{ $labels.anomaly_name }}\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+              summary: "Anomaly detected on `{{ $labels.anomaly_name }}` for pod `{{ $labels.namespace }}/{{ $labels.pod }}`"
+              description: "This metric has moved outside its expected range based on recent historical baselines, using an adaptive detection strategy. This doesn't necessarily mean something is broken — it means current behavior differs meaningfully from the recent pattern. Check the anomaly dashboard to see the actual vs. expected range and judge whether this reflects a real issue or an expected change in load."
               runbook_url: "https://severalnines.github.io/ccx-docs/docs/admin/Troubleshooting/#anomaly-detected"
+              dashboard_url: "{{ $externalLabels.grafana_url }}/d/anomalies-adaptive/anomalies?orgId=1&var-ds=PA58DA793C7250F1B&var-anomaly_name={{ $labels.anomaly_name }}&var-namespace={{ $labels.namespace }}&var-pod={{ $labels.pod }}&var-alertstate=$__all"
 
         # Tags existing metrics with anomaly_name/anomaly_type so the groups above pick them up.
         # job label matches this repo's node-exporter scrape config (values.yaml "kubernetes-node-exporter"),
@@ -1008,7 +1060,7 @@ victoria-metrics-alert:
             expr: |-
               (((count by (instance, job) (count(node_cpu_seconds_total{job=~"kubernetes-node-exporter"}) by (cpu, instance, job)))
               -
-              avg by (instance, job) (sum by (instance, mode, job)(irate(node_cpu_seconds_total{mode='idle',job=~"kubernetes-node-exporter"}[5m])))) * 100)
+              avg by (instance, job) (sum by (instance, mode, job)(irate(node_cpu_seconds_total{mode='idle',job=~"kubernetes-node-exporter"}[15m])))) * 100)
               /
               count by(instance, job) (count(node_cpu_seconds_total{job=~"kubernetes-node-exporter"}) by (cpu, instance, job))
             labels:
@@ -1042,7 +1094,7 @@ victoria-metrics-alert:
           - record: anomaly:resource:pod_cpu
             expr: |-
               sum by (namespace, pod, job, instance) (
-                irate(container_cpu_usage_seconds_total{container!="", container!="POD"}[5m])
+                irate(container_cpu_usage_seconds_total{container!="", container!="POD"}[15m])
               )
             labels:
               anomaly_name: "pod_cpu"
@@ -1064,21 +1116,34 @@ alertmanager:
   enabled: true
   replicaCount: 2
 
-  ## Pod anti-affinity can prevent the scheduler from placing Alertmanager replicas on the same node.
-  ## The default value "soft" means that the scheduler should *prefer* to not schedule two replica pods onto the same node but no guarantee is provided.
-  ## The value "hard" means that the scheduler is *required* to not schedule two replica pods onto the same node.
-  ## The value "" will disable pod anti-affinity so that no anti-affinity rules will be configured.
-  ##
   podAntiAffinity: "hard"
-
-  ## If anti-affinity is enabled sets the topologyKey to use for anti-affinity.
-  ## This can be changed to, for example, failure-domain.beta.kubernetes.io/zone
-  ##
   podAntiAffinityTopologyKey: kubernetes.io/hostname
 
   podAnnotations:
     prometheus.io/scrape: 'true'
     prometheus.io/port: '9093'
+
+  ingress:
+    enabled: false
+    annotations:
+      kubernetes.io/ingress.class: nginx
+      nginx.ingress.kubernetes.io/ssl-redirect: "true"
+      cert-manager.io/cluster-issuer: letsencrypt-prod
+      nginx.ingress.kubernetes.io/auth-type: basic
+      nginx.ingress.kubernetes.io/auth-secret: alertmanager-basic-auth
+      nginx.ingress.kubernetes.io/auth-realm: "Authentication Required"
+    hosts:
+      - host: CHANGE_ME
+        paths:
+          - path: /
+            pathType: ImplementationSpecific
+    tls:
+      - secretName: alertmanager-cert
+        hosts:
+          - CHANGE_ME
+
+  extraArgs:
+    web.external-url:
 
   config:
     global:
@@ -1096,13 +1161,11 @@ alertmanager:
           matchers:
             - alert_category="webhook-alerts"
         - receiver: slack-notifications
+          group_by: [alertname, instance]
+          group_wait: 10s
+          group_interval: 5m
       repeat_interval: 24h
 
-    # A node in trouble (NotReady / DiskPressure / MemoryPressure) fires its own
-    # alert plus a wave of per-node Host* alerts (node_exporter) from the same
-    # underlying failure. Suppress the Host* flood so only the node-level alert
-    # is actionable. Requires `node` to be a common label on both sides - see
-    # the `node` relabeling added to the kubernetes-node-exporter scrape job.
     inhibit_rules:
       - source_matchers:
           - alertname=~"KubeNodeNotReady|DiskPressure|MemoryPressure"
@@ -1118,35 +1181,108 @@ alertmanager:
 
     - name: slack-notifications
       slack_configs:
-      - channel: #CHANGE-ME
+      - channel: "#CHANGE-ME"
         api_url: http://CHANGE_ME.COM
         send_resolved: true
         icon_url: https://avatars3.githubusercontent.com/u/3380462
-        color: '{{ if eq .Status "firing" }}{{ if eq .CommonLabels.severity "warning" }}warning{{ else }}danger{{ end }}{{ else }}good{{ end }}'
-        title: |-
-         [{{ .Status | toUpper }}{{ if eq .Status "firing" }}:{{ .Alerts.Firing | len }} alerts {{ end }}] {{ .CommonLabels.alertname }} for {{ .CommonLabels.instance }}
-        text: >-
-         {{ range .Alerts -}}
-         *{{ .Labels.severity | toUpper }}*
-
-         *Summary:* {{ .Annotations.summary }}
-
-         {{ .Annotations.description }}
-
-         {{ if .Annotations.runbook_url }}*Runbook:* {{ .Annotations.runbook_url }}
-
-         {{ end }}
-         *Details:*
-           {{ range .Labels.SortedPairs }} • *{{ .Name }}:* `{{ .Value }}`
-           {{ end }}
-         {{ end }}
+        color: '{{ template "slack.color" . }}'
+        title: '{{ template "slack.title" . }}'
+        text: '{{ template "slack.text" . }}'
+        actions:
+          - type: button
+            text: 'Runbook :green_book:'
+            url: '{{ (index .Alerts 0).Annotations.runbook_url }}'
+          - type: button
+            text: 'Query :mag:'
+            url: '{{ (index .Alerts 0).GeneratorURL }}'
+          - type: button
+            text: 'Dashboard :chart_with_upwards_trend:'
+            url: '{{ (index .Alerts 0).Annotations.dashboard_url }}'
+          - type: button
+            text: 'Silence :no_bell:'
+            url: '{{ template "__alert_silence_link" . }}'
 
     templates:
       - '/etc/alertmanager/*.tmpl'
 
-  templates: {}
-  #   alertmanager.tmpl: |-
+  templates:
+    alertmanager.tmpl: |-
+      {{ define "__alert_silence_link" -}}
+          {{ .ExternalURL }}/#/silences/new?filter=%7B
+          {{- range .CommonLabels.SortedPairs -}}
+              {{- if ne .Name "alertname" -}}
+                  {{- .Name }}%3D"{{- .Value -}}"%2C%20
+              {{- end -}}
+          {{- end -}}
+          alertname%3D"{{- .CommonLabels.alertname -}}"%7D
+      {{- end }}
 
+      {{ define "__alert_severity" -}}
+        {{- if eq .CommonLabels.severity "critical" -}}
+        *Severity: CRITICAL* 🚨
+        {{- else if eq .CommonLabels.severity "warning" -}}
+        *Severity: WARNING* ⚠️
+        {{- else if eq .CommonLabels.severity "info" -}}
+        *Severity: Info* ℹ️
+        {{- else -}}
+        :question: *Severity:* {{ .CommonLabels.severity }}
+        {{- end }}
+      {{- end }}
+
+      {{ define "slack.title" -}}
+          [{{ .Status | toUpper -}}
+          {{ if eq .Status "firing" }}:{{ .Alerts.Firing | len }}{{- end -}}
+          ] {{ .CommonLabels.alertname }}
+      {{- end }}
+
+      {{ define "slack.color" -}}
+          {{ if eq .Status "firing" -}}
+              {{ if eq .CommonLabels.severity "warning" -}}
+              warning
+              {{- else if eq .CommonLabels.severity "critical" -}}
+              danger
+              {{- else -}}
+              #439FE0
+              {{- end -}}
+          {{- else -}}
+          good
+          {{- end }}
+      {{- end }}
+
+      {{ define "slack.text" -}}
+        {{ template "__alert_severity" . }}
+        {{- if (index .Alerts 0).Annotations.summary }}
+        {{- "\n" -}}
+        *Summary:* {{ (index .Alerts 0).Annotations.summary }}
+        {{- end }}
+        {{- range .Alerts }}
+            {{- if .Annotations.description }}
+            {{- "\n" -}}
+            *Description:* {{ .Annotations.description }}
+            {{- "\n" -}}
+            {{- end }}
+            {{- if .Annotations.message }}
+            {{- "\n" -}}
+            {{ .Annotations.message }}
+            {{- "\n" -}}
+            {{- end }}
+            {{- if .Labels.kubernetes_namespace -}}
+            {{ "\n" }}*Namespace:* `{{ .Labels.kubernetes_namespace }}`
+            {{- end -}}
+            {{- if .Labels.kubernetes_pod_name -}}
+            {{ "\n" }}*Pod:* `{{ .Labels.kubernetes_pod_name }}`
+            {{- end -}}
+            {{- if and (not .Labels.kubernetes_namespace) .Labels.namespace -}}
+            {{ "\n" }}*Namespace:* `{{ .Labels.namespace }}`
+            {{- end -}}
+            {{- if and (not .Labels.kubernetes_pod_name) .Labels.pod -}}
+            {{ "\n" }}*Pod:* `{{ .Labels.pod }}`
+            {{- end -}}
+            {{- if .Labels.node -}}
+            {{ "\n" }}*Node:* `{{ .Labels.node }}`
+            {{- end -}}
+        {{- end }}
+      {{- end }}
 
 
 kube-state-metrics:
