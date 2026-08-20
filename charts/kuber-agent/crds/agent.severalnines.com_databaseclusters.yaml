@@ -471,6 +471,8 @@ spec:
                 description: |-
                   Namespace specifies the namespace where the cluster should be deployed
                   If not specified, it will be deployed in the same namespace as the DatabaseCluster resource
+
+                  Deprecated: use spec.target.namespace.
                 type: string
               resources:
                 description: |-
@@ -1087,6 +1089,16 @@ spec:
                           type: object
                       type: object
                     type: object
+                type: object
+              target:
+                description: |-
+                  Target carries the unified workload-namespace address
+                  (spec.target.namespace). When set it takes precedence over the
+                  deprecated spec.namespace.
+                properties:
+                  namespace:
+                    description: Namespace is the workload namespace this intent addresses.
+                    type: string
                 type: object
               type:
                 allOf:

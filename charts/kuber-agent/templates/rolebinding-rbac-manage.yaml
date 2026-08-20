@@ -1,0 +1,19 @@
+{{- if and .Values.rbac.create .Values.mode.write.enabled .Values.rbac.manageRbacObjects.enabled }}
+# CLUS-8334: binds the write SA to s9s:rbac-manage (see clusterroles.yaml for
+# the escalation-prevention rationale). Only rendered in write mode — the
+# read-only agent never manages RBAC objects.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ include "agent-operator.fullname" . }}-rbac-manage-binding
+  labels:
+    {{- include "agent-operator.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: s9s:rbac-manage
+subjects:
+- kind: ServiceAccount
+  name: {{ .Values.rbac.serviceAccounts.write.name }}
+  namespace: {{ include "agent-operator.namespace" . }}
+{{- end }}
