@@ -83,7 +83,9 @@ spec:
         - "--metrics-bind-address=0"
         {{- end }}
         - "--metrics-secure={{ ternary "true" "false" .Values.metrics.secure }}"
+        {{- if or .Values.controllerManager.leaderElect (gt (int .Values.controllerManager.replicas) 1) }}
         - "--leader-elect"
+        {{- end }}
         - "--env={{ .Values.env }}"
         {{- if .Values.controllerManager.controllers }}
         - "--controllers={{ join "," .Values.controllerManager.controllers }}"
@@ -98,6 +100,13 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: metadata.namespace
+        # Operator identity for PR-carried RBAC grants (CLUS-7411): translators
+        # bind this SA to s9s:cluster-read-extra in workload namespaces via the
+        # deploy PR. Downward API keeps it truthful in both write modes.
+        - name: OPERATOR_SERVICE_ACCOUNT
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.serviceAccountName
         {{- if .Values.agent.name }}
         - name: AGENT_NAME
           value: {{ .Values.agent.name }}

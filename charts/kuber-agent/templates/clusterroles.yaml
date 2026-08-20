@@ -9,6 +9,11 @@ rules:
   - apiGroups: ["apiextensions.k8s.io"]
     resources: ["customresourcedefinitions"]
     verbs: ["get", "list", "watch"]
+  # Read-only view of RBAC grants so the UI can badge namespace access
+  # (s9s-read-extra RoleBindings) — CLUS-7411 namespace-access visibility.
+  - apiGroups: ["rbac.authorization.k8s.io"]
+    resources: ["rolebindings"]
+    verbs: ["get", "list", "watch"]
   - apiGroups: ["agent.severalnines.com"]
     resources:
       [
@@ -103,6 +108,47 @@ rules:
   resources: ["secrets", "serviceaccounts"]
   verbs: ["get", "list", "watch"]
 ---
+# CLUS-7411: full verbs on the agent's OWN intent CRDs only — nothing else.
+# No ClusterRoleBinding here: this role is bound per-namespace via the
+# PR-carried grant (kit.BuildAgentIntentAdminRoleBinding, riding the same
+# rbac/<ns>.yaml file/PR as s9s-read-extra) and ONLY when a user requests
+# the "CC resource management" access level — the remedy for intent CRs
+# placed in a user namespace, where restricted RBAC denies the agent's
+# status/finalizer writes. Never bound automatically. New deploys don't need
+# it: intent CRs land in the operator namespace, where s9s-write already
+# binds s9s:cluster-write. Keep the resource list in sync with the
+# agent.severalnines.com block of s9s:cluster-write below.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: s9s:intent-admin
+  labels:
+    {{- include "agent-operator.labels" . | nindent 4 }}
+rules:
+  - apiGroups: ["agent.severalnines.com"]
+    resources:
+      [
+        "databaseclusters",
+        "databaseoperators",
+        "databasebackups",
+        "databasebackupschedules",
+        "appbundles",
+        "clusterchangerequests",
+        "databaseclusters/status",
+        "databaseoperators/status",
+        "databasebackups/status",
+        "databasebackupschedules/status",
+        "appbundles/status",
+        "clusterchangerequests/status",
+        "databaseclusters/finalizers",
+        "databaseoperators/finalizers",
+        "databasebackups/finalizers",
+        "databasebackupschedules/finalizers",
+        "appbundles/finalizers",
+        "clusterchangerequests/finalizers",
+      ]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
@@ -178,7 +224,10 @@ rules:
 {{- if .Values.sops.enabled }}
 ---
 # CLUS-7183: SOPS GitOps-secrets pipeline.
-# - sops-encryption watches `corev1.Secret` cluster-wide (Pattern A trigger).
+# - unrestricted mode watches `corev1.Secret` cluster-wide (Pattern A trigger).
+# - restricted mode MUST NOT receive cluster-wide plaintext Secret read. Until
+#   Pattern A has per-granted-namespace informers, its startup capability gate
+#   deliberately reports rbac_denied and leaves the watchers off.
 # - periodic sweep lists `SopsSecret` cluster-wide and filters by source-name label.
 # - observer/secret Gets `corev1.Secret` for WaitingOnSecretPR on parent reconcilers.
 #
@@ -188,6 +237,14 @@ rules:
 # no user-Secret update permission is required. The CCR get/create/update/
 # delete verbs come from the write-mode role above (agent.severalnines.com /
 # clusterchangerequests).
+#
+# CLUS-7411: the agent probes the full informer capability at startup via
+# SelfSubjectAccessReview before wiring Pattern A. Restricted mode intentionally
+# fails the cluster-wide Secret probes even though this role still grants the
+# SopsSecret sweep capability. The watchers stay off — one WARN and
+# kuber_sops_pattern_a_status=rbac_denied — rather than widening plaintext
+# access or retrying Forbidden forever. Unrestricted mode renders every probed
+# rule. Keep that mode in sync with sopsWatchProbes in sops_capability.go.
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
@@ -195,9 +252,11 @@ metadata:
   labels:
     {{- include "agent-operator.labels" . | nindent 4 }}
 rules:
+{{- if .Values.mode.write.enabled }}
   - apiGroups: [""]
     resources: ["secrets"]
     verbs: ["get", "list", "watch"]
+{{- end }}
   - apiGroups: ["isindir.github.com"]
     resources: ["sopssecrets"]
     verbs: ["get", "list", "watch"]
@@ -217,4 +276,27 @@ subjects:
     name: {{ if .Values.mode.write.enabled }}{{ .Values.rbac.serviceAccounts.write.name }}{{ else }}{{ .Values.rbac.serviceAccounts.agent.name }}{{ end }}
     namespace: {{ include "agent-operator.namespace" . }}
 {{- end }}
+{{- end }}
+{{- if and .Values.rbac.create .Values.mode.write.enabled .Values.rbac.manageRbacObjects.enabled }}
+---
+# CLUS-8334: RBAC-object management for addon auxiliaries in direct-apply
+# mode (bound to the write SA in rolebinding-rbac-manage.yaml). Cluster-wide
+# on purpose — scoping to today's addon namespaces would hardcode the addon
+# list into the chart. The safety bound is the ABSENCE of `escalate`/`bind`:
+# Kubernetes escalation prevention then only permits creating/updating a Role
+# whose rules the agent itself already holds, so this role never widens what
+# the agent can do — it only lets the agent delegate subsets of it. Keep it
+# that way: an auxiliary Role needing more than the agent holds must fail
+# Forbidden (surfaced as InsufficientRBAC on the addon's AppBundle), not be
+# silently granted. See rbac.manageRbacObjects in values.yaml.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: s9s:rbac-manage
+  labels:
+    {{- include "agent-operator.labels" . | nindent 4 }}
+rules:
+  - apiGroups: ["rbac.authorization.k8s.io"]
+    resources: ["roles", "rolebindings"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
 {{- end }}

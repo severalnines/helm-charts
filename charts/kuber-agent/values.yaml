@@ -31,6 +31,14 @@ createNamespace: true
 # Controller manager configuration
 controllerManager:
   replicas: 1
+  # Leader election guards against two managers acting at once. With a
+  # single replica there is no second manager to guard against, and the
+  # cost is real: controller-runtime EXITS when it cannot renew the lease,
+  # so every transient API-server blip restarts the agent, drops its gRPC
+  # stream to the proxy, and fails in-flight requests. Observed on
+  # cc-test5: 43 restarts in 10 days, all "leader election lost".
+  # Turn this on only when running more than one replica.
+  leaderElect: false
   manager:
     resources:
       limits:
@@ -91,6 +99,29 @@ rbac:
       create: true
   clusterRead:
     includeSecrets: false      # when true, also bind s9s:cluster-read-extra per namespace
+  # May the agent manage RBAC objects (Roles/RoleBindings), bounded by its own
+  # privileges? (CLUS-8334.) Addons ship namespaced Role/RoleBinding
+  # auxiliaries (e.g. the prometheus-stack grafana-admin-init Job's Role); in
+  # direct-apply mode (gitops.enabled=false) the agent applies those itself,
+  # which needs verbs on roles/rolebindings. GitOps mode does not need this —
+  # Argo applies addon manifests.
+  #
+  # The grant (ClusterRole s9s:rbac-manage, bound to the write SA) is
+  # cluster-wide but safety-bounded by Kubernetes RBAC escalation prevention:
+  # it deliberately NEVER includes the `escalate` (or `bind`) verb, so the API
+  # server only permits the agent to create/update a Role whose rules are a
+  # subset of the permissions the agent already holds — in any namespace, the
+  # agent cannot mint power it doesn't have. An auxiliary Role that needs more
+  # than the agent holds fails Forbidden and surfaces as an InsufficientRBAC
+  # PendingDependency condition on the addon's AppBundle: widening RBAC stays
+  # a human decision, never a silent grant.
+  #
+  # Rendered only when mode.write.enabled=true (an "admin" install is expected
+  # to be able to install addons). Set to false to opt out; addons whose
+  # auxiliaries need RBAC writes then stay uninstalled with an explicit
+  # condition unless delivered via GitOps.
+  manageRbacObjects:
+    enabled: true
   namespaces:
     targets: []            # e.g. ["app-a", "app-b"]
     create: false          # optionally create target namespaces
@@ -149,7 +180,9 @@ gitops:
 # Spec: docs/observability/features/prometheus-agent.md.
 prometheusStack:
   # Activates the `prometheus-community/kube-prometheus-stack` delivery addon.
-  # By default it installs operator/CRDs only (decisions-log.md D13); bundled
+  # By default it installs operator/CRDs only (the upstream standalone
+  # prometheus-operator chart is deprecated, so the stack chart with
+  # non-operator components disabled replaces it); bundled
   # Prometheus and Grafana are opt-in below.
   enabled: false
   # User runs Prometheus Operator/CRDs out-of-band. With no bundled components
@@ -200,8 +233,10 @@ prometheusAgent:
     # Required when enabled=true.
     url: ""
     auth:
-      # Only `basic` is wired in v1 (none / bearer / mTLS deferred — see
-      # decisions-log.md D11). The PrometheusAgent CR's
+      # Only `basic` is wired in v1 (none / bearer / mTLS deferred: basic
+      # matches the existing cmon-side Prometheus and keeps the install
+      # one-knob; the underlying CR fields stay in scope for later). The
+      # PrometheusAgent CR's
       # `remoteWrite.basicAuth` references the Secret named below.
       type: basic
       # Secret with keys `username` + `password`. The chart never creates this
@@ -221,6 +256,18 @@ prometheusAgent:
 sops:
   # Enables the sops-encryption controller and the SOPS addon (which
   # installs sops-secrets-operator + the keygen Job).
+  #
+  # Single source of truth (CLUS-7411): this one value renders BOTH the
+  # SOPS_ENABLED env var and the s9s:sops-pipeline ClusterRole. Unrestricted
+  # mode includes cluster-wide Secret + SopsSecret reads. Restricted mode
+  # intentionally omits plaintext Secret read and retains only SopsSecret
+  # read; until Pattern A has per-granted-namespace informers, its capability
+  # probe disables the watchers with one WARN
+  # ("SOPS Pattern A disabled: missing RBAC") and
+  # kuber_sops_pattern_a_status{status="rbac_denied"}=1 instead of hammering
+  # the API server with Forbidden list/watch retries. Pattern B (CCR
+  # apply-path encryption) keeps working either way.
+  # Requires gitops.enabled=true (enforced in templates/validations.yaml).
   enabled: false
   # When true, the user pre-applies sops-age-key + sops-age-pubkey themselves
   # and the addon ships only the AppBundle (no keygen Job + RBAC).

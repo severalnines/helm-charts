@@ -1,6 +1,14 @@
 {{- if .Values.rbac.create }}
 {{- $opNs := include "agent-operator.namespace" . }}
 {{- $targets := .Values.rbac.namespaces.targets | default (list) }}
+{{/*
+  GitOps controller namespaces never receive write: s9s:cluster-write carries
+  argoproj.io/fluxcd edit verbs that are inert in a workload namespace but
+  LIVE in the controller's own namespace — binding it there would hand the
+  restricted agent edit access over the GitOps control plane itself. Derived
+  from the chart's own gitops values, not hardcoded names.
+*/}}
+{{- $gitopsNs := list .Values.gitops.argo.namespace .Values.gitops.flux.namespace | compact }}
 {{- range $ns := $targets }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -23,7 +31,23 @@ subjects:
   name: {{ $.Values.rbac.serviceAccounts.write.name }}
   namespace: {{ $opNs }}
 {{- end }}
-{{- if $.Values.mode.write.enabled }}
+{{- if and (not $.Values.mode.write.enabled) (not (has $ns $gitopsNs)) }}
+{{/*
+  A managed namespace is managed: write is granted here, scoped to this
+  namespace. Restricted mode means no CLUSTER-WIDE write (no
+  ClusterRoleBinding — see rolebinding-cluster-write.yaml); it does not mean
+  the namespaces the operator explicitly listed become read-only.
+
+  The pod runs as the plain agent SA whenever write mode is off (see
+  deployment.yaml serviceAccountName), so the grant goes to that SA.
+
+  This was gated on `mode.write.enabled` — the inverse — which made it
+  useless both ways: absent exactly when it was the point, and redundant
+  when present, since the cluster-wide binding already covered the write SA.
+  Selecting "Managed namespaces" without cluster-wide write therefore
+  granted read only, contradicting that checkbox's own help text. Observed
+  on cc-c7411t: n1 and n2 carried s9s-read-extra and nothing else.
+*/}}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
