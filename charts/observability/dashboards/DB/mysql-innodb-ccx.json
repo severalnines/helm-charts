@@ -38,20 +38,41 @@
         "type": "datasource"
       },
       {
+        "current": {
+          "selected": false,
+          "text": "mysql-innodb",
+          "value": "mysql-innodb"
+        },
+        "hide": 2,
+        "label": "Job",
+        "name": "job",
+        "options": [
+          {
+            "selected": true,
+            "text": "mysql-innodb",
+            "value": "mysql-innodb"
+          }
+        ],
+        "query": "mysql-innodb",
+        "skipUrlSync": false,
+        "type": "constant"
+      },
+      {
+        "allValue": ".+",
         "current": {},
         "datasource": {
           "type": "prometheus",
           "uid": "${datasource}"
         },
-        "definition": "label_values(mysql_up, job)",
+        "definition": "label_values(mysql_up{job=~\"$job\"}, namespace)",
         "hide": 0,
         "includeAll": true,
-        "label": "Job",
+        "label": "Namespace",
         "multi": true,
-        "name": "job",
+        "name": "namespace",
         "options": [],
         "query": {
-          "query": "label_values(mysql_up, job)",
+          "query": "label_values(mysql_up{job=~\"$job\"}, namespace)",
           "refId": "StandardVariableQuery"
         },
         "refresh": 2,
@@ -66,7 +87,7 @@
           "type": "prometheus",
           "uid": "${datasource}"
         },
-        "definition": "label_values(mysql_up{job=~\"$job\"}, kubernetes_pod_name)",
+        "definition": "label_values(mysql_up{job=~\"$job\", namespace=~\"$namespace\", pod=~\"ccxdeps-.*\"}, pod)",
         "hide": 0,
         "includeAll": true,
         "label": "Pod",
@@ -74,7 +95,7 @@
         "name": "pod",
         "options": [],
         "query": {
-          "query": "label_values(mysql_up{job=~\"$job\"}, kubernetes_pod_name)",
+          "query": "label_values(mysql_up{job=~\"$job\", namespace=~\"$namespace\", pod=~\"ccxdeps-.*\"}, pod)",
           "refId": "StandardVariableQuery"
         },
         "refresh": 2,
@@ -167,7 +188,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "min(mysql_up{job=~\"$job\", kubernetes_pod_name=~\"$pod\"})",
+          "expr": "min(mysql_up{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\"})",
           "instant": true,
           "legendFormat": "Status",
           "refId": "A"
@@ -218,7 +239,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "min(mysql_global_status_uptime{job=~\"$job\", kubernetes_pod_name=~\"$pod\"})",
+          "expr": "min(mysql_global_status_uptime{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\"})",
           "instant": true,
           "legendFormat": "Uptime",
           "refId": "A"
@@ -285,7 +306,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "sum(mysql_global_status_threads_connected{job=~\"$job\", kubernetes_pod_name=~\"$pod\"})",
+          "expr": "sum(mysql_global_status_threads_connected{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\"})",
           "instant": true,
           "legendFormat": "Connections",
           "refId": "A"
@@ -336,7 +357,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "sum(rate(mysql_global_status_queries{job=~\"$job\", kubernetes_pod_name=~\"$pod\"}[$__rate_interval]))",
+          "expr": "sum(rate(mysql_global_status_queries{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\"}[$__rate_interval]))",
           "instant": true,
           "legendFormat": "QPS",
           "refId": "A"
@@ -405,7 +426,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "100 * sum(rate(mysql_global_status_innodb_buffer_pool_read_requests{job=~\"$job\", kubernetes_pod_name=~\"$pod\"}[$__rate_interval])) / (sum(rate(mysql_global_status_innodb_buffer_pool_read_requests{job=~\"$job\", kubernetes_pod_name=~\"$pod\"}[$__rate_interval])) + sum(rate(mysql_global_status_innodb_buffer_pool_reads{job=~\"$job\", kubernetes_pod_name=~\"$pod\"}[$__rate_interval])))",
+          "expr": "100 * sum(rate(mysql_global_status_innodb_buffer_pool_read_requests{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\"}[$__rate_interval])) / (sum(rate(mysql_global_status_innodb_buffer_pool_read_requests{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\"}[$__rate_interval])) + sum(rate(mysql_global_status_innodb_buffer_pool_reads{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\"}[$__rate_interval])))",
           "instant": true,
           "legendFormat": "Hit Rate",
           "refId": "A"
@@ -472,7 +493,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "sum(mysql_global_status_threads_running{job=~\"$job\", kubernetes_pod_name=~\"$pod\"})",
+          "expr": "sum(mysql_global_status_threads_running{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\"})",
           "instant": true,
           "legendFormat": "Running",
           "refId": "A"
@@ -580,8 +601,8 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "mysql_global_status_threads_connected{job=~\"$job\", kubernetes_pod_name=~\"$pod\"}",
-          "legendFormat": "Connected - {{kubernetes_pod_name}}",
+          "expr": "mysql_global_status_threads_connected{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\"}",
+          "legendFormat": "Connected - {{pod}}",
           "refId": "A"
         },
         {
@@ -589,8 +610,8 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "mysql_global_status_threads_running{job=~\"$job\", kubernetes_pod_name=~\"$pod\"}",
-          "legendFormat": "Running - {{kubernetes_pod_name}}",
+          "expr": "mysql_global_status_threads_running{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\"}",
+          "legendFormat": "Running - {{pod}}",
           "refId": "B"
         },
         {
@@ -598,7 +619,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "mysql_global_variables_max_connections{job=~\"$job\", kubernetes_pod_name=~\"$pod\"}",
+          "expr": "mysql_global_variables_max_connections{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\"}",
           "legendFormat": "Max Connections",
           "refId": "C"
         }
@@ -660,8 +681,8 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "rate(mysql_global_status_queries{job=~\"$job\", kubernetes_pod_name=~\"$pod\"}[$__rate_interval])",
-          "legendFormat": "Queries - {{kubernetes_pod_name}}",
+          "expr": "rate(mysql_global_status_queries{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\"}[$__rate_interval])",
+          "legendFormat": "Queries - {{pod}}",
           "refId": "A"
         },
         {
@@ -669,8 +690,8 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "rate(mysql_global_status_slow_queries{job=~\"$job\", kubernetes_pod_name=~\"$pod\"}[$__rate_interval])",
-          "legendFormat": "Slow Queries - {{kubernetes_pod_name}}",
+          "expr": "rate(mysql_global_status_slow_queries{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\"}[$__rate_interval])",
+          "legendFormat": "Slow Queries - {{pod}}",
           "refId": "B"
         }
       ],
@@ -749,7 +770,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "100 * (1 - sum(mysql_global_status_buffer_pool_pages{state=\"free\", job=~\"$job\", kubernetes_pod_name=~\"$pod\"}) / sum(mysql_global_status_buffer_pool_pages{job=~\"$job\", kubernetes_pod_name=~\"$pod\"}))",
+          "expr": "100 * (1 - sum(mysql_global_status_buffer_pool_pages{state=\"free\", job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\"}) / sum(mysql_global_status_buffer_pool_pages{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\"}))",
           "instant": true,
           "legendFormat": "Buffer Pool Used %",
           "refId": "A"
@@ -843,8 +864,8 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "sum by (kubernetes_pod_name) (mysql_global_status_buffer_pool_pages{job=~\"$job\", kubernetes_pod_name=~\"$pod\"})",
-          "legendFormat": "Total Pages - {{kubernetes_pod_name}}",
+          "expr": "sum by (pod) (mysql_global_status_buffer_pool_pages{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\"})",
+          "legendFormat": "Total Pages - {{pod}}",
           "refId": "A"
         },
         {
@@ -852,8 +873,8 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "sum by (kubernetes_pod_name) (mysql_global_status_buffer_pool_pages{state=\"free\", job=~\"$job\", kubernetes_pod_name=~\"$pod\"})",
-          "legendFormat": "Free Pages - {{kubernetes_pod_name}}",
+          "expr": "sum by (pod) (mysql_global_status_buffer_pool_pages{state=\"free\", job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\"})",
+          "legendFormat": "Free Pages - {{pod}}",
           "refId": "B"
         },
         {
@@ -861,8 +882,8 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "sum by (kubernetes_pod_name) (mysql_global_status_buffer_pool_pages{state=~\"data|misc\", job=~\"$job\", kubernetes_pod_name=~\"$pod\"})",
-          "legendFormat": "Used Pages (data+misc) - {{kubernetes_pod_name}}",
+          "expr": "sum by (pod) (mysql_global_status_buffer_pool_pages{state=~\"data|misc\", job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\"})",
+          "legendFormat": "Used Pages (data+misc) - {{pod}}",
           "refId": "C"
         }
       ],
@@ -943,8 +964,8 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "100 * rate(mysql_global_status_innodb_buffer_pool_read_requests{job=~\"$job\", kubernetes_pod_name=~\"$pod\"}[$__rate_interval]) / (rate(mysql_global_status_innodb_buffer_pool_read_requests{job=~\"$job\", kubernetes_pod_name=~\"$pod\"}[$__rate_interval]) + rate(mysql_global_status_innodb_buffer_pool_reads{job=~\"$job\", kubernetes_pod_name=~\"$pod\"}[$__rate_interval]))",
-          "legendFormat": "Hit Rate - {{kubernetes_pod_name}}",
+          "expr": "100 * rate(mysql_global_status_innodb_buffer_pool_read_requests{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\"}[$__rate_interval]) / (rate(mysql_global_status_innodb_buffer_pool_read_requests{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\"}[$__rate_interval]) + rate(mysql_global_status_innodb_buffer_pool_reads{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\"}[$__rate_interval]))",
+          "legendFormat": "Hit Rate - {{pod}}",
           "refId": "A"
         }
       ],
@@ -1018,7 +1039,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "sum(rate(mysql_global_status_innodb_row_ops_total{job=~\"$job\", kubernetes_pod_name=~\"$pod\", operation=\"read\"}[$__rate_interval]))",
+          "expr": "sum(rate(mysql_global_status_innodb_row_ops_total{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\", operation=\"read\"}[$__rate_interval]))",
           "legendFormat": "Rows Read/sec",
           "refId": "A"
         },
@@ -1027,7 +1048,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "sum(rate(mysql_global_status_innodb_row_ops_total{job=~\"$job\", kubernetes_pod_name=~\"$pod\", operation=\"inserted\"}[$__rate_interval]))",
+          "expr": "sum(rate(mysql_global_status_innodb_row_ops_total{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\", operation=\"inserted\"}[$__rate_interval]))",
           "legendFormat": "Rows Inserted/sec",
           "refId": "B"
         },
@@ -1036,7 +1057,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "sum(rate(mysql_global_status_innodb_row_ops_total{job=~\"$job\", kubernetes_pod_name=~\"$pod\", operation=\"updated\"}[$__rate_interval]))",
+          "expr": "sum(rate(mysql_global_status_innodb_row_ops_total{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\", operation=\"updated\"}[$__rate_interval]))",
           "legendFormat": "Rows Updated/sec",
           "refId": "C"
         },
@@ -1045,7 +1066,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "sum(rate(mysql_global_status_innodb_row_ops_total{job=~\"$job\", kubernetes_pod_name=~\"$pod\", operation=\"deleted\"}[$__rate_interval]))",
+          "expr": "sum(rate(mysql_global_status_innodb_row_ops_total{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\", operation=\"deleted\"}[$__rate_interval]))",
           "legendFormat": "Rows Deleted/sec",
           "refId": "D"
         }
@@ -1123,7 +1144,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "sum(mysql_global_status_innodb_row_lock_current_waits{job=~\"$job\", kubernetes_pod_name=~\"$pod\"})",
+          "expr": "sum(mysql_global_status_innodb_row_lock_current_waits{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\"})",
           "instant": true,
           "legendFormat": "Lock Waits",
           "refId": "A"
@@ -1190,7 +1211,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "sum(rate(mysql_global_status_innodb_row_lock_time{job=~\"$job\", kubernetes_pod_name=~\"$pod\"}[$__rate_interval])) / sum(rate(mysql_global_status_innodb_row_lock_waits{job=~\"$job\", kubernetes_pod_name=~\"$pod\"}[$__rate_interval]))",
+          "expr": "sum(rate(mysql_global_status_innodb_row_lock_time{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\"}[$__rate_interval])) / sum(rate(mysql_global_status_innodb_row_lock_waits{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\"}[$__rate_interval]))",
           "instant": true,
           "legendFormat": "Avg Wait",
           "refId": "A"
@@ -1249,8 +1270,8 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "rate(mysql_global_status_innodb_row_lock_waits{job=~\"$job\", kubernetes_pod_name=~\"$pod\"}[$__rate_interval])",
-          "legendFormat": "Lock Waits/sec - {{kubernetes_pod_name}}",
+          "expr": "rate(mysql_global_status_innodb_row_lock_waits{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\"}[$__rate_interval])",
+          "legendFormat": "Lock Waits/sec - {{pod}}",
           "refId": "A"
         }
       ],
@@ -1308,8 +1329,8 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "rate(mysql_global_status_innodb_row_lock_time{job=~\"$job\", kubernetes_pod_name=~\"$pod\"}[$__rate_interval]) / rate(mysql_global_status_innodb_row_lock_waits{job=~\"$job\", kubernetes_pod_name=~\"$pod\"}[$__rate_interval])",
-          "legendFormat": "Avg Lock Time - {{kubernetes_pod_name}}",
+          "expr": "rate(mysql_global_status_innodb_row_lock_time{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\"}[$__rate_interval]) / rate(mysql_global_status_innodb_row_lock_waits{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\"}[$__rate_interval])",
+          "legendFormat": "Avg Lock Time - {{pod}}",
           "refId": "A"
         }
       ],
@@ -1378,7 +1399,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "sum(rate(mysql_global_status_innodb_data_reads{job=~\"$job\", kubernetes_pod_name=~\"$pod\"}[$__rate_interval]))",
+          "expr": "sum(rate(mysql_global_status_innodb_data_reads{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\"}[$__rate_interval]))",
           "legendFormat": "Data Reads/sec",
           "refId": "A"
         },
@@ -1387,7 +1408,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "sum(rate(mysql_global_status_innodb_data_writes{job=~\"$job\", kubernetes_pod_name=~\"$pod\"}[$__rate_interval]))",
+          "expr": "sum(rate(mysql_global_status_innodb_data_writes{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\"}[$__rate_interval]))",
           "legendFormat": "Data Writes/sec",
           "refId": "B"
         },
@@ -1396,7 +1417,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "sum(rate(mysql_global_status_innodb_log_writes{job=~\"$job\", kubernetes_pod_name=~\"$pod\"}[$__rate_interval]))",
+          "expr": "sum(rate(mysql_global_status_innodb_log_writes{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\"}[$__rate_interval]))",
           "legendFormat": "Log Writes/sec",
           "refId": "C"
         }
@@ -1455,7 +1476,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "sum(rate(mysql_global_status_innodb_data_read{job=~\"$job\", kubernetes_pod_name=~\"$pod\"}[$__rate_interval]))",
+          "expr": "sum(rate(mysql_global_status_innodb_data_read{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\"}[$__rate_interval]))",
           "legendFormat": "Data Read Bytes/sec",
           "refId": "A"
         },
@@ -1464,7 +1485,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "sum(rate(mysql_global_status_innodb_data_written{job=~\"$job\", kubernetes_pod_name=~\"$pod\"}[$__rate_interval]))",
+          "expr": "sum(rate(mysql_global_status_innodb_data_written{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\"}[$__rate_interval]))",
           "legendFormat": "Data Written Bytes/sec",
           "refId": "B"
         }
@@ -1534,7 +1555,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "sum(rate(mysql_global_status_bytes_received{job=~\"$job\", kubernetes_pod_name=~\"$pod\"}[$__rate_interval]))",
+          "expr": "sum(rate(mysql_global_status_bytes_received{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\"}[$__rate_interval]))",
           "legendFormat": "Bytes Received/sec",
           "refId": "A"
         },
@@ -1543,7 +1564,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "sum(rate(mysql_global_status_bytes_sent{job=~\"$job\", kubernetes_pod_name=~\"$pod\"}[$__rate_interval]))",
+          "expr": "sum(rate(mysql_global_status_bytes_sent{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\"}[$__rate_interval]))",
           "legendFormat": "Bytes Sent/sec",
           "refId": "B"
         }
@@ -1601,8 +1622,8 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "rate(mysql_global_status_aborted_connects{job=~\"$job\", kubernetes_pod_name=~\"$pod\"}[$__rate_interval])",
-          "legendFormat": "Aborted Connects - {{kubernetes_pod_name}}",
+          "expr": "rate(mysql_global_status_aborted_connects{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\"}[$__rate_interval])",
+          "legendFormat": "Aborted Connects - {{pod}}",
           "refId": "A"
         },
         {
@@ -1610,8 +1631,8 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "rate(mysql_global_status_aborted_clients{job=~\"$job\", kubernetes_pod_name=~\"$pod\"}[$__rate_interval])",
-          "legendFormat": "Aborted Clients - {{kubernetes_pod_name}}",
+          "expr": "rate(mysql_global_status_aborted_clients{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\"}[$__rate_interval])",
+          "legendFormat": "Aborted Clients - {{pod}}",
           "refId": "B"
         },
         {
@@ -1619,8 +1640,8 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "rate(mysql_global_status_connection_errors_total{job=~\"$job\", kubernetes_pod_name=~\"$pod\"}[$__rate_interval])",
-          "legendFormat": "Connection Errors ({{error}}) - {{kubernetes_pod_name}}",
+          "expr": "rate(mysql_global_status_connection_errors_total{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\"}[$__rate_interval])",
+          "legendFormat": "Connection Errors ({{error}}) - {{pod}}",
           "refId": "C"
         }
       ],
@@ -1805,7 +1826,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "topk(50, mysql_info_schema_table_size{job=~\"$job\", kubernetes_pod_name=~\"$pod\", component=\"data_length\"})",
+          "expr": "topk(50, mysql_info_schema_table_size{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\", component=\"data_length\"})",
           "format": "table",
           "instant": true,
           "legendFormat": "",
@@ -1816,7 +1837,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "topk(50, mysql_info_schema_table_size{job=~\"$job\", kubernetes_pod_name=~\"$pod\", component=\"index_length\"})",
+          "expr": "topk(50, mysql_info_schema_table_size{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\", component=\"index_length\"})",
           "format": "table",
           "instant": true,
           "legendFormat": "",
@@ -1827,7 +1848,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "mysql_info_schema_table_rows{job=~\"$job\", kubernetes_pod_name=~\"$pod\"}",
+          "expr": "mysql_info_schema_table_rows{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\"}",
           "format": "table",
           "instant": true,
           "legendFormat": "",
@@ -1961,7 +1982,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "sum by (schema) (mysql_info_schema_table_size{job=~\"$job\", kubernetes_pod_name=~\"$pod\", component=~\"data_length|index_length\"})",
+          "expr": "sum by (schema) (mysql_info_schema_table_size{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\", component=~\"data_length|index_length\"})",
           "format": "table",
           "instant": true,
           "refId": "A"
@@ -2036,7 +2057,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "sum by (schema) (mysql_info_schema_table_rows{job=~\"$job\", kubernetes_pod_name=~\"$pod\"})",
+          "expr": "sum by (schema) (mysql_info_schema_table_rows{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\"})",
           "format": "table",
           "instant": true,
           "refId": "A"
@@ -2194,7 +2215,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "topk(30, rate(mysql_perf_schema_table_io_waits_total{job=~\"$job\", kubernetes_pod_name=~\"$pod\", operation=\"fetch\"}[$__rate_interval]))",
+          "expr": "topk(30, rate(mysql_perf_schema_table_io_waits_total{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\", operation=\"fetch\"}[$__rate_interval]))",
           "format": "table",
           "instant": true,
           "legendFormat": "",
@@ -2205,7 +2226,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "topk(30, rate(mysql_perf_schema_table_io_waits_total{job=~\"$job\", kubernetes_pod_name=~\"$pod\", operation=\"insert\"}[$__rate_interval]))",
+          "expr": "topk(30, rate(mysql_perf_schema_table_io_waits_total{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\", operation=\"insert\"}[$__rate_interval]))",
           "format": "table",
           "instant": true,
           "legendFormat": "",
@@ -2216,7 +2237,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "topk(30, rate(mysql_perf_schema_table_io_waits_total{job=~\"$job\", kubernetes_pod_name=~\"$pod\", operation=\"update\"}[$__rate_interval]))",
+          "expr": "topk(30, rate(mysql_perf_schema_table_io_waits_total{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\", operation=\"update\"}[$__rate_interval]))",
           "format": "table",
           "instant": true,
           "legendFormat": "",
@@ -2227,7 +2248,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "topk(30, rate(mysql_perf_schema_table_io_waits_total{job=~\"$job\", kubernetes_pod_name=~\"$pod\", operation=\"delete\"}[$__rate_interval]))",
+          "expr": "topk(30, rate(mysql_perf_schema_table_io_waits_total{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\", operation=\"delete\"}[$__rate_interval]))",
           "format": "table",
           "instant": true,
           "legendFormat": "",
@@ -2238,7 +2259,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "topk(30, rate(mysql_perf_schema_table_io_waits_seconds_total{job=~\"$job\", kubernetes_pod_name=~\"$pod\", operation=\"fetch\"}[$__rate_interval]))",
+          "expr": "topk(30, rate(mysql_perf_schema_table_io_waits_seconds_total{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\", operation=\"fetch\"}[$__rate_interval]))",
           "format": "table",
           "instant": true,
           "legendFormat": "",
@@ -2346,8 +2367,8 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "rate(mysql_info_schema_innodb_metrics_lock_lock_waits_total{job=~\"$job\", kubernetes_pod_name=~\"$pod\"}[$__rate_interval])",
-          "legendFormat": "Lock Waits - {{kubernetes_pod_name}}",
+          "expr": "rate(mysql_info_schema_innodb_metrics_lock_lock_waits_total{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\"}[$__rate_interval])",
+          "legendFormat": "Lock Waits - {{pod}}",
           "refId": "A"
         },
         {
@@ -2355,8 +2376,8 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "rate(mysql_info_schema_innodb_metrics_lock_lock_timeouts_total{job=~\"$job\", kubernetes_pod_name=~\"$pod\"}[$__rate_interval])",
-          "legendFormat": "Lock Timeouts - {{kubernetes_pod_name}}",
+          "expr": "rate(mysql_info_schema_innodb_metrics_lock_lock_timeouts_total{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\"}[$__rate_interval])",
+          "legendFormat": "Lock Timeouts - {{pod}}",
           "refId": "B"
         },
         {
@@ -2364,8 +2385,8 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "rate(mysql_info_schema_innodb_metrics_lock_lock_deadlocks_total{job=~\"$job\", kubernetes_pod_name=~\"$pod\"}[$__rate_interval])",
-          "legendFormat": "Deadlocks - {{kubernetes_pod_name}}",
+          "expr": "rate(mysql_info_schema_innodb_metrics_lock_lock_deadlocks_total{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\"}[$__rate_interval])",
+          "legendFormat": "Deadlocks - {{pod}}",
           "refId": "C"
         }
       ],
@@ -2422,8 +2443,8 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "mysql_info_schema_innodb_metrics_transaction_trx_active_transactions{job=~\"$job\", kubernetes_pod_name=~\"$pod\"}",
-          "legendFormat": "Active Transactions - {{kubernetes_pod_name}}",
+          "expr": "mysql_info_schema_innodb_metrics_transaction_trx_active_transactions{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\"}",
+          "legendFormat": "Active Transactions - {{pod}}",
           "refId": "A"
         },
         {
@@ -2431,8 +2452,8 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "rate(mysql_info_schema_innodb_metrics_transaction_trx_commits_insert_update_total{job=~\"$job\", kubernetes_pod_name=~\"$pod\"}[$__rate_interval])",
-          "legendFormat": "Commits/sec - {{kubernetes_pod_name}}",
+          "expr": "rate(mysql_info_schema_innodb_metrics_transaction_trx_commits_insert_update_total{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\"}[$__rate_interval])",
+          "legendFormat": "Commits/sec - {{pod}}",
           "refId": "B"
         },
         {
@@ -2440,8 +2461,8 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "rate(mysql_info_schema_innodb_metrics_transaction_trx_rollbacks_total{job=~\"$job\", kubernetes_pod_name=~\"$pod\"}[$__rate_interval])",
-          "legendFormat": "Rollbacks/sec - {{kubernetes_pod_name}}",
+          "expr": "rate(mysql_info_schema_innodb_metrics_transaction_trx_rollbacks_total{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\"}[$__rate_interval])",
+          "legendFormat": "Rollbacks/sec - {{pod}}",
           "refId": "C"
         }
       ],
@@ -2522,7 +2543,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "zscore((rate(mysql_global_status_slow_queries{job=~\"$job\", kubernetes_pod_name=~\"$pod\"}[5m]))[2h:1m]) default 0",
+          "expr": "zscore((rate(mysql_global_status_slow_queries{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\"}[5m]))[2h:1m]) default 0",
           "instant": true,
           "legendFormat": "Z",
           "refId": "A"
@@ -2593,7 +2614,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "zscore((mysql_global_status_threads_connected{job=~\"$job\", kubernetes_pod_name=~\"$pod\"})[2h:1m]) default 0",
+          "expr": "zscore((mysql_global_status_threads_connected{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\"})[2h:1m]) default 0",
           "instant": true,
           "legendFormat": "Z",
           "refId": "A"
@@ -2664,7 +2685,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "zscore((rate(mysql_global_status_innodb_row_lock_waits{job=~\"$job\", kubernetes_pod_name=~\"$pod\"}[5m]))[2h:1m]) default 0",
+          "expr": "zscore((rate(mysql_global_status_innodb_row_lock_waits{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\"}[5m]))[2h:1m]) default 0",
           "instant": true,
           "legendFormat": "Z",
           "refId": "A"
@@ -2735,7 +2756,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "zscore((rate(mysql_global_status_queries{job=~\"$job\", kubernetes_pod_name=~\"$pod\"}[5m]))[2h:1m]) default 0",
+          "expr": "zscore((rate(mysql_global_status_queries{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\"}[5m]))[2h:1m]) default 0",
           "instant": true,
           "legendFormat": "Z",
           "refId": "A"
@@ -2806,7 +2827,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "zscore((rate(mysql_global_status_innodb_data_writes{job=~\"$job\", kubernetes_pod_name=~\"$pod\"}[5m]))[2h:1m]) default 0",
+          "expr": "zscore((rate(mysql_global_status_innodb_data_writes{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\"}[5m]))[2h:1m]) default 0",
           "instant": true,
           "legendFormat": "Z",
           "refId": "A"
@@ -2877,7 +2898,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "zscore((100 * rate(mysql_global_status_innodb_buffer_pool_read_requests{job=~\"$job\", kubernetes_pod_name=~\"$pod\"}[5m]) / (rate(mysql_global_status_innodb_buffer_pool_read_requests{job=~\"$job\", kubernetes_pod_name=~\"$pod\"}[5m]) + rate(mysql_global_status_innodb_buffer_pool_reads{job=~\"$job\", kubernetes_pod_name=~\"$pod\"}[5m])))[2h:1m]) default 0",
+          "expr": "zscore((100 * rate(mysql_global_status_innodb_buffer_pool_read_requests{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\"}[5m]) / (rate(mysql_global_status_innodb_buffer_pool_read_requests{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\"}[5m]) + rate(mysql_global_status_innodb_buffer_pool_reads{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\"}[5m])))[2h:1m]) default 0",
           "instant": true,
           "legendFormat": "Z",
           "refId": "A"
@@ -2958,8 +2979,8 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "zscore((rate(mysql_global_status_slow_queries{job=~\"$job\", kubernetes_pod_name=~\"$pod\"}[5m]))[2h:1m]) default 0",
-          "legendFormat": "Slow Queries - {{kubernetes_pod_name}}",
+          "expr": "zscore((rate(mysql_global_status_slow_queries{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\"}[5m]))[2h:1m]) default 0",
+          "legendFormat": "Slow Queries - {{pod}}",
           "refId": "A"
         },
         {
@@ -2967,8 +2988,8 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "zscore((rate(mysql_global_status_innodb_row_lock_waits{job=~\"$job\", kubernetes_pod_name=~\"$pod\"}[5m]))[2h:1m]) default 0",
-          "legendFormat": "Lock Waits - {{kubernetes_pod_name}}",
+          "expr": "zscore((rate(mysql_global_status_innodb_row_lock_waits{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\"}[5m]))[2h:1m]) default 0",
+          "legendFormat": "Lock Waits - {{pod}}",
           "refId": "B"
         }
       ],
@@ -3047,8 +3068,8 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "zscore((mysql_global_status_threads_connected{job=~\"$job\", kubernetes_pod_name=~\"$pod\"})[2h:1m]) default 0",
-          "legendFormat": "Connections - {{kubernetes_pod_name}}",
+          "expr": "zscore((mysql_global_status_threads_connected{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\"})[2h:1m]) default 0",
+          "legendFormat": "Connections - {{pod}}",
           "refId": "A"
         },
         {
@@ -3056,8 +3077,8 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "zscore((rate(mysql_global_status_queries{job=~\"$job\", kubernetes_pod_name=~\"$pod\"}[5m]))[2h:1m]) default 0",
-          "legendFormat": "QPS - {{kubernetes_pod_name}}",
+          "expr": "zscore((rate(mysql_global_status_queries{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\"}[5m]))[2h:1m]) default 0",
+          "legendFormat": "QPS - {{pod}}",
           "refId": "B"
         }
       ],
