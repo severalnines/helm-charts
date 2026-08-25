@@ -1,0 +1,46 @@
+{{- $isFile := eq .Values.cmon.secretStorageEngine "file" -}}
+{{- $isK8s := eq .Values.cmon.secretStorageEngine "k8s" -}}
+{{- $migrateFromFile := and $isK8s .Values.cmon.migrateFromFile -}}
+{{- if or $isFile $migrateFromFile }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: cmon-master-volume
+  annotations:
+    helm.sh/resource-policy: keep
+  {{- if .Values.cmon.finalizers | default false }}
+  finalizers:
+    - kubernetes.io/pvc-protection
+    - cmon/pvc-protection
+  {{- end }}
+spec:
+  {{- with .Values.storageClassName }}
+  storageClassName: {{ . }}
+  {{- end }}
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 20Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: cmon-var-lib-cmon
+  annotations:
+    helm.sh/resource-policy: keep
+  {{- if .Values.cmon.finalizers | default false }}
+  finalizers:
+    - kubernetes.io/pvc-protection
+    - cmon/pvc-protection
+  {{- end }}
+spec:
+  {{- with .Values.storageClassName }}
+  storageClassName: {{ . }}
+  {{- end }}
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+{{- end }}

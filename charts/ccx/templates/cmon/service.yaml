@@ -1,4 +1,25 @@
-{{ if ( and .Values.cmon .Values.cmon.enabled ) }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: ccv2-mcc
+  labels:
+    app: ccv2-mcc
+    run: ccv2-mcc
+spec:
+  ports:
+    - port: 19051
+      protocol: TCP
+      targetPort: 19051
+      name: 19051-port
+    - port: 80
+      protocol: TCP
+      targetPort: 80
+      name: 80-port
+  selector:
+    app: ccv2-mcc
+    run: ccv2-mcc
+  type: ClusterIP
+---
 apiVersion: v1
 kind: Service
 metadata:
@@ -20,14 +41,11 @@ spec:
       protocol: TCP
       targetPort: 9954
       name: 9954-port
-    - port: 80
-      protocol: TCP
-      targetPort: 80
-      name: 80-port
     - port: 9511
       protocol: TCP
       targetPort: 9511
       name: 9511-port
+  sessionAffinity: ClientIP
   selector:
     app: cmon
     run: cmon
@@ -51,15 +69,7 @@ spec:
       protocol: TCP
       targetPort: 9501
       name: 9501-port
-{{ else if ( and .Values.cmon .Values.cmon.externalIP ) }}
-apiVersion: v1
-kind: Service
-metadata:
-  name: cmon-master
-spec:
-  type: ExternalName
-  externalName: {{ .Values.cmon.externalIP }}.nip.io
-  ports:
-    - port: 9501
+    - port: 9511
       protocol: TCP
-{{ end }}
+      targetPort: 9511
+      name: 9511-port

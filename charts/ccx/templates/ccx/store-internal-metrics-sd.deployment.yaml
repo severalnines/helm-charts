@@ -16,6 +16,9 @@ spec:
       labels:
         app: store-internal-metrics-sd
         run: store-internal-metrics-sd
+      annotations:
+        checksum: {{ include (print $.Template.BasePath "/ccx/secrets.yaml") . | sha256sum }}
+        checksum/config: {{ include (print $.Template.BasePath "/ccx/config.yaml") . | sha256sum }}
     spec:
       containers:
         - name: store-internal-metrics-sd
@@ -27,6 +30,8 @@ spec:
                 fieldRef:
                   fieldPath: metadata.namespace
           envFrom:
+            - configMapRef:
+                name: ccx
             - secretRef:
                 name: db
           ports:
