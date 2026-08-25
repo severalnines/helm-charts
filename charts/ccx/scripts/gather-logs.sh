@@ -77,65 +77,29 @@ do
 done
 
 echo Gathering s9s info...
-kubectl ${NAMESPACE} exec cmon-0 -c cmon -- s9s job --list --print-json --color=never > ${dir}/s9s.job.list.json 2>&1
-kubectl ${NAMESPACE} exec cmon-0 -c cmon -- s9s job --list --color=never > ${dir}/s9s.job.list.txt 2>&1
-kubectl ${NAMESPACE} exec cmon-0 -c cmon -- s9s cluster --list --long --color=never > ${dir}/s9s.cluster.list.txt 2>&1
-kubectl ${NAMESPACE} exec cmon-0 -c cmon -- s9s cluster --list --long --print-json --color=never > ${dir}/s9s.cluster.list.json 2>&1
-kubectl ${NAMESPACE} exec cmon-0 -c cmon -- s9s node --list --long --color=never > ${dir}/s9s.node.list.txt 2>&1
-kubectl ${NAMESPACE} exec cmon-0 -c cmon -- s9s node --list --long --print-json --color=never > ${dir}/s9s.node.list.json 2>&1
+kubectl ${NAMESPACE} exec -ti cmon-0 -c cmon -- s9s job --list --print-json > ${dir}/s9s.job.list.json 2>&1
+kubectl ${NAMESPACE} exec -ti cmon-0 -c cmon -- s9s job --list > ${dir}/s9s.job.list.txt 2>&1
+kubectl ${NAMESPACE} exec -ti cmon-0 -c cmon -- s9s cluster --list --long > ${dir}/s9s.cluster.list.txt 2>&1
+kubectl ${NAMESPACE} exec -ti cmon-0 -c cmon -- s9s cluster --list --long --print-json > ${dir}/s9s.cluster.list.json 2>&1
+kubectl ${NAMESPACE} exec -ti cmon-0 -c cmon -- s9s node --list --long > ${dir}/s9s.node.list.txt 2>&1
+kubectl ${NAMESPACE} exec -ti cmon-0 -c cmon -- s9s node --list --long --print-json > ${dir}/s9s.node.list.json 2>&1
 
 echo Gathering last failed job logs if any...
-jobs=$(kubectl ${NAMESPACE} exec cmon-0 -c cmon -- s9s job --list --show-failed --color=never | grep -v "Total" | tail -n +2 | awk '{print $1}')
+jobs=$(kubectl ${NAMESPACE} exec -ti cmon-0 -c cmon -- s9s job --list --show-failed | grep -v "Total" | tail -n +2 | awk '{print $1}')
 
 for i in ${jobs}
 do
     echo Gathering logs for job ${i}...
-    kubectl ${NAMESPACE} exec cmon-0 -c cmon -- s9s job --log --print-request --color=never --job-id ${i} > ${dir}/s9s.job.${i}.log.txt 2>&1
-    kubectl ${NAMESPACE} exec cmon-0 -c cmon -- s9s job --log --color=never --job-id ${i} --print-json > ${dir}/s9s.job.${i}.log.json 2>&1
+    kubectl ${NAMESPACE} exec -ti cmon-0 -c cmon -- s9s job --log --print-request --color=never --job-id ${i} > ${dir}/s9s.job.${i}.log.txt 2>&1
+    kubectl ${NAMESPACE} exec -ti cmon-0 -c cmon -- s9s job --log --color=never --job-id ${i} --print-json > ${dir}/s9s.job.${i}.log.json 2>&1
 done
 
 echo Dumping CCX tables...
 export DB_DSN=$(kubectl ${NAMESPACE} get secret db -o jsonpath='{.data.DB_DSN}' | base64 --decode)
 export DEPLOYER_DB_DSN=$(kubectl ${NAMESPACE} get secret db-deployer -o jsonpath='{.data.DB_DSN}' | base64 --decode)
-
-# Run pg_dump inside a throwaway pod. Each call uses a UNIQUE pod name so that a
-# previous dump pod that is still terminating (or was left behind by an
-# interrupted run) cannot cause a `pods "psql" already exists` failure. Any
-# leftover pod with the same name is removed first as an extra safeguard.
-# The caller keeps stdout (the SQL) and stderr (kubectl/pg_dump messages)
-# separate so pod lifecycle text never ends up inside the .sql dump.
-pg_dump_in_pod() {
-    local podname="ccx-logs-pgdump-$$-${RANDOM}"
-    kubectl ${NAMESPACE} delete pod "${podname}" --ignore-not-found --now >/dev/null 2>&1
-    kubectl ${NAMESPACE} run -i --rm "${podname}" --quiet --image=postgres:15-alpine --restart=Never -- pg_dump "$@"
-}
-
-# Dump the CCX database with an EXCLUDE list rather than a hand-maintained -t
-# allowlist. This keeps the bundle complete across schema changes - notably the
-# billing usage tables (billing_usage_clusters, billing_daily_usage_clusters,
-# billing_snapshot, ...) that hold the datastore lifecycle / deleted_at used by
-# the billing report - which the old allowlist silently omitted. It also avoids
-# pg_dump aborting when a single listed table does not exist on a given version.
-#
-# The excluded tables are:
-#   * sensitive data that must never leave the cluster: user PII (users, users_*,
-#     admin_users), auth sessions (session/sessions), and tokens/credentials
-#     (web_tokens, oauth2_*). KEEP THIS LIST UP TO DATE if new sensitive tables
-#     are added.
-#   * jobs / job_messages, which are large and dumped separately below.
-# Note: pg_dump takes the connection string / dbname as its final positional
-# argument, so it is passed last (after all options) for reliable parsing.
-pg_dump_in_pod -x -O \
-    --exclude-table='users*' \
-    --exclude-table='admin_users' \
-    --exclude-table='session*' \
-    --exclude-table='web_tokens' \
-    --exclude-table='oauth2_*' \
-    --exclude-table='jobs' \
-    --exclude-table='job_messages' \
-    "${DB_DSN}" > "${dir}/ccx_tables_dump.sql" 2> "${dir}/ccx_tables_dump.err"
-pg_dump_in_pod -x -O -t job_messages -t jobs "${DB_DSN}" > "${dir}/ccx_jobs_dump.sql" 2> "${dir}/ccx_jobs_dump.err"
-pg_dump_in_pod -x -O "${DEPLOYER_DB_DSN}" > "${dir}/ccx_deployer_tables_dump.sql" 2> "${dir}/ccx_deployer_tables_dump.err"
+kubectl ${NAMESPACE} run -it --rm psql --image=postgres:15-alpine --restart=Never -- pg_dump ${DB_DSN} -x -O -t backups -t cmons -t cluster_config_parameters -t cluster_firewalls -t cluster_hosts -t clusters -t controllers -t databases -t darwin_migrations -t locks -t organizations -t parameter_group -t vpc -t vpc_subnets > ${dir}/ccx_tables_dump.sql
+kubectl ${NAMESPACE} run -it --rm psql --image=postgres:15-alpine --restart=Never -- pg_dump ${DB_DSN} -x -O -t job_messages -t jobs > ${dir}/ccx_jobs_dump.sql
+kubectl ${NAMESPACE} run -it --rm psql --image=postgres:15-alpine --restart=Never -- pg_dump ${DEPLOYER_DB_DSN} -x -O > ${dir}/ccx_deployer_tables_dump.sql
 
 echo Archiving logs...
 tar -zcf ${OUTPUT_FILE} -C ${dir} .

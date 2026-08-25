@@ -20,7 +20,14 @@ spec:
     - host: {{ include "ccx.ccxFQDN" . }}
       http:
         paths:
-          - path: /admin(.*)
+          - path: /admin/(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: ccx-ui-admin-svc
+                port:
+                  number: 80
+          - path: /admin
             pathType: ImplementationSpecific
             backend:
               service:
