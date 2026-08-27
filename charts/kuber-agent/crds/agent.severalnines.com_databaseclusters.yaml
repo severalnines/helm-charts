@@ -147,6 +147,22 @@ spec:
                   ExternalAccess defines how the database can be accessed from outside the Kubernetes cluster
                   This can be through LoadBalancer, NodePort, or both
                 properties:
+                  gateway:
+                    description: |-
+                      Gateway configures Gateway API exposure (CLUS-6203): the database is
+                      published through the shared cc-gateway with an auto-allocated TCP
+                      listener port (a ListenerSet + TCPRoute per exposed cluster), instead of
+                      its own cloud LoadBalancer or a NodePort. Requires the gateway addon.
+                      The three modes are independent flags — a cluster may set more than one,
+                      though Gateway is the intended single edge.
+                    properties:
+                      enabled:
+                        default: false
+                        description: |-
+                          Enabled indicates whether to expose this database through the shared
+                          Gateway API gateway (cc-gateway).
+                        type: boolean
+                    type: object
                   loadBalancer:
                     description: LoadBalancer configures a LoadBalancer service for
                       external access
@@ -1240,6 +1256,41 @@ spec:
                       type: string
                   type: object
                 type: array
+              gateway:
+                description: |-
+                  Gateway reports Gateway API exposure state when spec.externalAccess.gateway
+                  is enabled (CLUS-6203): the auto-allocated listener port on the shared
+                  gateway and which gateway/listener it lives on. The UI joins this port
+                  with the gateway address it reads from the /k8s/gateways proxy endpoint
+                  to build the external connection string. Nil when gateway exposure is off.
+                properties:
+                  gatewayName:
+                    description: |-
+                      GatewayName is the shared Gateway this database's listener attaches to
+                      (e.g. "cc-gateway").
+                    type: string
+                  gatewayNamespace:
+                    description: |-
+                      GatewayNamespace is the namespace of the shared Gateway
+                      (e.g. "envoy-gateway-system").
+                    type: string
+                  listenerName:
+                    description: |-
+                      ListenerName is the ListenerSet listener / TCPRoute sectionName for this
+                      database (the per-database listener inside the ListenerSet).
+                    type: string
+                  listenerPort:
+                    description: |-
+                      ListenerPort is the TCP port auto-allocated for this database on the
+                      shared gateway (the ListenerSet listener port and the TCPRoute target).
+                      This is the GATEWAY LISTENER's port, not necessarily the externally
+                      reachable one: with a NodePort data-plane Service the reachable port is
+                      the Envoy Service's nodePort for this listener (the UI resolves it from
+                      the /k8s/gateways proxy endpoint); with a LoadBalancer Service the two
+                      coincide.
+                    format: int32
+                    type: integer
+                type: object
               instances:
                 description: Instances represents the status of individual instances
                   in the cluster
