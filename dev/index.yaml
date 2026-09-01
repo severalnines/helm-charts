@@ -2,6 +2,16 @@ apiVersion: v1
 entries:
   kuber-agent:
   - apiVersion: v2
+    appVersion: 1.1.9
+    created: "2026-09-01T15:05:05.051709822Z"
+    description: A Helm chart for ClusterControl Kubernetes Agent Operator
+    digest: c41186fb6b3239d9332cd0529567c9e467853ada29bf37382627ef9fe591a6cc
+    name: kuber-agent
+    type: application
+    urls:
+    - https://github.com/severalnines/helm-charts/releases/download/kuber-agent-1.1.9-dev/kuber-agent-1.1.9.tgz
+    version: 1.1.9
+  - apiVersion: v2
     appVersion: 1.1.8
     created: "2026-09-01T08:16:40.914909218Z"
     description: A Helm chart for ClusterControl Kubernetes Agent Operator
@@ -101,4 +111,4 @@ entries:
     urls:
     - https://github.com/severalnines/helm-charts/releases/download/kuber-agent-1.0.0-dev/kuber-agent-1.0.0.tgz
     version: 1.0.0
-generated: "2026-09-01T08:16:40.915068585Z"
+generated: "2026-09-01T15:05:05.051763462Z"
