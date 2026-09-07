@@ -633,7 +633,25 @@ victoria-metrics-alert:
               summary: "PVC `{{ $labels.persistentvolumeclaim }}` on `{{ $labels.namespace }}` is almost full"
               description: "This PVC is using more than 80% of its capacity ({{ $value | humanizePercentage }}). If usage keeps growing, the pod using this volume may fail to write once it's completely full — consider resizing the PVC or investigating what's consuming the space."
               runbook_url: "https://severalnines.github.io/ccx-docs/docs/admin/Troubleshooting/#pvc-volume-usage"
-
+          - alert: KubernetesPodNotHealthy
+            expr: kube_pod_status_phase{phase=~"Pending|Unknown|Failed"} > 0
+            for: 15m
+            labels:
+              severity: warning
+            annotations:
+              summary: "Pod `{{ $labels.namespace }}/{{ $labels.pod }}` is stuck in `{{ $labels.phase }}`"
+              description: "This pod has been in a non-running phase for more than 15 minutes. This is distinct from crash-looping — it means the pod isn't reaching a running state at all, often due to a scheduling failure, image pull error, or resource constraint. Check `kubectl describe pod` for the pod's events."
+              runbook_url: "https://severalnines.github.io/ccx-docs/docs/admin/Troubleshooting/#kubernetes-pod-not-healthy"
+              dashboard_url: "{{ $externalLabels.grafana_url }}/d/k8s_views_pods/kubernetes-views-pods?orgId=1&var-datasource=PA58DA793C7250F1B&var-namespace={{ $labels.namespace }}&var-pod={{ $labels.pod }}&var-resolution=30s"
+          - alert: UnreadyEndpoints
+            expr: kube_endpoint_address_not_ready > 0
+            for: 15m
+            labels:
+              severity: warning
+            annotations:
+              summary: "Service `{{ $labels.namespace }}/{{ $labels.endpoint }}` has unready endpoints"
+              description: "This service has one or more endpoints that aren't ready to receive traffic. This usually means the backing pods are failing readiness checks — check pod status in this namespace."
+              runbook_url: "https://severalnines.github.io/ccx-docs/docs/admin/Troubleshooting/#unready-endpoints"
         - name: Node Conditions
           rules:
           - alert: KubeNodeNotReady
@@ -832,6 +850,26 @@ victoria-metrics-alert:
               description: "This replica is more than 30 seconds behind its source database. If this keeps growing, reads from this replica may return stale data, and failover to this replica would lose recent writes. Check replication status and whether the replica is under heavy load or has a slow query bottleneck."
               runbook_url: "https://severalnines.github.io/ccx-docs/docs/admin/Troubleshooting/#mysql-slave-replication-lag"
               dashboard_url: "{{ $externalLabels.grafana_url }}/d/549c2bf8936f7767ea6ac47c47b00f2a/mysql-dashboard?orgId=1&var-datasource=PA58DA793C7250F1B&var-job=cmon-sd-elastx&var-instance={{ $labels.instance }}"
+          - alert: MysqlDown
+            expr: mysql_up == 0
+            for: 5m
+            labels:
+              severity: critical
+            annotations:
+              summary: "MySQL on `{{ $labels.instance }}` is down"
+              description: "The mysqld_exporter can reach the host but MySQL itself is not responding. This is more severe than an exporter/scrape failure — the database process itself appears to be down."
+              runbook_url: "https://severalnines.github.io/ccx-docs/docs/admin/Troubleshooting/#mysql-down"
+              dashboard_url: "{{ $externalLabels.grafana_url }}/d/549c2bf8936f7767ea6ac47c47b00f2a/mysql-dashboard?orgId=1&var-datasource=PA58DA793C7250F1B&var-job=cmon-sd-elastx&var-instance={{ $labels.instance }}"
+          - alert: MysqlSlaveReplicationStopped
+            expr: mysql_slave_status_slave_sql_running == 0
+            for: 5m
+            labels:
+              severity: critical
+            annotations:
+              summary: "MySQL replication is stopped on `{{ $labels.instance }}`"
+              description: "The SQL replication thread is not running on this replica. Unlike replication lag, this means replication has fully halted — no new data is being applied at all. Check the replica's error log for the specific replication error."
+              runbook_url: "https://severalnines.github.io/ccx-docs/docs/admin/Troubleshooting/#mysql-slave-replication-stopped"
+              dashboard_url: "{{ $externalLabels.grafana_url }}/d/549c2bf8936f7767ea6ac47c47b00f2a/mysql-dashboard?orgId=1&var-datasource=PA58DA793C7250F1B&var-job=cmon-sd-elastx&var-instance={{ $labels.instance }}"
         - name: PostgreSQL Alerts
           rules:
           - alert: PostgresqlExporterError
@@ -874,7 +912,79 @@ victoria-metrics-alert:
               description: "More than 2% of transactions on this database are being rolled back rather than committed. This often points to application-level errors, failed constraint checks, or deadlocks/lock timeouts causing transactions to abort. Check application logs and recent query errors for the actual cause."
               runbook_url: "https://severalnines.github.io/ccx-docs/docs/admin/Troubleshooting/#postgresql-high-rollback-rate"
               dashboard_url: "{{ $externalLabels.grafana_url }}/d/000000039/postgresql-database?var-interval=5m&orgId=1&var-datasource=PA58DA793C7250F1B&var-instance={{ $labels.instance }}&var-datname={{ $labels.datname }}&var-mode=$__all&var-job=$__all"
-
+          - alert: PostgresqlDown
+            expr: pg_up == 0
+            for: 5m
+            labels:
+              severity: critical
+            annotations:
+              summary: "Postgres on `{{ $labels.instance }}` is down"
+              description: "The postgres_exporter can reach the host but Postgres itself is not responding. This is more severe than an exporter/scrape failure — the database process itself appears to be down."
+              runbook_url: "https://severalnines.github.io/ccx-docs/docs/admin/Troubleshooting/#postgresql-down"
+              dashboard_url: "{{ $externalLabels.grafana_url }}/d/000000039/postgresql-database?var-interval=5m&orgId=1&var-datasource=PA58DA793C7250F1B&var-instance={{ $labels.instance }}&var-datname=$__all&var-mode=$__all&var-job=$__all"
+          - alert: PostgresqlRestarted
+            expr: time() - pg_postmaster_start_time_seconds < 60
+            for: 0m
+            labels:
+              severity: warning
+            annotations:
+              summary: "Postgres on `{{ $labels.instance }}` restarted recently"
+              description: "This Postgres instance's postmaster process started less than a minute ago. An unexpected restart can indicate a crash, OOM kill, or manual intervention — check the Postgres logs around the restart time to confirm the cause."
+              runbook_url: "https://severalnines.github.io/ccx-docs/docs/admin/Troubleshooting/#postgresql-restarted"
+              dashboard_url: "{{ $externalLabels.grafana_url }}/d/000000039/postgresql-database?var-interval=5m&orgId=1&var-datasource=PA58DA793C7250F1B&var-instance={{ $labels.instance }}&var-datname=$__all&var-mode=$__all&var-job=$__all"
+        - name: Redis Alerts
+          rules:
+          - alert: RedisDown
+            expr: redis_up == 0
+            for: 5m
+            labels:
+              severity: critical
+            annotations:
+              summary: "Redis/Valkey on `{{ $labels.instance }}` is down"
+              description: "The redis_exporter can reach the host but Redis/Valkey itself is not responding. This is more severe than an exporter/scrape failure — the database process itself appears to be down."
+              runbook_url: "https://severalnines.github.io/ccx-docs/docs/admin/Troubleshooting/#redis-down"
+        - name: Blackbox Alerts
+          rules:
+          - alert: EndpointDown
+            expr: probe_success{job="blackbox-exporter"} == 0
+            for: 10m
+            labels:
+              severity: critical
+            annotations:
+              summary: "Endpoint `{{ $labels.url }}` is down"
+              description: "The blackbox exporter's probe against this URL has been failing for 10 minutes. Check whether the service behind it is reachable and whether this is a real outage or a transient network/DNS blip."
+              runbook_url: "https://severalnines.github.io/ccx-docs/docs/admin/Troubleshooting/#endpoint-down"
+          - alert: SSLCertExpiringSoon
+            expr: probe_ssl_earliest_cert_expiry{job="blackbox-exporter"} - time() < 86400 * 10
+            for: 5m
+            labels:
+              severity: critical
+            annotations:
+              summary: "TLS certificate for `{{ $labels.url }}` expires in less than 10 days"
+              description: "The earliest-expiring certificate in this endpoint's chain expires in under 10 days. Renew it before it lapses — an expired cert will break TLS for all clients hitting this endpoint."
+              runbook_url: "https://severalnines.github.io/ccx-docs/docs/admin/Troubleshooting/#ssl-cert-expiring-soon"
+        - name: Datastore DNS Alerts
+          rules:
+          - alert: DatastoreDnsUnreachable
+            expr: probe_success{job=~"datastore-dns-check-.*"} == 0
+            for: 5m
+            labels:
+              severity: critical
+            annotations:
+              summary: "Datastore `{{ $labels.DatastoreName }}` ({{ $labels.environment }}) is unreachable via DNS"
+              description: "This datastore's main DNS record (cluster `{{ $labels.ClusterName }}`, ClusterID `{{ $labels.ClusterID }}`) is not resolving/reachable on `{{ $labels.environment }}`. This usually means either the DNS record itself is broken or the underlying host is down — check `HostDown`/networking on the cluster's nodes first."
+              runbook_url: "https://severalnines.github.io/ccx-docs/docs/admin/Troubleshooting/#datastore-dns-unreachable"
+        - name: CoreDump Alerts
+          rules:
+          - alert: NewCoredumpDetected
+            expr: increase(cmon_coredump_detected_total[1m]) > 0
+            for: 0m
+            labels:
+              severity: critical
+            annotations:
+              summary: "A new coredump was detected"
+              description: "{{ $value }} new coredump(s) detected on the cmon-master pod. This indicates a process crashed unexpectedly — check the coredump for the cause, typically an unhandled exception or memory corruption."
+              runbook_url: "https://severalnines.github.io/ccx-docs/docs/admin/Troubleshooting/#new-coredump-detected"
         - name: Backup Alerts
           rules:
           - alert: BackupFailed
