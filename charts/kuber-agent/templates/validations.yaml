@@ -17,6 +17,23 @@ combinations.
     {{- fail "prometheusAgent.remoteWrite.url is required when prometheusAgent.enabled=true" -}}
   {{- end -}}
 {{- end -}}
+{{- /*
+CLUS-7411: sops.enabled is the single source of truth for the SOPS pipeline —
+it renders both the SOPS_ENABLED env (deployment.yaml) and the
+s9s:sops-pipeline ClusterRole (clusterroles.yaml, when rbac.create=true).
+Unrestricted mode grants both cluster-wide Secret and SopsSecret reads;
+restricted mode deliberately omits plaintext Secret read and therefore runs
+Pattern A in the honest rbac_denied degraded mode until namespace-scoped
+informers land.
+The pipeline only activates alongside GitOps; enabling SOPS without it is
+always a misconfiguration, so fail early instead of installing an inert flag.
+rbac.create=false is intentionally NOT failed here; the agent probes its own permissions at startup
+(SelfSubjectAccessReview) and disables the Pattern A watchers with a WARN +
+kuber_sops_pattern_a_status=rbac_denied when s9s:sops-pipeline is missing.
+*/ -}}
+{{- if and .Values.sops.enabled (not .Values.gitops.enabled) -}}
+  {{- fail "sops.enabled=true requires gitops.enabled=true (the SOPS GitOps-secrets pipeline delivers via GitOps PRs)" -}}
+{{- end -}}
 {{- if or .Values.prometheusStack.prometheus.enabled .Values.prometheusStack.grafana.enabled -}}
   {{- if not .Values.prometheusStack.enabled -}}
     {{- fail "prometheusStack.enabled=true is required when enabling bundled Prometheus or Grafana" -}}
