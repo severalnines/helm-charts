@@ -696,7 +696,7 @@ victoria-metrics-alert:
               severity: warning
             annotations:
               summary: "Host `{{ $labels.instance }}` has an unusual disk read rate"
-              description: "This host is reading more than 50 MB/s from disk, sustained over 5 minutes. This could be a legitimate heavy workload (backup, large query, batch job) or a symptom of something misbehaving — check what process is driving the I/O and whether it's expected."
+              description: "This host is reading more than 50 MB/s from disk, sustained over 10 minutes. This could be a legitimate heavy workload (backup, large query, batch job) or a symptom of something misbehaving — check what process is driving the I/O and whether it's expected."
               runbook_url: "https://severalnines.github.io/ccx-docs/docs/admin/Troubleshooting/#host-unusual-disk-io-rate"
               dashboard_url: "{{ $externalLabels.grafana_url }}/d/rYdddlPWk/node-exporter-full?orgId=1&var-datasource=c56ad79b-b6df-425f-9ad8-5b0497d40d79&var-job=node-exporter&var-node={{ $labels.node }}"
           - alert: HostUnusualDiskWriteRate
@@ -706,7 +706,7 @@ victoria-metrics-alert:
               severity: warning
             annotations:
               summary: "Host `{{ $labels.instance }}` has an unusual disk write rate"
-              description: "This host is writing more than 50 MB/s to disk, sustained over 5 minutes. This could be a legitimate heavy workload (backup, large write batch, log rotation) or a symptom of something misbehaving — check what process is driving the I/O and whether it's expected."
+              description: "This host is writing more than 50 MB/s to disk, sustained over 10 minutes. This could be a legitimate heavy workload (backup, large write batch, log rotation) or a symptom of something misbehaving — check what process is driving the I/O and whether it's expected."
               runbook_url: "https://severalnines.github.io/ccx-docs/docs/admin/Troubleshooting/#host-unusual-disk-io-rate"
               dashboard_url: "{{ $externalLabels.grafana_url }}/d/rYdddlPWk/node-exporter-full?orgId=1&var-datasource=c56ad79b-b6df-425f-9ad8-5b0497d40d79&var-job=node-exporter&var-node={{ $labels.node }}"
           - alert: HostAutoScaleDiskSpaceReached
