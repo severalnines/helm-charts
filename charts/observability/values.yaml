@@ -908,8 +908,14 @@ victoria-metrics-alert:
             expr: |-
               5/60
           - record: anomaly:adaptive:stddev_multiplier
+            #At 2 stddev, ~4.5% of evaluations fall outside the band by
+            # chance alone even for a well-behaved metric, and with every tagged
+            # node/pod CPU+memory series evaluated continuously, that compounds into
+            # frequent Slack noise. 3 stddev (the standard "3-sigma rule") cuts the
+            # chance-driven exceedance rate to ~0.27% (~17x fewer) while still
+            # reliably catching genuinely large deviations.
             expr: |-
-              2
+              3
           - record: anomaly:adaptive:margin_multiplier
             expr: |-
               0.5
