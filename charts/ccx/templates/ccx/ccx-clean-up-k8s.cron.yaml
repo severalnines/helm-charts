@@ -39,15 +39,8 @@ spec:
           {{- end }}
           containers:
             - name: ccx-clean-up-k8s
-              image: {{ .Values.ccx.services.datastorestorage.image | default .Values.ccx.backend.image | required "No image set for datastores" }}
-              command: [ "/bin/ccx-datastore-storage", "clean-up-k8s" ]
-              resources:
-                requests:
-                  cpu: 10m
-                  memory: 32Mi
-                limits:
-                  cpu: 100m
-                  memory: 128Mi
+              image: {{ .Values.ccx.services.stores_service.image | default .Values.ccx.backend.image | required "No image set for stores" }}
+              command: ["/bin/ccx-stores", "clean-up-k8s"]
               env:
                 - name: POD_NAMESPACE
                   valueFrom:
@@ -56,3 +49,10 @@ spec:
               envFrom:
                 - configMapRef:
                     name: ccx
+              resources:
+                requests:
+                  cpu: 10m
+                  memory: 32Mi
+                limits:
+                  cpu: 100m
+                  memory: 128Mi
