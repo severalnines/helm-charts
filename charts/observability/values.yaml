@@ -990,10 +990,8 @@ victoria-metrics-alert:
                 )
               )
 
-        # Long term bands run on a coarser 5m interval (upstream recommendation) since they look back
-        # 1d/1w and don't need to react quickly.
         - name: AnomalyAdaptiveLongTerm
-          interval: 5m
+          interval: 15m
           rules:
           - record: anomaly:adaptive:upper_band_lt
             expr: |-
@@ -1039,7 +1037,7 @@ victoria-metrics-alert:
         - name: AnomalyAdaptiveAlerts
           rules:
           - alert: AnomalyDetected
-            for: 5m
+            for: 15m
             expr: >
               last_over_time(anomaly:level[2m]) < last_over_time(anomaly:lower_band{anomaly_strategy="adaptive"}[2m])
               or
@@ -1062,7 +1060,7 @@ victoria-metrics-alert:
             expr: |-
               (((count by (instance, job) (count(node_cpu_seconds_total{job=~"kubernetes-node-exporter"}) by (cpu, instance, job)))
               -
-              avg by (instance, job) (sum by (instance, mode, job)(irate(node_cpu_seconds_total{mode='idle',job=~"kubernetes-node-exporter"}[5m])))) * 100)
+              avg by (instance, job) (sum by (instance, mode, job)(irate(node_cpu_seconds_total{mode='idle',job=~"kubernetes-node-exporter"}[15m])))) * 100)
               /
               count by(instance, job) (count(node_cpu_seconds_total{job=~"kubernetes-node-exporter"}) by (cpu, instance, job))
             labels:
@@ -1096,7 +1094,7 @@ victoria-metrics-alert:
           - record: anomaly:resource:pod_cpu
             expr: |-
               sum by (namespace, pod, job, instance) (
-                irate(container_cpu_usage_seconds_total{container!="", container!="POD"}[5m])
+                irate(container_cpu_usage_seconds_total{container!="", container!="POD"}[15m])
               )
             labels:
               anomaly_name: "pod_cpu"
