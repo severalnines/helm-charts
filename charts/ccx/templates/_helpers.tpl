@@ -245,3 +245,129 @@ Create the name of the service account to use
 {{- end }}
 {{- $allSecretsExist -}}
 {{- end }}
+
+# CMON helpers
+
+{{- define "cmon.initContainer.migrateToK8s" -}}
+- name: migrate-file-to-k8s-secrets
+  image: {{ .Values.cmon.image | required ".Values.cmon.image is missing" }}
+  {{- if .Values.cmon.coreDumpEnable }}
+  securityContext:
+    privileged: true
+  {{- end }}
+  command: [ "/bin/sh", "-c" ]
+  args:
+    - cp /tmp/cmon.cnf /etc/cmon.cnf;
+      /usr/bin/check-cmon.sh;
+      echo "Starting configuration upgrade";
+      /usr/sbin/cmon --k8s --migrate-secrets --debug --nodaemon;
+      echo "Finishing configuration upgrade";
+  {{- if .Values.cmon.coreDumpEnable }}
+      sysctl -w kernel.core_pattern=/etc/cmon.d/core.%h.%e.%p.%t;
+  {{- end }}
+  volumeMounts:
+    - mountPath: /tmp/cmon.cnf
+      subPath: cmon.cnf
+      name: cmon-cnf-cfg
+    - mountPath: /etc/cmon.d/
+      name: cmon-master-pv
+    - mountPath: /var/lib/cmon
+      name: cmon-pv-var-lib-cmon
+{{- end }}
+
+{{- define "cmon.initContainer.restoreFromK8s" -}}
+- name: restore-file-from-k8s-secrets
+  image: {{ .Values.cmon.restoreImage | default "alpine/k8s:1.30.0" }}
+  volumeMounts:
+    - mountPath: /etc/cmon.d
+      name: cmon-master-pv
+    - mountPath: /var/lib/cmon
+      name: cmon-pv-var-lib-cmon
+  command:
+    - bash
+    - -c
+    - |
+      set -euo pipefail
+      log() { echo "[$(date '+%H:%M:%S')] $*"; }
+
+      has_data=$(ls /var/lib/cmon/cmon.data /etc/cmon.d/cmon_*.cnf 2>/dev/null | head -1 || true)
+      if [ -n "$has_data" ]; then
+          log "PVCs already populated — skipping restore"
+          exit 0
+      fi
+
+      SECRET_PREFIX="com.severalnines.cmon."
+      DATA_KEY="content"
+      SKIP_SECRETS=("com.severalnines.cmon.etc.cmon.cnf")
+
+      secret_to_path() {
+          local secret="$1"
+          local rest="${secret#${SECRET_PREFIX}}"
+          [[ "$rest" == "$secret" ]] && return 0
+          case "$rest" in
+              etc.cmon.cnf) echo "/etc/cmon.cnf" ;;
+              var.lib.cmon.cloud-credentials.json) echo "/var/lib/cmon/cloud_credentials.json" ;;
+              var.lib.cmon.cmon.data) echo "/var/lib/cmon/cmon.data" ;;
+              var.lib.cmon.ca.cmon.rpc-tls.crt) echo "/var/lib/cmon/ca/cmon/rpc_tls.crt" ;;
+              var.lib.cmon.ca.cmon.rpc-tls.key) echo "/var/lib/cmon/ca/cmon/rpc_tls.key" ;;
+              etc.cmon.d.cmon-*.cnf)
+                  local cid="${rest#etc.cmon.d.cmon-}"; cid="${cid%.cnf}"
+                  [[ "$cid" =~ ^[0-9]+$ ]] && echo "/etc/cmon.d/cmon_${cid}.cnf" ;;
+              var.lib.cmon.ca.*.cluster-*)
+                  local tail="${rest#var.lib.cmon.ca.}"
+                  local type_part="${tail%%.cluster-*}"
+                  local after="${tail#${type_part}.cluster-}"
+                  local cid="${after%%.*}"
+                  local fname="${after#${cid}.}"
+                  if [[ "$cid" =~ ^[0-9]+$ && -n "$type_part" && -n "$fname" && "$fname" != "$after" ]]; then
+                      type_part="${type_part//-/_}"
+                      fname="${fname//-/_}"
+                      echo "/var/lib/cmon/ca/${type_part}/cluster_${cid}/${fname}"
+                  fi ;;
+          esac
+      }
+
+      mode_for_path() {
+          case "$1" in
+              *.key|*/cmon.data|*/cloud_credentials.json|/etc/cmon.cnf|/etc/cmon.d/*.cnf) echo "600" ;;
+              *) echo "644" ;;
+          esac
+      }
+
+      mapfile -t SECRETS < <(
+          kubectl get secrets -o custom-columns=NAME:.metadata.name --no-headers \
+              | grep "^com\.severalnines\.cmon\." \
+              | grep -v '\.backup$' \
+              | grep -v '^removed\.' \
+              || true
+      )
+      log "Found ${#SECRETS[@]} candidate secret(s)"
+
+      restored=0; failures=0
+      for secret in "${SECRETS[@]}"; do
+          [[ -z "$secret" ]] && continue
+          skip=0
+          for s in "${SKIP_SECRETS[@]}"; do
+              [[ "$secret" == "$s" ]] && { skip=1; break; }
+          done
+          [[ "$skip" == "1" ]] && continue
+
+          path=$(secret_to_path "$secret") || true
+          [[ -z "$path" ]] && continue
+
+          b64=$(kubectl get secret "$secret" -o "jsonpath={.data.${DATA_KEY}}" 2>/dev/null || true)
+          if [[ -z "$b64" ]]; then
+              log "WARN: no data in $secret"
+              failures=$((failures+1)); continue
+          fi
+
+          mkdir -p "$(dirname "$path")"
+          printf '%s' "$b64" | base64 -d > "$path"
+          chmod "$(mode_for_path "$path")" "$path"
+          log "restored: $secret -> $path"
+          restored=$((restored+1))
+      done
+
+      log "Done. Restored: $restored, failures: $failures"
+      exit $(( failures > 0 ? 1 : 0 ))
+{{- end }}
