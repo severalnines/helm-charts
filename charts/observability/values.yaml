@@ -1125,14 +1125,17 @@ alertmanager:
         color: '{{ if eq .Status "firing" }}{{ if eq .CommonLabels.severity "warning" }}warning{{ else }}danger{{ end }}{{ else }}good{{ end }}'
         title: |-
          {{ if eq .Status "resolved" }}✅{{ else }}{{ if eq .CommonLabels.severity "critical" }}🔴{{ else if eq .CommonLabels.severity "warning" }}🟠{{ else }}🔵{{ end }}{{ end }} [{{ .Status | toUpper }}{{ if eq .Status "firing" }}:{{ .Alerts.Firing | len }}{{ end }}] {{ .CommonLabels.alertname }}{{ if .CommonLabels.cluster }} — {{ .CommonLabels.cluster }}{{ end }}
-        text: >-
+        text: |-
          {{ range .Alerts -}}
          *{{ .Labels.severity | toUpper }}:* {{ .Annotations.summary }}
          {{ if .Labels.kubernetes_namespace }}*Namespace:* `{{ .Labels.kubernetes_namespace }}`
-         {{ end }}{{ if .Labels.kubernetes_pod_name }}*Pod:* `{{ .Labels.kubernetes_pod_name }}`
-         {{ end }}{{ if .Labels.node }}*Node:* `{{ .Labels.node }}`
-         {{ end }}{{ if .Labels.instance }}*Instance:* `{{ .Labels.instance }}`
-         {{ end }}
+         {{ end -}}
+         {{ if .Labels.kubernetes_pod_name }}*Pod:* `{{ .Labels.kubernetes_pod_name }}`
+         {{ end -}}
+         {{ if .Labels.node }}*Node:* `{{ .Labels.node }}`
+         {{ end -}}
+         {{ if .Labels.instance }}*Instance:* `{{ .Labels.instance }}`
+         {{ end -}}
          {{ end }}
 
     templates:
