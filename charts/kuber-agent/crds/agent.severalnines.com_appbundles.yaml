@@ -418,7 +418,21 @@ spec:
                   skipDryRunOnMissingResource:
                     type: boolean
                 type: object
+              target:
+                description: |-
+                  Target carries the unified workload-namespace address
+                  (spec.target.namespace). When set it takes precedence over the
+                  deprecated spec.targetNamespace.
+                properties:
+                  namespace:
+                    description: Namespace is the workload namespace this intent addresses.
+                    type: string
+                type: object
               targetNamespace:
+                description: |-
+                  TargetNamespace is the workload namespace the bundle installs into.
+
+                  Deprecated: use spec.target.namespace.
                 type: string
               useServiceAccountAsArgoClusterCred:
                 type: boolean

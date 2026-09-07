@@ -24,35 +24,35 @@ spec:
     - host: {{ include "ccx.ccxFQDN" . }}
       http:
         paths:
-          - path: /api/admin/(.+)
+          - path: /api/admin/(?!_/)(.+)
             pathType: ImplementationSpecific
             backend:
               service:
                 name: ccx-rest-admin-svc
                 port:
                   number: 20001
-          - path: /api/auth/(.+)
+          - path: /api/auth/(?!_/)(.+)
             pathType: ImplementationSpecific
             backend:
               service:
                 name: ccx-auth-service-svc
                 port:
                   number: 5050
-          - path: /api/(.+)
+          - path: /api/(?!_/)(.+)
             pathType: ImplementationSpecific
             backend:
               service:
                 name: ccx-rest-user-svc
                 port:
                   number: 20001
-          - path: /auth/(.*)
+          - path: /auth/(?!_/)(.*)
             pathType: ImplementationSpecific
             backend:
               service:
                 name: ccx-ui-auth-svc
                 port:
                   number: 8080
-          - path: /monitor/(.+)
+          - path: /monitor/(?!_/)(.+)
             pathType: ImplementationSpecific
             backend:
               service:
