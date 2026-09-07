@@ -1,0 +1,35 @@
+{{- /*
+CLUS-7927: the chart ships the kuber-agent metrics Service, but without a
+ServiceMonitor the bundled Prometheus (prometheus-stack addon) never scrapes
+it and the ClusterControl dashboards render empty.
+
+Capabilities-gated so installs ordered before the Prometheus Operator CRDs
+don't fail: the agent chart is delivered as an Argo application, and Argo
+re-renders with the live cluster's API versions, so the ServiceMonitor
+appears on the sync after the prometheus-stack addon installs the CRDs.
+*/}}
+{{- if and .Values.metrics.enabled
+           .Values.metrics.service.enabled
+           .Values.metrics.serviceMonitor.enabled
+           (.Capabilities.APIVersions.Has "monitoring.coreos.com/v1") }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "agent-operator.fullname" . }}-metrics
+  namespace: {{ include "agent-operator.namespace" . }}
+  labels:
+    {{- include "agent-operator.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: metrics
+      {{- include "agent-operator.selectorLabels" . | nindent 6 }}
+  namespaceSelector:
+    matchNames:
+      - {{ include "agent-operator.namespace" . }}
+  endpoints:
+    - port: metrics
+      path: /metrics
+      scheme: {{ ternary "https" "http" .Values.metrics.secure }}
+      interval: {{ .Values.metrics.serviceMonitor.interval }}
+{{- end }}

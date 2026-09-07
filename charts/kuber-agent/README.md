@@ -132,6 +132,21 @@ kubectl -n severalnines-system create secret generic s9s-gitops-token \
   - Optional: when `rbac.clusterRead.includeSecrets=true` bind `s9s:cluster-read-extra` cluster-wide
   - Optional: when `mode.write.enabled=true` bind `s9s:cluster-write` cluster-wide to the write SA
 
+
+### Upgrade note — restricted mode now grants write in listed target namespaces
+
+Since chart 1.1.2 (CLUS-7411), `mode.write.enabled=false` (no cluster-wide
+write) **renders namespace-scoped `s9s:cluster-write` RoleBindings in every
+namespace listed in `rbac.namespaces.targets`**, bound to the plain agent SA.
+Previously these namespaces got read-only bindings in restricted mode — the
+inverse gating made the "Managed namespaces" selection grant read only,
+contradicting its own help text (pinned by `rbac_no_write.sh`). This is an
+upgrade-visible widening for restricted installs that set
+`rbac.namespaces.targets`: on upgrade, listed namespaces become writable by
+the agent. If a namespace must stay read-only, remove it from
+`rbac.namespaces.targets` (read access can still be granted via the PR-carried
+GitOps grant flow).
+
 Examples:
 
 ```

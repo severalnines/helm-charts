@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "cmon": {
+      "type": "object",
+      "properties": {
+        "secretStorageEngine": { "enum": ["k8s", "file", "vault"] },
+        "migrateFromK8s": { "type": "boolean" },
+        "migrateFromFile": { "type": "boolean" }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "migrateFromK8s": { "const": true } }, "required": ["migrateFromK8s"] },
+          "then": { "properties": { "secretStorageEngine": { "const": "file" } }, "required": ["secretStorageEngine"] }
+        },
+        {
+          "if": { "properties": { "migrateFromFile": { "const": true } }, "required": ["migrateFromFile"] },
+          "then": { "properties": { "secretStorageEngine": { "const": "k8s" } }, "required": ["secretStorageEngine"] }
+        }
+      ]
+    }
+  }
+}
