@@ -189,6 +189,10 @@ spec:
         - name: PROMETHEUS_STACK_GRAFANA_NODE_PORT
           value: {{ .Values.prometheusStack.grafana.service.nodePort | quote }}
         {{- end }}
+        # Gateway route defaults true, so the value is always set explicitly —
+        # the if-true gating used above cannot express "false".
+        - name: PROMETHEUS_STACK_GRAFANA_GATEWAY_ROUTE
+          value: {{ .Values.prometheusStack.grafana.gatewayRoute | quote }}
         # Dashboards default true, so the value is always set explicitly —
         # the if-true gating used above cannot express "false".
         - name: PROMETHEUS_STACK_DASHBOARDS_ENABLED
@@ -196,6 +200,57 @@ spec:
         {{- if .Values.prometheusStack.dashboards.internal }}
         - name: PROMETHEUS_STACK_DASHBOARDS_INTERNAL
           value: "true"
+        {{- end }}
+        # Gateway API publishing edge (CLUS-6203). Values map 1:1 onto the
+        # gateway addon's ConfigFromEnv; empty values are omitted so the
+        # addon's own defaults apply.
+        {{- if .Values.gateway.enabled }}
+        - name: GATEWAY_ENABLED
+          value: "true"
+        {{- end }}
+        {{- if .Values.gateway.implementation }}
+        - name: GATEWAY_IMPLEMENTATION
+          value: {{ .Values.gateway.implementation | quote }}
+        {{- end }}
+        {{- if .Values.gateway.className }}
+        - name: GATEWAY_CLASS_NAME
+          value: {{ .Values.gateway.className | quote }}
+        {{- end }}
+        {{- if .Values.gateway.chartVersion }}
+        - name: GATEWAY_CHART_VERSION
+          value: {{ .Values.gateway.chartVersion | quote }}
+        {{- end }}
+        {{- if .Values.gateway.serviceType }}
+        - name: GATEWAY_SERVICE_TYPE
+          value: {{ .Values.gateway.serviceType | quote }}
+        {{- end }}
+        {{- if .Values.gateway.hostname }}
+        - name: GATEWAY_HOSTNAME
+          value: {{ .Values.gateway.hostname | quote }}
+        {{- end }}
+        {{- if .Values.gateway.httpsNodePort }}
+        - name: GATEWAY_HTTPS_NODE_PORT
+          value: {{ .Values.gateway.httpsNodePort | quote }}
+        {{- end }}
+        {{- if .Values.gateway.certMode }}
+        - name: GATEWAY_CERT_MODE
+          value: {{ .Values.gateway.certMode | quote }}
+        {{- end }}
+        {{- if .Values.gateway.acmeEmail }}
+        - name: GATEWAY_ACME_EMAIL
+          value: {{ .Values.gateway.acmeEmail | quote }}
+        {{- end }}
+        {{- if .Values.gateway.certSecretName }}
+        - name: GATEWAY_CERT_SECRET_NAME
+          value: {{ .Values.gateway.certSecretName | quote }}
+        {{- end }}
+        {{- if .Values.gateway.db.portMin }}
+        - name: GATEWAY_DB_PORT_MIN
+          value: {{ .Values.gateway.db.portMin | quote }}
+        {{- end }}
+        {{- if .Values.gateway.db.portMax }}
+        - name: GATEWAY_DB_PORT_MAX
+          value: {{ .Values.gateway.db.portMax | quote }}
         {{- end }}
         {{- if .Values.prometheusAgent.enabled }}
         - name: PROMETHEUS_AGENT_ENABLED

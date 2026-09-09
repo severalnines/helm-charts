@@ -14,6 +14,20 @@ rules:
   - apiGroups: ["rbac.authorization.k8s.io"]
     resources: ["rolebindings"]
     verbs: ["get", "list", "watch"]
+  # Read-only view of the Gateway API publishing edge (CLUS-6203): the addon's
+  # Discover lists GatewayClasses, and the kuber-proxy /k8s/gateways +
+  # /k8s/httproutes endpoints feed the UI's published-URL resolution. Served
+  # via the direct provider only (never informers — the CRDs are optional and
+  # a maybe-absent CRD would wedge a reflector); restricted installs need this
+  # read like any other, or the gateway feature goes dark there.
+  # listenersets/tcproutes: the DatabaseCluster reconciler's listener-port
+  # collision scan LISTS live ListenerSets cluster-wide before allocating a
+  # DB exposure port — without this read, gateway DB exposure fails with
+  # GatewayPortAllocationFailed on restricted installs (found live on the
+  # restricted kuber-cc-incus stack).
+  - apiGroups: ["gateway.networking.k8s.io"]
+    resources: ["gatewayclasses", "gateways", "httproutes", "listenersets", "tcproutes"]
+    verbs: ["get", "list", "watch"]
   - apiGroups: ["agent.severalnines.com"]
     resources:
       [
@@ -217,6 +231,22 @@ rules:
   - apiGroups: ["kustomize.toolkit.fluxcd.io"]
     resources: ["kustomizations"]
     verbs: ["create", "patch", "update", "delete"]
+
+  # Gateway API publishing edge (CLUS-6203), direct-apply path: the gateway
+  # addon's auxiliaries (GatewayClass, shared cc-gateway Gateway, EnvoyProxy
+  # config CR, selfSigned Issuer + Certificate), the prometheus-stack Grafana
+  # HTTPRoute, and per-database exposure (ListenerSet + TCPRoute — delete is
+  # also the disable-teardown path). GitOps mode never uses these (Argo
+  # applies); they exist so direct-apply installs can run the addon at all.
+  - apiGroups: ["gateway.networking.k8s.io"]
+    resources: ["gatewayclasses", "gateways", "httproutes", "listenersets", "tcproutes"]
+    verbs: ["create", "update", "patch", "delete"]
+  - apiGroups: ["gateway.envoyproxy.io"]
+    resources: ["envoyproxies"]
+    verbs: ["create", "update", "patch", "delete"]
+  - apiGroups: ["cert-manager.io"]
+    resources: ["issuers", "certificates"]
+    verbs: ["create", "update", "patch", "delete"]
 
   - apiGroups: ["coordination.k8s.io"]
     resources: ["leases"]
