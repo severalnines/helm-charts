@@ -53,7 +53,8 @@ publicService:
   # Local preserves client IPs in cmon-proxy logs; Cluster (k8s default) answers on every node
   externalTrafficPolicy: ""
   ports:
-    # HTTPS -> cmon-proxy 19051 (UI, cmon RPC, cmon-ssh)
+    # HTTPS -> cmon-proxy (UI, cmon RPC, cmon-ssh). Keep 443 so cmon-proxy's HTTP->HTTPS
+    # redirect (which omits the port only for 443) points at the right place.
     https: 443
     # HTTP -> cmon-proxy 80: redirects to HTTPS and serves ACME http-01 challenges. 0 disables.
     http: 80

@@ -59,7 +59,7 @@ spec:
               --local-cmon \
               --cmon-url cmon-master:9501 \
               --frontend-path /var/www/frontend \
-              --port 19051 \
+              --port 443 \
               --kuber-proxy-url http://localhost:{{ .Values.cmon.kuberProxy.env.HTTP_PORT | default 8081 }} \
               --set http_port=80 \
             {{- if eq .Values.cmon.tls.mode "acme" }}
@@ -210,15 +210,22 @@ spec:
         image: {{ include "cc.ccmgrImage" . }}
         imagePullPolicy: Always
         ports:
-        - containerPort: 19051
+        # cmon-proxy HTTPS. It listens on 443 inside the pod (PORT env below) so its
+        # HTTP->HTTPS redirect does not append a port that only exists in-cluster.
+        - containerPort: 443
           protocol: TCP
-          name: ccmgr19051
+          name: ccmgr443
         # cmon-proxy's plain HTTP listener: HTTP->HTTPS redirect + ACME http-01
         - containerPort: 80
           protocol: TCP
           name: ccmgr80
-        {{- if eq .Values.cmon.tls.mode "custom" }}
         env:
+        # Applied on every start (also on upgrades of installs whose ccmgr.yaml still says 19051).
+        - name: PORT
+          value: "443"
+        - name: HTTP_PORT
+          value: "80"
+        {{- if eq .Values.cmon.tls.mode "custom" }}
         - name: TLS_CERTIFICATE_FILE
           value: /etc/ccmgr-tls/tls.crt
         - name: TLS_KEY_FILE
