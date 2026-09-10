@@ -59,11 +59,15 @@ publicService:
     http: 80
     # kuber-proxy gRPC for kuber-agents running in OTHER clusters (agents dial this port). 0 disables.
     grpc: 50051
+    # cmon RPC API (TLS, port 9501 in the pod). Not needed by the UI (cmon-proxy proxies it);
+    # set to e.g. 9501 to expose it for external tools such as the s9s CLI. 0 disables.
+    cmon: 0
   # Only used with type NodePort. Empty = auto-allocated.
   nodePorts:
     https: ""
     http: ""
     grpc: ""
+    cmon: ""
 
 # this section allows to deploy a single default ClusterControl instance in the k8s cluster
 cmon:

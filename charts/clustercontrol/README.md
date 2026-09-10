@@ -10,9 +10,6 @@ This includes dependencies like
 * mysql operator and innodbcluster
 * victoria metrics
 
-No ingress controller is bundled: the UI/API is exposed through a single `LoadBalancer` Service
-in front of cmon-proxy, which terminates TLS itself (self-signed, Let's Encrypt or your own certificate).
-
 If you do not wish to install any of those, please see [Dependencies](#helm-chart-dependencies) below.
 
 # Install
@@ -94,6 +91,8 @@ kubectl get svc -n clustercontrol cmon-master-public
 and open `https://<EXTERNAL-IP>`. Ports on that Service: `443` (UI/API, TLS terminated by cmon-proxy),
 `80` (HTTP -> HTTPS redirect and ACME challenges) and `50051` (kuber-proxy gRPC, used by kuber-agents
 running in *other* clusters). Set a port to `0` to drop it, e.g. `--set publicService.ports.grpc=0`.
+The cmon RPC API (9501) is not exposed by default; set `publicService.ports.cmon=9501` if external
+tools (s9s CLI, another ClusterControl) need to reach it directly.
 
 Other exposure modes (`publicService.type`): `NodePort` (pin ports with `publicService.nodePorts.*`) for
 clusters without a load-balancer provider, or `ClusterIP` if you front cmon-proxy with your own

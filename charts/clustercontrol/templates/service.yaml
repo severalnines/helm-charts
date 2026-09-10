@@ -84,6 +84,15 @@ spec:
     nodePort: {{ $ps.nodePorts.http }}
     {{- end }}
   {{- end }}
+  {{- if $ps.ports.cmon }}
+  - name: cmon-rpc
+    port: {{ $ps.ports.cmon }}
+    targetPort: 9501
+    protocol: TCP
+    {{- if and (eq $ps.type "NodePort") $ps.nodePorts.cmon }}
+    nodePort: {{ $ps.nodePorts.cmon }}
+    {{- end }}
+  {{- end }}
   {{- if $ps.ports.grpc }}
   - name: kuber-proxy-grpc
     port: {{ $ps.ports.grpc }}
