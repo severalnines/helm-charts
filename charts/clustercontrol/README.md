@@ -105,7 +105,11 @@ Ingress/Gateway (forward to `cmon-master-public:443`, TLS passthrough or re-encr
 * `acme` - built-in Let's Encrypt. Set `fqdn` to a public DNS name pointing at the Service address and
   keep ports 443 and 80 reachable from the internet. The certificate is requested on the first HTTPS
   request, so you can create the DNS record after install. Optional: `cmon.tls.acme.email`,
-  `cmon.tls.acme.staging: true` for testing.
+  `cmon.tls.acme.staging: true` for testing. With ACME enabled cmon-proxy only answers TLS for the
+  configured domain(s); requests by bare IP are refused.
+  Switching from staging to production later: cmon-proxy persists `acme_directory_url` in
+  `ccmgr.yaml` on first start, so besides `acme_staging: false` delete that line and the cached
+  certificate under `/usr/share/ccmgr/autocert-cache/`, then restart the `ccmgr` container.
 
   ```bash
   helm upgrade --install clustercontrol s9s/clustercontrol -n clustercontrol --create-namespace \

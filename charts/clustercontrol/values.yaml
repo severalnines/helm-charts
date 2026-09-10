@@ -155,7 +155,9 @@ cmon:
       # defaults to [fqdn]
       domains: []
       email: ""
-      # use the Let's Encrypt staging directory (untrusted certs, no rate limits)
+      # use the Let's Encrypt staging directory (untrusted certs, no rate limits).
+      # NOTE: cmon-proxy persists the resolved acme_directory_url into ccmgr.yaml on first
+      # start; to move to production later remove that line and the cached cert (see README).
       staging: false
     custom:
       secretName: ""
