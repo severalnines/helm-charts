@@ -37,9 +37,33 @@ mysql-operator:
     imagesDefaultRegistry: europe-docker.pkg.dev
     imagesDefaultRepository: severalnines-public/clustercontrol/mirror/mysql
     k8sClusterDomain: cluster.local
-# OPTIONAL install ingress controller? Set to false if you already have ingress controller installed in your cluster
-ingressController:
-  enabled: True
+# Public entry point for the ClusterControl UI/API. Replaces the bundled
+# ingress-nginx (EOL upstream): cmon-proxy (ccmgr) already fronts the UI, the
+# cmon RPC API and cmon-ssh (incl. WebSocket) on one port, so a single Service
+# in front of the cmon-master pod is all that is needed. TLS is terminated by
+# cmon-proxy itself — see cmon.tls below.
+publicService:
+  enabled: true
+  # LoadBalancer | NodePort | ClusterIP (ClusterIP = bring your own Ingress/Gateway)
+  type: LoadBalancer
+  # cloud-provider specific annotations, e.g. internal LB, static IP, health checks
+  annotations: {}
+  loadBalancerIP: ""
+  loadBalancerSourceRanges: []
+  # Local preserves client IPs in cmon-proxy logs; Cluster (k8s default) answers on every node
+  externalTrafficPolicy: ""
+  ports:
+    # HTTPS -> cmon-proxy 19051 (UI, cmon RPC, cmon-ssh)
+    https: 443
+    # HTTP -> cmon-proxy 80: redirects to HTTPS and serves ACME http-01 challenges. 0 disables.
+    http: 80
+    # kuber-proxy gRPC for kuber-agents running in OTHER clusters (agents dial this port). 0 disables.
+    grpc: 50051
+  # Only used with type NodePort. Empty = auto-allocated.
+  nodePorts:
+    https: ""
+    http: ""
+    grpc: ""
 
 # this section allows to deploy a single default ClusterControl instance in the k8s cluster
 cmon:
@@ -110,15 +134,26 @@ cmon:
       # Optional environment variables (uncomment and configure as needed)
       # PROXY_CERT_PATH: /path_to/server.crt
       # PROXY_KEY_PATH: /path_to/server.key
-  ingress:
-    # Although not strictly necessary it's **strongly** recommended to use ingress for cmon
-    enabled: true
-    # OPTIONAL ingress class name
-    ingressClassName: nginx
-    # OPTIONAL ssl configuration
-    ssl:
-      # OPTIONAL cluster issuer name
-      clusterIssuer: # letsencrypt-prod
+  # TLS for the public endpoint, terminated by cmon-proxy (ccmgr):
+  #   selfsigned - cmon-proxy generates its own certificate on first start (default)
+  #   acme       - cmon-proxy's built-in Let's Encrypt (autocert). Needs `fqdn` to be a
+  #                public DNS name pointing at the public Service IP and ports 443 (+80)
+  #                reachable from the internet. The certificate is requested lazily on the
+  #                first TLS handshake, so the DNS record may be created after install.
+  #   custom     - use an existing kubernetes.io/tls Secret (tls.crt / tls.key)
+  # NOTE: selfsigned/acme are written into ccmgr.yaml by `ccmgradm init` on the FIRST start
+  # (the config lives on the ccmgr PVC). Changing the mode later requires editing ccmgr.yaml
+  # or removing it so init runs again. `custom` is applied via environment on every start.
+  tls:
+    mode: selfsigned
+    acme:
+      # defaults to [fqdn]
+      domains: []
+      email: ""
+      # use the Let's Encrypt staging directory (untrusted certs, no rate limits)
+      staging: false
+    custom:
+      secretName: ""
 
 # External dependencies and helm charts below
 # For exact documentation refer to the official helm chart documentation
@@ -191,31 +226,3 @@ monitoring:
             - target_label: use_cmon_sd
               replacement: true
         ### END CMON SERVICE DISCOVERY
-
-ingress-nginx:
-  controller:
-    image:
-      # mirrored from registry.k8s.io/ingress-nginx/controller
-      # (digest is preserved by the mirror copy, chart default digest still applies)
-      registry: europe-docker.pkg.dev/severalnines-public/clustercontrol/mirror
-    admissionWebhooks:
-      patch:
-        image:
-          # mirrored from registry.k8s.io/ingress-nginx/kube-webhook-certgen
-          registry: europe-docker.pkg.dev/severalnines-public/clustercontrol/mirror
-    config:
-      allow-backend-server-header: 'true'
-      allow-snippet-annotations: 'true'
-      use-forwarded-headers: 'true'
-    kind: DaemonSet
-    metrics:
-      enabled: true
-    publishService:
-      enabled: true
-    service:
-      #      loadBalancerIP: xxx.xxx.xxx.xxx
-      externalTrafficPolicy: 'Local'
-      ports:
-        50051-tcp: 50051
-  tcp:
-    50051: 'clustercontrol/cmon-master:50051'

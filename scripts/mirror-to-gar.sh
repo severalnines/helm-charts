@@ -56,14 +56,12 @@ declare -A UPSTREAM_CHART_REPO=(
   [mysql-operator]="https://mysql.github.io/mysql-operator/"
   [mysql-innodbcluster]="https://mysql.github.io/mysql-operator/"
   [victoria-metrics-single]="https://victoriametrics.github.io/helm-charts/"
-  [ingress-nginx]="https://kubernetes.github.io/ingress-nginx"
 )
 
 # Upstream registry host per first path segment under ${GAR_MIRROR}/.
 # Lets us reverse-map a mirrored image ref back to its upstream source.
 declare -A UPSTREAM_REGISTRY=(
   [mysql]="container-registry.oracle.com"
-  [ingress-nginx]="registry.k8s.io"
   [victoriametrics]="docker.io"
 )
 

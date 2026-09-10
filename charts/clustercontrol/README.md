@@ -7,9 +7,11 @@
 # Dependencies
 This helm chart is designed to provide everything you need to get ClusterControl running in a vanila kubernetes cluster.
 This includes dependencies like
-* nginx ingress controller
 * mysql operator and innodbcluster
 * victoria metrics
+
+No ingress controller is bundled: the UI/API is exposed through a single `LoadBalancer` Service
+in front of cmon-proxy, which terminates TLS itself (self-signed, Let's Encrypt or your own certificate).
 
 If you do not wish to install any of those, please see [Dependencies](#helm-chart-dependencies) below.
 
@@ -78,33 +80,51 @@ helm install clustercontrol s9s/clustercontrol -f values.yaml
 ```
 
 ## Notes
-cmon API is accessible within the cluster via cmon-master:9501
+Inside the cluster: cmon API via `cmon-master:9501`, cmon-proxy (UI + API) via `https://cmon-master:19051`.
 
-ClusterControl V2 is accessible within the cluster via cmon-master:3000
-
-Is is *HIGHLY* recommended to use ingress as ClusterControl V2 requires cmon API to be exposed and available externaly.
-
-
-## Access UI (ingress)
-If you enabled the bundled NGINX ingress controller, wait for its service to get an external IP/hostname:
+## Access UI
+cmon-proxy (ccmgr) serves the UI and proxies the cmon RPC API and cmon-ssh (incl. web SSH), so the chart
+exposes it directly through the Service `cmon-master-public` (type `LoadBalancer` by default). Wait for
+its external address:
 
 ```bash
-kubectl get svc -n clustercontrol clustercontrol-ingress-nginx-controller
+kubectl get svc -n clustercontrol cmon-master-public
 ```
 
-Then set `fqdn` to a DNS name that resolves to that IP. For quick testing you can use nip.io:
+and open `https://<EXTERNAL-IP>`. Ports on that Service: `443` (UI/API, TLS terminated by cmon-proxy),
+`80` (HTTP -> HTTPS redirect and ACME challenges) and `50051` (kuber-proxy gRPC, used by kuber-agents
+running in *other* clusters). Set a port to `0` to drop it, e.g. `--set publicService.ports.grpc=0`.
 
-```bash
-helm upgrade --install clustercontrol s9s/clustercontrol --set fqdn=<external-ip>.nip.io
-```
+Other exposure modes (`publicService.type`): `NodePort` (pin ports with `publicService.nodePorts.*`) for
+clusters without a load-balancer provider, or `ClusterIP` if you front cmon-proxy with your own
+Ingress/Gateway (forward to `cmon-master-public:443`, TLS passthrough or re-encrypt).
+
+### TLS
+`cmon.tls.mode` selects how cmon-proxy gets its certificate:
+
+* `selfsigned` (default) - cmon-proxy generates a self-signed certificate on first start.
+* `acme` - built-in Let's Encrypt. Set `fqdn` to a public DNS name pointing at the Service address and
+  keep ports 443 and 80 reachable from the internet. The certificate is requested on the first HTTPS
+  request, so you can create the DNS record after install. Optional: `cmon.tls.acme.email`,
+  `cmon.tls.acme.staging: true` for testing.
+
+  ```bash
+  helm upgrade --install clustercontrol s9s/clustercontrol -n clustercontrol --create-namespace \
+    --set fqdn=cc.example.com --set cmon.tls.mode=acme --set cmon.tls.acme.email=ops@example.com
+  ```
+* `custom` - use an existing `kubernetes.io/tls` Secret: `--set cmon.tls.mode=custom --set cmon.tls.custom.secretName=my-tls`.
+  Renewed certificates are picked up on pod restart.
+
+`selfsigned`/`acme` are written into `ccmgr.yaml` by `ccmgradm init` on the first start (the file lives on
+the ccmgr PVC), so changing between them later means editing `ccmgr.yaml` or removing it so init runs again.
 
 
 ## Helm chart dependencies
 
-### If you already have Oracle MySQL Operator or NGINX ingress controller installed
+### If you already have Oracle MySQL Operator installed
 
 ```
-helm install clustercontrol s9s/clustercontrol --debug --set fqdn=clustercontrol.example.com --set installMysqlOperator=false --set ingressController.enabled=false
+helm install clustercontrol s9s/clustercontrol --debug --set fqdn=clustercontrol.example.com --set installMysqlOperator=false
 ```
 
 This helm chart has certain dependencies that makes ClusterControl easier to install.
@@ -126,15 +146,6 @@ createDatabases: false
 But you will need to provide a different MySQL / MariaDB or compatibile for ClusterControl to use.
 For exact documentation refer to the official helm chart documentation
 https://github.com/mysql/mysql-operator/blob/trunk/helm/mysql-innodbcluster/values.yaml
-
-* nginx-ingress-controller
-Nginx ingress controller. You need an ingress controller to access ClusterControl.
-If you already have ingress controller installed or wish to use a different one, you can disable this by
-```
-ingressController:
-  enabled: false
-```
-More information - https://github.com/kubernetes/ingress-nginx/tree/main/charts/ingress-nginx
 
 ### If you wish to use your own victoria metrics or other prometheus compatibile monitoring system
 

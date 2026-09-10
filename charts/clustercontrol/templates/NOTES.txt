@@ -10,14 +10,43 @@ Default ssh keys are available at:
 and your user provided keys in /root/.ssh-keys-user
 {{- end }}
 
-{{- if .Values.cmon.ingress.enabled }}
+{{- if .Values.publicService.enabled }}
+{{- if eq .Values.publicService.type "LoadBalancer" }}
 
-Your ClusterControl can be accessed at https://{{ .Values.fqdn | required ".Values.fqdn is required" }}
+ClusterControl is exposed through the LoadBalancer Service `cmon-master-public`.
+Get its address with:
 
+  kubectl get svc -n {{ .Release.Namespace }} cmon-master-public
+
+then open https://<EXTERNAL-IP>{{ if ne (int .Values.publicService.ports.https) 443 }}:{{ .Values.publicService.ports.https }}{{ end }}
+{{- else if eq .Values.publicService.type "NodePort" }}
+
+ClusterControl is exposed through the NodePort Service `cmon-master-public`:
+
+  kubectl get svc -n {{ .Release.Namespace }} cmon-master-public
+
+then open https://<any-node-ip>:<https-nodePort>
 {{- else }}
-cmon API is accessible within the cluster via cmon-master:9501
-ClusterControl V2 is accessible within the cluster via cmon-master:3000
-Is is *HIGHLY* recommended to use ingress as ClusterControl V2 requires cmon API to be exposed and available
+
+ClusterControl is reachable inside the cluster via https://cmon-master-public:{{ .Values.publicService.ports.https }}
+(point your own Ingress/Gateway at it).
+{{- end }}
+{{- if eq .Values.cmon.tls.mode "acme" }}
+
+TLS: Let's Encrypt is enabled for {{ .Values.fqdn | required ".Values.fqdn is required" }}.
+Make sure that name resolves to the public address above; the certificate is
+requested on the first HTTPS request.
+{{- else if eq .Values.cmon.tls.mode "custom" }}
+
+TLS: serving the certificate from Secret {{ .Values.cmon.tls.custom.secretName }}.
+{{- else }}
+
+TLS: cmon-proxy serves a self-signed certificate. Set cmon.tls.mode to `acme` or
+`custom` for a trusted one.
+{{- end }}
+{{- else }}
+
+cmon-proxy (UI + API) is reachable inside the cluster via https://cmon-master:19051
 {{- end }}
 
 Off you go and create your first database cluster!
