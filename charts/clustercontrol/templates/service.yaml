@@ -24,10 +24,15 @@ spec:
     protocol: TCP
     targetPort: 9511
     name: 9511-port
+  # cmon-proxy (UI + API); kept on 19051 in-cluster for compatibility, pod listens on 443
   - port: 19051
     protocol: TCP
-    targetPort: 19051
+    targetPort: 443
     name: 19051-port
+  - port: 443
+    protocol: TCP
+    targetPort: 443
+    name: 443-port
   - port: 8081
     protocol: TCP
     targetPort: 8081
@@ -40,6 +45,72 @@ spec:
     app: cmon-master
     run: cmon-master
   type: ClusterIP
+{{- if .Values.publicService.enabled }}
+---
+# Public entry point: one Service in front of the cmon-master pod. cmon-proxy
+# (ccmgr, 19051) serves the UI and proxies cmon RPC + cmon-ssh, so no ingress
+# or gateway is needed. Port 80 is cmon-proxy's HTTP->HTTPS redirect / ACME
+# http-01 listener; 50051 is kuber-proxy gRPC for agents in other clusters.
+{{- $ps := .Values.publicService }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: cmon-master-public
+  {{- with $ps.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ $ps.type }}
+  {{- if and (eq $ps.type "LoadBalancer") $ps.loadBalancerIP }}
+  loadBalancerIP: {{ $ps.loadBalancerIP }}
+  {{- end }}
+  {{- if and (eq $ps.type "LoadBalancer") $ps.loadBalancerSourceRanges }}
+  loadBalancerSourceRanges:
+    {{- toYaml $ps.loadBalancerSourceRanges | nindent 4 }}
+  {{- end }}
+  {{- if and (ne $ps.type "ClusterIP") $ps.externalTrafficPolicy }}
+  externalTrafficPolicy: {{ $ps.externalTrafficPolicy }}
+  {{- end }}
+  ports:
+  - name: https
+    port: {{ $ps.ports.https }}
+    targetPort: 443
+    protocol: TCP
+    {{- if and (eq $ps.type "NodePort") $ps.nodePorts.https }}
+    nodePort: {{ $ps.nodePorts.https }}
+    {{- end }}
+  {{- if $ps.ports.http }}
+  - name: http
+    port: {{ $ps.ports.http }}
+    targetPort: 80
+    protocol: TCP
+    {{- if and (eq $ps.type "NodePort") $ps.nodePorts.http }}
+    nodePort: {{ $ps.nodePorts.http }}
+    {{- end }}
+  {{- end }}
+  {{- if $ps.ports.cmon }}
+  - name: cmon-rpc
+    port: {{ $ps.ports.cmon }}
+    targetPort: 9501
+    protocol: TCP
+    {{- if and (eq $ps.type "NodePort") $ps.nodePorts.cmon }}
+    nodePort: {{ $ps.nodePorts.cmon }}
+    {{- end }}
+  {{- end }}
+  {{- if $ps.ports.grpc }}
+  - name: kuber-proxy-grpc
+    port: {{ $ps.ports.grpc }}
+    targetPort: {{ .Values.cmon.kuberProxy.env.GRPC_PORT | default 50051 }}
+    protocol: TCP
+    {{- if and (eq $ps.type "NodePort") $ps.nodePorts.grpc }}
+    nodePort: {{ $ps.nodePorts.grpc }}
+    {{- end }}
+  {{- end }}
+  selector:
+    app: cmon-master
+    run: cmon-master
+{{- end }}
 ---
 apiVersion: v1
 kind: Service

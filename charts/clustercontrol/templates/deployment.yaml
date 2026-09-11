@@ -53,13 +53,27 @@ spec:
             echo "Initializing ccmgr..."
             # Create empty config file first
             touch /usr/share/ccmgr/ccmgr.yaml
+            # cmon-ssh runs in this pod: ccmgradm's default 127.0.0.1:9511 is correct
+            # (there is no Service named cmon-ssh).
             ccmgradm init \
               --local-cmon \
               --cmon-url cmon-master:9501 \
-              --cmon-ssh-url cmon-ssh:9511 \
               --frontend-path /var/www/frontend \
-              --port 19051 \
-              --kuber-proxy-url http://localhost:{{ .Values.cmon.kuberProxy.env.HTTP_PORT | default 8081 }}
+              --port 443 \
+              --kuber-proxy-url http://localhost:{{ .Values.cmon.kuberProxy.env.HTTP_PORT | default 8081 }} \
+              --set http_port=80 \
+            {{- if eq .Values.cmon.tls.mode "acme" }}
+              --set acme_enabled=true \
+              --set acme_accept_tos=true \
+              --set acme_host_policy_strict=true \
+              --set acme_domains={{ join "," (.Values.cmon.tls.acme.domains | default (list (required ".Values.fqdn is required for cmon.tls.mode=acme" .Values.fqdn))) | quote }} \
+              {{- with .Values.cmon.tls.acme.email }}
+              --set acme_email={{ . | quote }} \
+              {{- end }}
+              --set acme_staging={{ .Values.cmon.tls.acme.staging | default false }}
+            {{- else }}
+              --set acme_enabled=false
+            {{- end }}
           else
             echo "ccmgr already initialized, skipping init"
           fi
@@ -196,12 +210,35 @@ spec:
         image: {{ include "cc.ccmgrImage" . }}
         imagePullPolicy: Always
         ports:
-        - containerPort: 19051
+        # cmon-proxy HTTPS. It listens on 443 inside the pod (PORT env below) so its
+        # HTTP->HTTPS redirect does not append a port that only exists in-cluster.
+        - containerPort: 443
           protocol: TCP
-          name: ccmgr19051
+          name: ccmgr443
+        # cmon-proxy's plain HTTP listener: HTTP->HTTPS redirect + ACME http-01
+        - containerPort: 80
+          protocol: TCP
+          name: ccmgr80
+        env:
+        # Applied on every start (also on upgrades of installs whose ccmgr.yaml still says 19051).
+        - name: PORT
+          value: "443"
+        - name: HTTP_PORT
+          value: "80"
+        {{- if eq .Values.cmon.tls.mode "custom" }}
+        - name: TLS_CERTIFICATE_FILE
+          value: /etc/ccmgr-tls/tls.crt
+        - name: TLS_KEY_FILE
+          value: /etc/ccmgr-tls/tls.key
+        {{- end }}
         volumeMounts:
         - mountPath: /usr/share/ccmgr
           name: cmon-ccmgr-pv
+        {{- if eq .Values.cmon.tls.mode "custom" }}
+        - mountPath: /etc/ccmgr-tls
+          name: ccmgr-tls
+          readOnly: true
+        {{- end }}
         - mountPath: /var/www/frontend/config.js
           subPath: config.js
           name: config-js-cfg
@@ -260,6 +297,11 @@ spec:
       - name: cmon-ccmgr-pv
         persistentVolumeClaim:
           claimName: cmon-ccmgr-volume
+      {{- if eq .Values.cmon.tls.mode "custom" }}
+      - name: ccmgr-tls
+        secret:
+          secretName: {{ required ".Values.cmon.tls.custom.secretName is required for cmon.tls.mode=custom" .Values.cmon.tls.custom.secretName }}
+      {{- end }}
       - name: kuber-proxy-pv
         persistentVolumeClaim:
           claimName: kuber-proxy-volume
