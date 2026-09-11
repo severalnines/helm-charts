@@ -161,6 +161,19 @@ spec:
           configMap:
             name: ccx-configmap-fluentbit
         {{- end }}
+        {{- range .Values.ccx.services.stores_service.extraVolumes }}
+        {{- if not .name }}{{ fail "extraVolumes: each entry must have a 'name'" }}{{- end }}
+        {{- if and .secret .configMap }}{{ fail (printf "extraVolumes entry '%s': specify exactly one of 'secret' or 'configMap', not both" .name) }}{{- end }}
+        {{- if not (or .secret .configMap) }}{{ fail (printf "extraVolumes entry '%s': must specify exactly one of 'secret' or 'configMap'" .name) }}{{- end }}
+        - name: {{ .name }}
+          {{- if .secret }}
+          secret:
+            secretName: {{ .secret }}
+          {{- else }}
+          configMap:
+            name: {{ .configMap }}
+          {{- end }}
+        {{- end }}
       {{ with .Values.ccx.services.stores_service.affinity }}
       affinity:
         {{ toYaml . | nindent 8 }}
