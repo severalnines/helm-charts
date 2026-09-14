@@ -49,6 +49,7 @@ spec:
         - sh
         - -c
         - |
+          set -e
           if [ ! -f /usr/share/ccmgr/ccmgr.yaml ]; then
             echo "Initializing ccmgr..."
             # Create empty config file first
@@ -60,23 +61,30 @@ spec:
               --cmon-url cmon-master:9501 \
               --frontend-path /var/www/frontend \
               --port 443 \
-              --kuber-proxy-url http://localhost:{{ .Values.cmon.kuberProxy.env.HTTP_PORT | default 8081 }} \
-              --set http_port=80 \
-            {{- if eq .Values.cmon.tls.mode "acme" }}
-              --set acme_enabled=true \
-              --set acme_accept_tos=true \
-              --set acme_host_policy_strict=true \
-              --set acme_domains={{ join "," (.Values.cmon.tls.acme.domains | default (list (required ".Values.fqdn is required for cmon.tls.mode=acme" .Values.fqdn))) | quote }} \
-              {{- with .Values.cmon.tls.acme.email }}
-              --set acme_email={{ . | quote }} \
-              {{- end }}
-              --set acme_staging={{ .Values.cmon.tls.acme.staging | default false }}
-            {{- else }}
-              --set acme_enabled=false
-            {{- end }}
+              --kuber-proxy-url http://localhost:{{ .Values.cmon.kuberProxy.env.HTTP_PORT | default 8081 }}
           else
             echo "ccmgr already initialized, skipping init"
           fi
+
+          # Apply Helm-owned TLS settings on every start, including upgrades.
+          # Without --local-cmon, init updates the existing config without registering a controller.
+          # Reset persisted custom certificate paths; custom mode overrides these via env at runtime.
+          ccmgradm init \
+            --set http_port=80 \
+            --set tls_cert=/usr/share/ccmgr/server.crt \
+            --set tls_key=/usr/share/ccmgr/server.key \
+          {{- if eq .Values.cmon.tls.mode "acme" }}
+            --set acme_enabled=true \
+            --set acme_accept_tos=true \
+            --set acme_host_policy_strict=true \
+            --set acme_domains={{ join "," (.Values.cmon.tls.acme.domains | default (list (required ".Values.fqdn is required for cmon.tls.mode=acme" .Values.fqdn))) | quote }} \
+            --set acme_email={{ .Values.cmon.tls.acme.email | quote }} \
+            --set acme_staging={{ .Values.cmon.tls.acme.staging | default false }} \
+            --set acme_directory_url= \
+            --set acme_cache_dir=/usr/share/ccmgr/autocert-cache/{{ ternary "staging" "production" .Values.cmon.tls.acme.staging }}
+          {{- else }}
+            --set acme_enabled=false
+          {{- end }}
         volumeMounts:
         - mountPath: /usr/share/ccmgr
           name: cmon-ccmgr-pv

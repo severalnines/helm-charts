@@ -107,9 +107,11 @@ Ingress/Gateway (forward to `cmon-master-public:443`, TLS passthrough or re-encr
   request, so you can create the DNS record after install. Optional: `cmon.tls.acme.email`,
   `cmon.tls.acme.staging: true` for testing. With ACME enabled cmon-proxy only answers TLS for the
   configured domain(s); requests by bare IP are refused.
-  Switching from staging to production later: cmon-proxy persists `acme_directory_url` in
-  `ccmgr.yaml` on first start, so besides `acme_staging: false` delete that line and the cached
-  certificate under `/usr/share/ccmgr/autocert-cache/`, then restart the `ccmgr` container.
+  Switching from staging to production: set `cmon.tls.acme.staging=false` with `helm upgrade`.
+  The init container resets the saved ACME directory URL and uses separate certificate caches under
+  `/usr/share/ccmgr/autocert-cache/staging/` and `production/`, so a staging certificate is not reused
+  in production. Existing certificates in the old shared cache are retained; a certificate is requested
+  for the new cache on the next HTTPS request.
 
   ```bash
   helm upgrade --install clustercontrol s9s/clustercontrol -n clustercontrol --create-namespace \
@@ -118,8 +120,11 @@ Ingress/Gateway (forward to `cmon-master-public:443`, TLS passthrough or re-encr
 * `custom` - use an existing `kubernetes.io/tls` Secret: `--set cmon.tls.mode=custom --set cmon.tls.custom.secretName=my-tls`.
   Renewed certificates are picked up on pod restart.
 
-`selfsigned`/`acme` are written into `ccmgr.yaml` by `ccmgradm init` on the first start (the file lives on
-the ccmgr PVC), so changing between them later means editing `ccmgr.yaml` or removing it so init runs again.
+The init container applies Helm's TLS settings to the existing `ccmgr.yaml` on every pod startup using
+`ccmgradm init --set`, preserving registered controllers and users. Changes to these settings with
+`helm upgrade` restart the pod and take effect automatically. Both `custom` and `selfsigned` disable
+ACME; returning to `selfsigned` restores the certificate paths on the ccmgr PVC. Helm manages these
+settings, so edits to them in `ccmgr.yaml` are overwritten on the next pod startup.
 
 
 ## Helm chart dependencies

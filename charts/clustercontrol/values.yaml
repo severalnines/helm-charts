@@ -146,18 +146,17 @@ cmon:
   #                reachable from the internet. The certificate is requested lazily on the
   #                first TLS handshake, so the DNS record may be created after install.
   #   custom     - use an existing kubernetes.io/tls Secret (tls.crt / tls.key)
-  # NOTE: selfsigned/acme are written into ccmgr.yaml by `ccmgradm init` on the FIRST start
-  # (the config lives on the ccmgr PVC). Changing the mode later requires editing ccmgr.yaml
-  # or removing it so init runs again. `custom` is applied via environment on every start.
+  # TLS settings are applied to the existing ccmgr.yaml by `ccmgradm init --set` on every
+  # pod startup. Helm upgrades apply mode/settings changes without manual config edits.
+  # custom/selfsigned disable ACME; custom certificate files are selected via environment.
   tls:
     mode: selfsigned
     acme:
       # defaults to [fqdn]
       domains: []
       email: ""
-      # use the Let's Encrypt staging directory (untrusted certs, no rate limits).
-      # NOTE: cmon-proxy persists the resolved acme_directory_url into ccmgr.yaml on first
-      # start; to move to production later remove that line and the cached cert (see README).
+      # use the Let's Encrypt staging directory (untrusted certs, test rate limits).
+      # Staging and production use separate caches; switching does not reuse staging certs.
       staging: false
     custom:
       secretName: ""
