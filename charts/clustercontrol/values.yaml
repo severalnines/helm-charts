@@ -89,8 +89,8 @@ cmon:
     name: cmon
     user: cmon
     password: cmon
-  image: severalnines/cmon:2.4.0-20548
-  devImage: severalnines/cmon:2.4.0-20548
+  image: severalnines/cmon:2.5.0-24068
+  devImage: severalnines/cmon:2.5.0-24068
   extra_args: # extra arguments for ClusterControl binary
     - -s
     - --no-log-db
