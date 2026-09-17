@@ -42,7 +42,7 @@ cmon:
     name: cmon
     user: cmon
     password: Super$3cr3t
-  image: severalnines/cmon:2.4.0-23184
+  image: severalnines/cmon:2.4.0-23957
   sshImage: severalnines/clustercontrol-ssh:2.5.0-1
   extra_args: [ ] # extra arguments for cmon binary
   # Where cmon keeps its configs/secrets (cmon.cnf, cmon_<cid>.cnf, CA bundles,
@@ -127,7 +127,7 @@ ccx:
 
   ## default settings for all backend components
   backend:
-    image: europe-docker.pkg.dev/severalnines-public/ccx/ccx-backend:5854
+    image: europe-docker.pkg.dev/severalnines-public/ccx/ccx-backend:6138
 
   ## postgresql server used by all backend components
   db:
@@ -517,7 +517,7 @@ ccx:
       # - name: custom-config
       #   configMap: my-configmap          # name of an existing Kubernetes ConfigMap
     uiapp:
-      image: europe-docker.pkg.dev/severalnines-public/ccx/ccx-ui-app:1046
+      image: europe-docker.pkg.dev/severalnines-public/ccx/ccx-ui-app:1062
       resources:
         requests:
           cpu: 1m
