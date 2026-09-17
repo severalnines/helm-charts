@@ -121,7 +121,7 @@ Kuber Proxy image selection - use devImage if devBuild is true, otherwise use re
 Helm --reuse-values retains the previous chart's defaults. Supply defaults for
 maps introduced in 0.5.0 before reading their nested fields. mergeOverwrite keeps
 explicit false/0 values; Sprig's default would replace those with the defaults.
-Keep these maps aligned with values.yaml (checked by tests/test_upgrade_values.py).
+Keep these maps aligned with values.yaml.
 */}}
 {{- define "cc.publicService" -}}
 {{- $defaults := dict
