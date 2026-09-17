@@ -21,3 +21,5 @@
 .idea/
 *.tmproj
 .vscode/
+# Local rendering tests and historical values fixtures, not chart resources.
+tests/

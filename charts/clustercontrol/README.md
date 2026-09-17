@@ -126,6 +126,31 @@ The init container applies Helm's TLS settings to the existing `ccmgr.yaml` on e
 ACME; returning to `selfsigned` restores the certificate paths on the ccmgr PVC. Helm manages these
 settings, so edits to them in `ccmgr.yaml` are overwritten on the next pod startup.
 
+### Upgrading from charts older than 0.5.0
+
+The upgrade removes the bundled ingress-nginx controller and creates
+`cmon-master-public`. Point your `fqdn` DNS record at the new LoadBalancer IP.
+Old ingress annotations and TLS settings are not translated automatically;
+configure `publicService` and `cmon.tls` as described above when needed.
+
+Chart 0.5.1 supports `helm upgrade --reuse-values` with older releases by supplying
+defaults for the new `publicService` and `cmon.tls` maps. Existing overrides,
+including explicit `false` and port `0` values, are preserved. Reused image tags
+also stay unchanged; this flag does not adopt newer image defaults.
+
+With a Helm version that supports it, `--reset-then-reuse-values` applies the new
+chart's defaults followed by your saved overrides. This also avoids the missing
+values error when upgrading to 0.5.0. Do not combine it with `--reuse-values`,
+which takes precedence. Alternatively, pass your maintained values file with
+`helm upgrade --reset-values -f my-values.yaml`.
+
+To run the upgrade rendering regressions (Helm and Python with PyYAML required):
+
+```bash
+helm dependency build charts/clustercontrol
+python3 -m unittest discover -s charts/clustercontrol/tests -v
+```
+
 
 ## Helm chart dependencies
 

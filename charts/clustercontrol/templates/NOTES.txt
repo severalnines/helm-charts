@@ -1,3 +1,5 @@
+{{- $ps := include "cc.publicService" . | fromYaml -}}
+{{- $tls := include "cc.tls" . | fromYaml -}}
 ** Please be patient while the chart is being deployed **
     
 Default ssh keys are available at:
@@ -10,16 +12,16 @@ Default ssh keys are available at:
 and your user provided keys in /root/.ssh-keys-user
 {{- end }}
 
-{{- if .Values.publicService.enabled }}
-{{- if eq .Values.publicService.type "LoadBalancer" }}
+{{- if $ps.enabled }}
+{{- if eq $ps.type "LoadBalancer" }}
 
 ClusterControl is exposed through the LoadBalancer Service `cmon-master-public`.
 Get its address with:
 
   kubectl get svc -n {{ .Release.Namespace }} cmon-master-public
 
-then open https://<EXTERNAL-IP>{{ if ne (int .Values.publicService.ports.https) 443 }}:{{ .Values.publicService.ports.https }}{{ end }}
-{{- else if eq .Values.publicService.type "NodePort" }}
+then open https://<EXTERNAL-IP>{{ if ne (int $ps.ports.https) 443 }}:{{ $ps.ports.https }}{{ end }}
+{{- else if eq $ps.type "NodePort" }}
 
 ClusterControl is exposed through the NodePort Service `cmon-master-public`:
 
@@ -28,17 +30,17 @@ ClusterControl is exposed through the NodePort Service `cmon-master-public`:
 then open https://<any-node-ip>:<https-nodePort>
 {{- else }}
 
-ClusterControl is reachable inside the cluster via https://cmon-master-public:{{ .Values.publicService.ports.https }}
+ClusterControl is reachable inside the cluster via https://cmon-master-public:{{ $ps.ports.https }}
 (point your own Ingress/Gateway at it).
 {{- end }}
-{{- if eq .Values.cmon.tls.mode "acme" }}
+{{- if eq $tls.mode "acme" }}
 
 TLS: Let's Encrypt is enabled for {{ .Values.fqdn | required ".Values.fqdn is required" }}.
 Make sure that name resolves to the public address above; the certificate is
 requested on the first HTTPS request.
-{{- else if eq .Values.cmon.tls.mode "custom" }}
+{{- else if eq $tls.mode "custom" }}
 
-TLS: serving the certificate from Secret {{ .Values.cmon.tls.custom.secretName }}.
+TLS: serving the certificate from Secret {{ $tls.custom.secretName }}.
 {{- else }}
 
 TLS: cmon-proxy serves a self-signed certificate. Set cmon.tls.mode to `acme` or

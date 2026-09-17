@@ -1,3 +1,4 @@
+{{- $tls := include "cc.tls" . | fromYaml -}}
 ---
 apiVersion: apps/v1
 kind: StatefulSet
@@ -73,15 +74,15 @@ spec:
             --set http_port=80 \
             --set tls_cert=/usr/share/ccmgr/server.crt \
             --set tls_key=/usr/share/ccmgr/server.key \
-          {{- if eq .Values.cmon.tls.mode "acme" }}
+          {{- if eq $tls.mode "acme" }}
             --set acme_enabled=true \
             --set acme_accept_tos=true \
             --set acme_host_policy_strict=true \
-            --set acme_domains={{ join "," (.Values.cmon.tls.acme.domains | default (list (required ".Values.fqdn is required for cmon.tls.mode=acme" .Values.fqdn))) | quote }} \
-            --set acme_email={{ .Values.cmon.tls.acme.email | quote }} \
-            --set acme_staging={{ .Values.cmon.tls.acme.staging | default false }} \
+            --set acme_domains={{ join "," ($tls.acme.domains | default (list (required ".Values.fqdn is required for cmon.tls.mode=acme" .Values.fqdn))) | quote }} \
+            --set acme_email={{ $tls.acme.email | quote }} \
+            --set acme_staging={{ $tls.acme.staging | default false }} \
             --set acme_directory_url= \
-            --set acme_cache_dir=/usr/share/ccmgr/autocert-cache/{{ ternary "staging" "production" .Values.cmon.tls.acme.staging }}
+            --set acme_cache_dir=/usr/share/ccmgr/autocert-cache/{{ ternary "staging" "production" $tls.acme.staging }}
           {{- else }}
             --set acme_enabled=false
           {{- end }}
@@ -233,7 +234,7 @@ spec:
           value: "443"
         - name: HTTP_PORT
           value: "80"
-        {{- if eq .Values.cmon.tls.mode "custom" }}
+        {{- if eq $tls.mode "custom" }}
         - name: TLS_CERTIFICATE_FILE
           value: /etc/ccmgr-tls/tls.crt
         - name: TLS_KEY_FILE
@@ -242,7 +243,7 @@ spec:
         volumeMounts:
         - mountPath: /usr/share/ccmgr
           name: cmon-ccmgr-pv
-        {{- if eq .Values.cmon.tls.mode "custom" }}
+        {{- if eq $tls.mode "custom" }}
         - mountPath: /etc/ccmgr-tls
           name: ccmgr-tls
           readOnly: true
@@ -305,10 +306,10 @@ spec:
       - name: cmon-ccmgr-pv
         persistentVolumeClaim:
           claimName: cmon-ccmgr-volume
-      {{- if eq .Values.cmon.tls.mode "custom" }}
+      {{- if eq $tls.mode "custom" }}
       - name: ccmgr-tls
         secret:
-          secretName: {{ required ".Values.cmon.tls.custom.secretName is required for cmon.tls.mode=custom" .Values.cmon.tls.custom.secretName }}
+          secretName: {{ required ".Values.cmon.tls.custom.secretName is required for cmon.tls.mode=custom" $tls.custom.secretName }}
       {{- end }}
       - name: kuber-proxy-pv
         persistentVolumeClaim:
