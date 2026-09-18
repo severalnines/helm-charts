@@ -1,3 +1,4 @@
+{{- $ps := include "cc.publicService" . | fromYaml -}}
 apiVersion: v1
 kind: Service
 metadata:
@@ -45,13 +46,12 @@ spec:
     app: cmon-master
     run: cmon-master
   type: ClusterIP
-{{- if .Values.publicService.enabled }}
+{{- if $ps.enabled }}
 ---
 # Public entry point: one Service in front of the cmon-master pod. cmon-proxy
 # (ccmgr, 19051) serves the UI and proxies cmon RPC + cmon-ssh, so no ingress
 # or gateway is needed. Port 80 is cmon-proxy's HTTP->HTTPS redirect / ACME
 # http-01 listener; 50051 is kuber-proxy gRPC for agents in other clusters.
-{{- $ps := .Values.publicService }}
 apiVersion: v1
 kind: Service
 metadata:
