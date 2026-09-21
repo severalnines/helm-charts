@@ -116,3 +116,32 @@ Kuber Proxy image selection - use devImage if devBuild is true, otherwise use re
 {{- .Values.cmon.kuberProxy.image | required ".Values.cmon.kuberProxy.image is missing" }}
 {{- end }}
 {{- end }}
+
+{{/*
+Helm --reuse-values retains the previous chart's defaults. Supply defaults for
+maps introduced in 0.5.0 before reading their nested fields. mergeOverwrite keeps
+explicit false/0 values; Sprig's default would replace those with the defaults.
+Keep these maps aligned with values.yaml.
+*/}}
+{{- define "cc.publicService" -}}
+{{- $defaults := dict
+    "enabled" true
+    "type" "LoadBalancer"
+    "annotations" (dict)
+    "loadBalancerIP" ""
+    "loadBalancerSourceRanges" (list)
+    "externalTrafficPolicy" ""
+    "ports" (dict "https" 443 "http" 80 "grpc" 50051 "cmon" 0)
+    "nodePorts" (dict "https" "" "http" "" "grpc" "" "cmon" "")
+-}}
+{{- mergeOverwrite $defaults (.Values.publicService | default dict) | toYaml -}}
+{{- end -}}
+
+{{- define "cc.tls" -}}
+{{- $defaults := dict
+    "mode" "selfsigned"
+    "acme" (dict "domains" (list) "email" "" "staging" false)
+    "custom" (dict "secretName" "")
+-}}
+{{- mergeOverwrite $defaults (.Values.cmon.tls | default dict) | toYaml -}}
+{{- end -}}
