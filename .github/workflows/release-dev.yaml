@@ -8,6 +8,18 @@ on:
     branches:
       - develop
   workflow_dispatch:
+    inputs:
+      chart:
+        description: Chart to publish to the dev repository
+        type: choice
+        required: true
+        default: kuber-agent
+        options:
+          - ccx
+          - ccxdeps
+          - clustercontrol
+          - kuber-agent
+          - observability
 
 
 concurrency:
@@ -69,12 +81,14 @@ jobs:
       #     done
 
 
-      - name: Package kuber-agent chart only
+      - name: Package selected chart
+        env:
+          CHART_NAME: ${{ inputs.chart || 'kuber-agent' }}
         run: |
           set -euo pipefail
           rm -rf .cr-release-packages
           mkdir -p .cr-release-packages
-          cr package charts/kuber-agent --package-path .cr-release-packages
+          cr package "charts/$CHART_NAME" --package-path .cr-release-packages
 
       - name: Upload packages to GitHub Releases (DEV releases)
         env:
