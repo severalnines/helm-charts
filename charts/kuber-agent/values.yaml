@@ -208,6 +208,12 @@ prometheusStack:
     service:
       type: ClusterIP
       nodePort: ""
+    # Publishes Grafana through the shared cc-gateway at the /grafana subpath
+    # (an HTTPRoute on the gateway's https listener). Only effective when the
+    # gateway addon (gateway.enabled) is on. Independent of service.type: the
+    # route is ADDITIVE to however the Service itself is exposed — ClusterIP
+    # plus the gateway route is the intended combination.
+    gatewayRoute: true
   dashboards:
     # Ships the ClusterControl default Grafana dashboards as ConfigMaps
     # discovered by the Grafana dashboards sidecar. Only effective when
@@ -218,6 +224,51 @@ prometheusStack:
     # Internal" folder: reconciler health, scrape coverage). Off by default;
     # intended for support/debug sessions.
     internal: false
+
+# Gateway API publishing edge (CLUS-6203). Installs Envoy Gateway (or
+# attaches to a user-provided Gateway API controller) and exposes app-bundle
+# services and gateway-mode databases through one shared TLS-terminated
+# cc-gateway. Each value renders a GATEWAY_* env var on the agent Pod, read
+# by the gateway addon's ConfigFromEnv (internal/addon/gateway/config.go).
+gateway:
+  # Activates the gateway addon.
+  enabled: false
+  # Who provides the Gateway API controller: "envoy" (default — the addon
+  # installs and owns Envoy Gateway) or "external" (bring your own; requires
+  # className).
+  implementation: ""
+  # GatewayClass name to attach to when implementation=external.
+  className: ""
+  # Override the addon's pinned envoyproxy/gateway-helm version. Empty = the
+  # addon's default pin.
+  chartVersion: ""
+  # How the Envoy data-plane Service is exposed: "LoadBalancer" (default) or
+  # "NodePort". Envoy mode only (shaped via the EnvoyProxy CR).
+  serviceType: ""
+  # Optional public hostname for the shared cc-gateway; added to the
+  # cc-gateway-tls Certificate's dnsNames when set.
+  hostname: ""
+  # Optionally pin the HTTPS (443) listener's node port when
+  # serviceType=NodePort; empty = Kubernetes auto-allocates.
+  httpsNodePort: ""
+  # Cert story for the shared cc-gateway (CLUS-8482): "selfsigned" (default —
+  # self-signed Issuer + cc-gateway-tls Certificate), "acme" (Let's Encrypt
+  # production, HTTP-01 through the gateway itself; requires hostname), or
+  # "custom-secret" (bring your own TLS Secret; no Issuer/Certificate
+  # rendered). Unknown values fail loudly.
+  certMode: ""
+  # Optional ACME account email (expiry notices). acme mode only.
+  acmeEmail: ""
+  # TLS Secret (in the gateway namespace) the HTTPS listener terminates with
+  # in custom-secret mode. Empty = "cc-gateway-tls".
+  certSecretName: ""
+  db:
+    # Listener-port range for gateway-exposed databases (phase 2). Empty =
+    # the addon default 20000-20999. Invalid or inverted values fail the
+    # allocation explicitly (GatewayPortAllocationFailed condition) rather
+    # than silently exposing on the default range.
+    portMin: ""
+    portMax: ""
 
 prometheusAgent:
   # Activates the addon. When true, `prometheusStack.enabled` OR
