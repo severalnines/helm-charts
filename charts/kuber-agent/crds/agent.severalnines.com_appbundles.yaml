@@ -56,10 +56,21 @@ spec:
                 - WaitForTermination
                 - Orphan
                 type: string
+              delivery:
+                description: Delivery optionally overrides destination selectors for
+                  this intent.
+                properties:
+                  configRef:
+                    properties:
+                      name:
+                        type: string
+                      namespace:
+                        type: string
+                    type: object
+                type: object
               deliveryMode:
-                description: |-
-                  DeliveryMode allows forcing direct apply or GitOps regardless of GitOpsSpec presence.
-                  Values: direct | gitops | auto (default). When auto, GitOps is used if configured or inherited; otherwise direct.
+                description: 'Deprecated: retained for upgrade safety. Set spec.delivery.configRef
+                  to deliver.'
                 enum:
                 - direct
                 - gitops
@@ -135,8 +146,6 @@ spec:
                     shared:
                       type: boolean
                     source:
-                      description: AppInstallSource describes where to fetch the app
-                        from
                       properties:
                         git:
                           properties:
@@ -224,9 +233,8 @@ spec:
               driftDetection:
                 type: string
               gitOps:
-                description: |-
-                  GitOps contains VCS/PR settings to drive GitOps-based delivery for this AppBundle.
-                  If set, the controller will create PRs/commits instead of applying directly.
+                description: 'Deprecated: retained for upgrade safety. DeliveryConfig
+                  owns routing.'
                 properties:
                   baseBranch:
                     type: string
@@ -242,7 +250,7 @@ spec:
                   credentialsRef:
                     description: |-
                       GitOpsCredentialsRef references a Secret that contains credentials for VCS hosting
-                      If Namespace is empty, the AppBundle namespace is used. If Key is empty, "token" is assumed.
+                      If Namespace is empty, the DeliveryConfig namespace is used. If Key is empty, "token" is assumed.
                     properties:
                       key:
                         type: string
@@ -267,9 +275,8 @@ spec:
                 - repoURL
                 type: object
               gitOpsFrom:
-                description: |-
-                  GitOpsFrom allows inheriting GitOps configuration from another AppBundle. Typically points to a
-                  cluster "root" AppBundle that holds shared GitOps settings.
+                description: 'Deprecated: retained for upgrade safety. Set spec.delivery.configRef
+                  instead.'
                 properties:
                   apiVersion:
                     type: string
@@ -310,7 +317,6 @@ spec:
               serviceAccountName:
                 type: string
               source:
-                description: AppInstallSource describes where to fetch the app from
                 properties:
                   git:
                     properties:
@@ -501,31 +507,182 @@ spec:
                   - type
                   type: object
                 type: array
-              gitOpsRate:
-                description: |-
-                  GitOpsRate surfaces the most recent Git provider rate-limit snapshot observed during GitOps delivery.
-                  Only populated for AppBundles that own GitOps credentials (spec.gitOps set).
+              delivery:
+                description: Delivery reports convergence independently of workload
+                  health.
                 properties:
-                  limit:
-                    description: Limit is the maximum number of allowed requests in
-                      the current window.
-                    format: int32
-                    type: integer
-                  observedAt:
-                    description: ObservedAt is when this snapshot was recorded.
+                  approval:
+                    description: DeliveryApproval carries a generic approval reference,
+                      not provider fields.
+                    properties:
+                      kind:
+                        type: string
+                      ref:
+                        type: string
+                      url:
+                        type: string
+                    type: object
+                  bundles:
+                    items:
+                      description: |-
+                        DeliveryBundleStatus preserves every outcome; a successful sibling cannot
+                        hide a pending approval, failed delivery or unavailable observation.
+                      properties:
+                        address:
+                          type: string
+                        approval:
+                          description: DeliveryApproval carries a generic approval
+                            reference, not provider fields.
+                          properties:
+                            kind:
+                              type: string
+                            ref:
+                              type: string
+                            url:
+                              type: string
+                          type: object
+                        contentDigest:
+                          type: string
+                        lastDeliveredAt:
+                          format: date-time
+                          type: string
+                        medium:
+                          type: string
+                        message:
+                          type: string
+                        owner:
+                          description: DeliveryOwner identifies the producer revision,
+                            independently of a strategy.
+                          properties:
+                            apiVersion:
+                              type: string
+                            generation:
+                              format: int64
+                              type: integer
+                            kind:
+                              type: string
+                            name:
+                              type: string
+                            namespace:
+                              type: string
+                            uid:
+                              description: |-
+                                UID is a type that holds unique ID values, including UUIDs.  Because we
+                                don't ONLY use UUIDs, this is an alias to string.  Being a type captures
+                                intent and helps make sure that UIDs and names do not get conflated.
+                              type: string
+                          type: object
+                        state:
+                          description: DeliveryState describes convergence of the
+                            current intent, not the last write.
+                          type: string
+                        target:
+                          type: string
+                        throttle:
+                          properties:
+                            reason:
+                              type: string
+                            until:
+                              format: date-time
+                              type: string
+                          type: object
+                        waitingOn:
+                          type: string
+                      required:
+                      - address
+                      type: object
+                    type: array
+                    x-kubernetes-list-map-keys:
+                    - address
+                    x-kubernetes-list-type: map
+                  lastDeliveredAt:
                     format: date-time
                     type: string
-                  provider:
-                    description: Provider indicates the Git service (e.g., github.com).
+                  medium:
                     type: string
-                  remaining:
-                    description: Remaining represents how many requests remain in
-                      the current window.
-                    format: int32
-                    type: integer
-                  resetTime:
-                    description: ResetTime is when the current window resets.
-                    format: date-time
+                  state:
+                    description: DeliveryState describes convergence of the current
+                      intent, not the last write.
+                    type: string
+                  throttle:
+                    properties:
+                      reason:
+                        type: string
+                      until:
+                        format: date-time
+                        type: string
+                    type: object
+                  waitingOn:
+                    type: string
+                type: object
+              gateway:
+                description: Gateway reports endpoints owned by this application,
+                  independently of health.
+                properties:
+                  endpoints:
+                    description: Endpoints records one stable gateway allocation per
+                      exposed endpoint.
+                    items:
+                      description: DatabaseGatewayEndpointStatus describes one client
+                        endpoint allocation.
+                      properties:
+                        listenerName:
+                          type: string
+                        listenerPort:
+                          description: |-
+                            ListenerPort is the gateway listener port. For a NodePort gateway, use
+                            the gateway API's mapped node port when building an external address.
+                          format: int32
+                          type: integer
+                        member:
+                          default: ""
+                          description: Member identifies a dynamic endpoint member;
+                            empty for singleton endpoints.
+                          type: string
+                        message:
+                          type: string
+                        name:
+                          description: Name is the provider endpoint name (for example
+                            primary or member).
+                          type: string
+                        ready:
+                          description: Ready reports observed route readiness, not
+                            database health.
+                          type: boolean
+                      required:
+                      - name
+                      type: object
+                    type: array
+                    x-kubernetes-list-map-keys:
+                    - name
+                    - member
+                    x-kubernetes-list-type: map
+                  gatewayName:
+                    description: |-
+                      GatewayName is the shared Gateway this database's listener attaches to
+                      (e.g. "cc-gateway").
+                    type: string
+                  gatewayNamespace:
+                    description: |-
+                      GatewayNamespace is the namespace of the shared Gateway
+                      (e.g. "envoy-gateway-system").
+                    type: string
+                  gatewayPresent:
+                    description: |-
+                      GatewayPresent records whether the shared Gateway object
+                      (gatewayName/gatewayNamespace) existed at the last reconcile. The
+                      translators emit the ListenerSet/TCPRoute only while it is true: a
+                      route whose parent Gateway does not exist is claimed by no controller,
+                      never gets a status.parents verdict, and wedges GitOps delivery for
+                      the whole environment (CLUS-8512). The listener port above stays
+                      allocated (sticky) while this is false; emission resumes automatically
+                      on the reconcile after the Gateway appears. False also while the
+                      Gateway API CRDs are unregistered (no gateway addon — nothing to
+                      attach to either way).
+                    type: boolean
+                  hostname:
+                    description: Hostname is the configured public gateway DNS name,
+                      when available.
                     type: string
                 type: object
               lastAppliedManifestsCount:

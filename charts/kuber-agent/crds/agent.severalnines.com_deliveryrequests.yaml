@@ -4,27 +4,32 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.17.0
-    meta.helm.sh/release-name: '{{ .Release.Name }}'
-    meta.helm.sh/release-namespace: '{{ .Release.Namespace }}'
-  labels:
-    app.kubernetes.io/managed-by: Helm
-  name: configversions.agent.severalnines.com
+  name: deliveryrequests.agent.severalnines.com
 spec:
   group: agent.severalnines.com
   names:
-    kind: ConfigVersion
-    listKind: ConfigVersionList
-    plural: configversions
-    shortNames:
-    - cv
-    singular: configversion
+    kind: DeliveryRequest
+    listKind: DeliveryRequestList
+    plural: deliveryrequests
+    singular: deliveryrequest
   scope: Namespaced
   versions:
-  - name: v1alpha1
+  - additionalPrinterColumns:
+    - jsonPath: .spec.owner.name
+      name: Owner
+      type: string
+    - jsonPath: .spec.changeSet
+      name: ChangeSet
+      type: string
+    - jsonPath: .status.phase
+      name: Phase
+      type: string
+    - jsonPath: .status.approval.url
+      name: Approval
+      type: string
+    name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: ConfigVersion is a resource that tracks configurations applied
-          to the cluster
         properties:
           apiVersion:
             description: |-
@@ -44,26 +49,73 @@ spec:
           metadata:
             type: object
           spec:
-            description: ConfigVersionSpec defines the desired state of ConfigVersion
             properties:
-              content:
-                description: Content contains the YAML content that was applied
+              action:
+                default: apply
+                enum:
+                - apply
+                - delete
                 type: string
-              resourceUIDs:
-                description: ResourceUIDs contains the UIDs of resources created from
-                  the Content
+              changeSet:
+                type: string
+              configRef:
+                properties:
+                  name:
+                    type: string
+                  namespace:
+                    type: string
+                type: object
+              contentDigest:
+                type: string
+              objects:
                 items:
-                  type: string
+                  description: EmbeddedObject holds a single embedded Kubernetes resource.
+                  type: object
+                  x-kubernetes-preserve-unknown-fields: true
                 type: array
-            required:
-            - content
+              owner:
+                description: DeliveryOwner identifies the producer revision, independently
+                  of a strategy.
+                properties:
+                  apiVersion:
+                    type: string
+                  generation:
+                    format: int64
+                    type: integer
+                  kind:
+                    type: string
+                  name:
+                    type: string
+                  namespace:
+                    type: string
+                  uid:
+                    description: |-
+                      UID is a type that holds unique ID values, including UUIDs.  Because we
+                      don't ONLY use UUIDs, this is an alias to string.  Being a type captures
+                      intent and helps make sure that UIDs and names do not get conflated.
+                    type: string
+                type: object
             type: object
           status:
-            description: ConfigVersionStatus defines the observed state of ConfigVersion
             properties:
+              approval:
+                description: DeliveryApproval carries a generic approval reference,
+                  not provider fields.
+                properties:
+                  kind:
+                    type: string
+                  ref:
+                    type: string
+                  url:
+                    type: string
+                type: object
+              approvedIntent:
+                description: |-
+                  ApprovedIntent is destination content used for a guarded rejection revert.
+                  Nil with RejectionObserved means the rejected create has no approved version.
+                type: object
+                x-kubernetes-preserve-unknown-fields: true
               conditions:
-                description: Conditions represents the latest available observations
-                  of the ConfigVersion's state
                 items:
                   description: Condition contains details for one aspect of the current
                     state of this API Resource.
@@ -119,11 +171,37 @@ spec:
                   - type
                   type: object
                 type: array
-              observedGeneration:
-                description: ObservedGeneration reflects the generation of the most
-                  recently observed ConfigVersion
+                x-kubernetes-list-map-keys:
+                - type
+                x-kubernetes-list-type: map
+              observedConfigGeneration:
                 format: int64
                 type: integer
+              observedConfigUID:
+                description: Publication is evidence for one destination configuration
+                  revision.
+                type: string
+              observedDigest:
+                type: string
+              observedGeneration:
+                description: ObservedGeneration prevents a result for an old config
+                  or payload revision from certifying a new one.
+                format: int64
+                type: integer
+              phase:
+                type: string
+              publishedAt:
+                format: date-time
+                type: string
+              rejectionObserved:
+                type: boolean
+              strategy:
+                additionalProperties:
+                  type: string
+                description: |-
+                  Strategy contains diagnostic medium-specific details; producers must not
+                  use these as delivery policy or as proof of live convergence.
+                type: object
             type: object
         type: object
     served: true

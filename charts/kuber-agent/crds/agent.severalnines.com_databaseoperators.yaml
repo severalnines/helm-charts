@@ -70,13 +70,6 @@ spec:
                   If false, the controller will only observe the operator and update status.
                   Defaults to true.
                 type: boolean
-              manifestUrls:
-                description: |-
-                  ManifestURLs specifies custom manifest URLs to use for installation
-                  If specified, these will override the default manifests
-                items:
-                  type: string
-                type: array
               namespace:
                 description: |-
                   Namespace specifies the namespace where the operator should be installed
@@ -93,12 +86,7 @@ spec:
                 type: boolean
               type:
                 description: Type is the type of database operator to be installed
-                enum:
-                - pxc
-                - cnpg
-                - stackgres
-                - moco
-                - eck
+                minLength: 1
                 type: string
               version:
                 description: |-
@@ -109,8 +97,84 @@ spec:
             - type
             type: object
           status:
-            description: DatabaseOperatorStatus defines the observed state of DatabaseOperator
             properties:
+              backupCapabilities:
+                description: BackupCapabilities is provider data, independent of current
+                  workload health.
+                properties:
+                  onDemand:
+                    description: |-
+                      BackupOperationCapability describes what this integration exposes through native
+                      operator controls. Unsupported does not assert that the datastore lacks a feature.
+                    properties:
+                      availability:
+                        enum:
+                        - Supported
+                        - RequiresFeature
+                        - Unsupported
+                        type: string
+                      feature:
+                        description: Feature names a prerequisite; RequiresFeature
+                          is not an executable CC operation.
+                        type: string
+                      message:
+                        type: string
+                    type: object
+                  pointInTimeRestore:
+                    description: |-
+                      BackupOperationCapability describes what this integration exposes through native
+                      operator controls. Unsupported does not assert that the datastore lacks a feature.
+                    properties:
+                      availability:
+                        enum:
+                        - Supported
+                        - RequiresFeature
+                        - Unsupported
+                        type: string
+                      feature:
+                        description: Feature names a prerequisite; RequiresFeature
+                          is not an executable CC operation.
+                        type: string
+                      message:
+                        type: string
+                    type: object
+                  restore:
+                    description: |-
+                      BackupOperationCapability describes what this integration exposes through native
+                      operator controls. Unsupported does not assert that the datastore lacks a feature.
+                    properties:
+                      availability:
+                        enum:
+                        - Supported
+                        - RequiresFeature
+                        - Unsupported
+                        type: string
+                      feature:
+                        description: Feature names a prerequisite; RequiresFeature
+                          is not an executable CC operation.
+                        type: string
+                      message:
+                        type: string
+                    type: object
+                  schedule:
+                    description: |-
+                      BackupOperationCapability describes what this integration exposes through native
+                      operator controls. Unsupported does not assert that the datastore lacks a feature.
+                    properties:
+                      availability:
+                        enum:
+                        - Supported
+                        - RequiresFeature
+                        - Unsupported
+                        type: string
+                      feature:
+                        description: Feature names a prerequisite; RequiresFeature
+                          is not an executable CC operation.
+                        type: string
+                      message:
+                        type: string
+                    type: object
+                type: object
               conditions:
                 description: Conditions represent the latest available observations
                   of the DatabaseOperator state
@@ -169,6 +233,171 @@ spec:
                   - type
                   type: object
                 type: array
+              dataVolumeDeletion:
+                description: DataVolumeDeletion reports provider-declared native behavior,
+                  independently of health.
+                properties:
+                  deleteEffects:
+                    items:
+                      type: string
+                    type: array
+                  nativeChoices:
+                    items:
+                      type: string
+                    type: array
+                  nativeDefault:
+                    type: string
+                  notes:
+                    type: string
+                type: object
+              delivery:
+                description: Delivery reports convergence independently of workload
+                  health.
+                properties:
+                  approval:
+                    description: DeliveryApproval carries a generic approval reference,
+                      not provider fields.
+                    properties:
+                      kind:
+                        type: string
+                      ref:
+                        type: string
+                      url:
+                        type: string
+                    type: object
+                  bundles:
+                    items:
+                      description: |-
+                        DeliveryBundleStatus preserves every outcome; a successful sibling cannot
+                        hide a pending approval, failed delivery or unavailable observation.
+                      properties:
+                        address:
+                          type: string
+                        approval:
+                          description: DeliveryApproval carries a generic approval
+                            reference, not provider fields.
+                          properties:
+                            kind:
+                              type: string
+                            ref:
+                              type: string
+                            url:
+                              type: string
+                          type: object
+                        contentDigest:
+                          type: string
+                        lastDeliveredAt:
+                          format: date-time
+                          type: string
+                        medium:
+                          type: string
+                        message:
+                          type: string
+                        owner:
+                          description: DeliveryOwner identifies the producer revision,
+                            independently of a strategy.
+                          properties:
+                            apiVersion:
+                              type: string
+                            generation:
+                              format: int64
+                              type: integer
+                            kind:
+                              type: string
+                            name:
+                              type: string
+                            namespace:
+                              type: string
+                            uid:
+                              description: |-
+                                UID is a type that holds unique ID values, including UUIDs.  Because we
+                                don't ONLY use UUIDs, this is an alias to string.  Being a type captures
+                                intent and helps make sure that UIDs and names do not get conflated.
+                              type: string
+                          type: object
+                        state:
+                          description: DeliveryState describes convergence of the
+                            current intent, not the last write.
+                          type: string
+                        target:
+                          type: string
+                        throttle:
+                          properties:
+                            reason:
+                              type: string
+                            until:
+                              format: date-time
+                              type: string
+                          type: object
+                        waitingOn:
+                          type: string
+                      required:
+                      - address
+                      type: object
+                    type: array
+                    x-kubernetes-list-map-keys:
+                    - address
+                    x-kubernetes-list-type: map
+                  lastDeliveredAt:
+                    format: date-time
+                    type: string
+                  medium:
+                    type: string
+                  state:
+                    description: DeliveryState describes convergence of the current
+                      intent, not the last write.
+                    type: string
+                  throttle:
+                    properties:
+                      reason:
+                        type: string
+                      until:
+                        format: date-time
+                        type: string
+                    type: object
+                  waitingOn:
+                    type: string
+                type: object
+              exposureEndpoints:
+                items:
+                  description: ExposureEndpointCapability describes an operator-native
+                    client endpoint group.
+                  properties:
+                    default:
+                      description: Default selects this group when endpoints are omitted
+                        and DefaultWhen is absent.
+                      type: boolean
+                    defaultWhen:
+                      description: DefaultWhen replaces Default with a topology-dependent
+                        condition.
+                      properties:
+                        equals:
+                          type: boolean
+                        nativeSpecPath:
+                          description: NativeSpecPath is relative to the native resource's
+                            spec (no leading "spec").
+                          items:
+                            type: string
+                          minItems: 1
+                          type: array
+                      required:
+                      - equals
+                      - nativeSpecPath
+                      type: object
+                    dynamic:
+                      type: boolean
+                    message:
+                      type: string
+                    name:
+                      type: string
+                    protocol:
+                      type: string
+                    requiresHostname:
+                      type: boolean
+                    requiresUserCertificate:
+                      type: boolean
+                  type: object
+                type: array
               installedVersion:
                 description: InstalledVersion is the version of the operator that
                   was installed
@@ -177,6 +406,11 @@ spec:
                 description: LastUpdated is the last time the status was updated
                 format: date-time
                 type: string
+              observedGeneration:
+                description: ObservedGeneration identifies the evaluated observation
+                  record revision.
+                format: int64
+                type: integer
               status:
                 description: Status indicates the current status of the operator installation
                 type: string

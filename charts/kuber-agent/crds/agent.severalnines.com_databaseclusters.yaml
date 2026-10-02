@@ -142,11 +142,57 @@ spec:
                   DatabaseParams contains database-specific configuration parameters
                   Use this field to specify configurations for the database itself
                 x-kubernetes-preserve-unknown-fields: true
+              deletionPolicy:
+                description: DeletionPolicy configures native behavior before deletion
+                  is requested.
+                properties:
+                  dataVolumes:
+                    enum:
+                    - Retain
+                    - Delete
+                    type: string
+                type: object
+              delivery:
+                description: Delivery optionally overrides destination selectors for
+                  this intent.
+                properties:
+                  configRef:
+                    properties:
+                      name:
+                        type: string
+                      namespace:
+                        type: string
+                    type: object
+                type: object
               externalAccess:
                 description: |-
                   ExternalAccess defines how the database can be accessed from outside the Kubernetes cluster
                   This can be through LoadBalancer, NodePort, or both
                 properties:
+                  gateway:
+                    description: |-
+                      Gateway configures Gateway API exposure (CLUS-6203): the database is
+                      published through the shared cc-gateway with an auto-allocated TCP
+                      listener port (a ListenerSet + TCPRoute per exposed cluster), instead of
+                      its own cloud LoadBalancer or a NodePort. Requires the gateway addon.
+                      The three modes are independent flags — a cluster may set more than one,
+                      though Gateway is the intended single edge.
+                    properties:
+                      enabled:
+                        default: false
+                        description: |-
+                          Enabled indicates whether to expose this database through the shared
+                          Gateway API gateway (cc-gateway).
+                        type: boolean
+                      endpoints:
+                        description: |-
+                          Endpoints chooses provider endpoint names. Omitted uses the provider's
+                          default endpoints. Dynamic endpoint groups follow observed members.
+                        items:
+                          type: string
+                        type: array
+                        x-kubernetes-list-type: set
+                    type: object
                   loadBalancer:
                     description: LoadBalancer configures a LoadBalancer service for
                       external access
@@ -579,10 +625,11 @@ spec:
                     type: integer
                 type: object
               size:
-                description: Size specifies the number of instances in the database
-                  cluster
+                description: |-
+                  Size specifies the number of instances in the database cluster.
+                  Observe-only imports may preserve zero; managed clusters require at least one.
                 format: int32
-                minimum: 1
+                minimum: 0
                 type: integer
               storage:
                 description: |-
@@ -1101,21 +1148,9 @@ spec:
                     type: string
                 type: object
               type:
-                allOf:
-                - enum:
-                  - pxc
-                  - cnpg
-                  - stackgres
-                  - moco
-                  - eck
-                - enum:
-                  - pxc
-                  - cnpg
-                  - stackgres
-                  - moco
-                  - eck
                 description: Type specifies the type of database operator to use for
                   this cluster
+                minLength: 1
                 type: string
               version:
                 description: |-
@@ -1126,6 +1161,12 @@ spec:
             - size
             - type
             type: object
+            x-kubernetes-validations:
+            - message: managed clusters require size >= 1; set a valid size before
+                taking over lifecycle
+              rule: '!self.manageLifecycle || self.size >= 1'
+            - message: deletionPolicy requires managed lifecycle
+              rule: '!has(self.deletionPolicy) || self.manageLifecycle'
           status:
             description: DatabaseClusterStatus defines the observed state of DatabaseCluster
             properties:
@@ -1187,12 +1228,151 @@ spec:
                   - type
                   type: object
                 type: array
+              dataVolumeDeletion:
+                description: DataVolumeDeletion describes this observed native cluster,
+                  not the operator default.
+                properties:
+                  behavior:
+                    description: Behavior is Retain, Delete, or Unknown for cluster
+                      deletion, not scale-down.
+                    type: string
+                  deleteEffects:
+                    items:
+                      type: string
+                    type: array
+                  message:
+                    type: string
+                  nativeChoices:
+                    description: |-
+                      NativeChoices lists choices available for this observed cluster; empty
+                      means unavailable, even if the operator generally supports selection.
+                    items:
+                      type: string
+                    type: array
+                  nativeGeneration:
+                    format: int64
+                    type: integer
+                  nativeUID:
+                    type: string
+                type: object
+              delivery:
+                description: Delivery reports convergence independently of workload
+                  health.
+                properties:
+                  approval:
+                    description: DeliveryApproval carries a generic approval reference,
+                      not provider fields.
+                    properties:
+                      kind:
+                        type: string
+                      ref:
+                        type: string
+                      url:
+                        type: string
+                    type: object
+                  bundles:
+                    items:
+                      description: |-
+                        DeliveryBundleStatus preserves every outcome; a successful sibling cannot
+                        hide a pending approval, failed delivery or unavailable observation.
+                      properties:
+                        address:
+                          type: string
+                        approval:
+                          description: DeliveryApproval carries a generic approval
+                            reference, not provider fields.
+                          properties:
+                            kind:
+                              type: string
+                            ref:
+                              type: string
+                            url:
+                              type: string
+                          type: object
+                        contentDigest:
+                          type: string
+                        lastDeliveredAt:
+                          format: date-time
+                          type: string
+                        medium:
+                          type: string
+                        message:
+                          type: string
+                        owner:
+                          description: DeliveryOwner identifies the producer revision,
+                            independently of a strategy.
+                          properties:
+                            apiVersion:
+                              type: string
+                            generation:
+                              format: int64
+                              type: integer
+                            kind:
+                              type: string
+                            name:
+                              type: string
+                            namespace:
+                              type: string
+                            uid:
+                              description: |-
+                                UID is a type that holds unique ID values, including UUIDs.  Because we
+                                don't ONLY use UUIDs, this is an alias to string.  Being a type captures
+                                intent and helps make sure that UIDs and names do not get conflated.
+                              type: string
+                          type: object
+                        state:
+                          description: DeliveryState describes convergence of the
+                            current intent, not the last write.
+                          type: string
+                        target:
+                          type: string
+                        throttle:
+                          properties:
+                            reason:
+                              type: string
+                            until:
+                              format: date-time
+                              type: string
+                          type: object
+                        waitingOn:
+                          type: string
+                      required:
+                      - address
+                      type: object
+                    type: array
+                    x-kubernetes-list-map-keys:
+                    - address
+                    x-kubernetes-list-type: map
+                  lastDeliveredAt:
+                    format: date-time
+                    type: string
+                  medium:
+                    type: string
+                  state:
+                    description: DeliveryState describes convergence of the current
+                      intent, not the last write.
+                    type: string
+                  throttle:
+                    properties:
+                      reason:
+                        type: string
+                      until:
+                        format: date-time
+                        type: string
+                    type: object
+                  waitingOn:
+                    type: string
+                type: object
               endpoints:
                 description: Endpoints provides database connection endpoints
                 items:
                   description: DatabaseClusterEndpoint defines a database connection
                     endpoint
                   properties:
+                    component:
+                      description: Component identifies the provider component served
+                        by this endpoint.
+                      type: string
                     dbRole:
                       description: DBRole describes the logical database role (Primary,
                         Replica, ReadWrite, ReadOnly, etc.)
@@ -1204,6 +1384,15 @@ spec:
                       description: Port is the port number
                       format: int32
                       type: integer
+                    protocol:
+                      description: Protocol is the application protocol, for example
+                        mongodb, http or https.
+                      type: string
+                    purpose:
+                      description: |-
+                        Purpose distinguishes client data/API access from transport, control or
+                        metrics endpoints. It is independent of the Kubernetes Service type.
+                      type: string
                     targetPort:
                       description: TargetPort captures service target port
                       type: string
@@ -1220,6 +1409,10 @@ spec:
                   description: DatabaseClusterEndpoint defines a database connection
                     endpoint
                   properties:
+                    component:
+                      description: Component identifies the provider component served
+                        by this endpoint.
+                      type: string
                     dbRole:
                       description: DBRole describes the logical database role (Primary,
                         Replica, ReadWrite, ReadOnly, etc.)
@@ -1231,6 +1424,15 @@ spec:
                       description: Port is the port number
                       format: int32
                       type: integer
+                    protocol:
+                      description: Protocol is the application protocol, for example
+                        mongodb, http or https.
+                      type: string
+                    purpose:
+                      description: |-
+                        Purpose distinguishes client data/API access from transport, control or
+                        metrics endpoints. It is independent of the Kubernetes Service type.
+                      type: string
                     targetPort:
                       description: TargetPort captures service target port
                       type: string
@@ -1240,6 +1442,80 @@ spec:
                       type: string
                   type: object
                 type: array
+              gateway:
+                description: |-
+                  Gateway reports Gateway API exposure state when spec.externalAccess.gateway
+                  is enabled (CLUS-6203): the auto-allocated listener port on the shared
+                  gateway and which gateway/listener it lives on. The UI joins this port
+                  with the gateway address it reads from the /k8s/gateways proxy endpoint
+                  to build the external connection string. Nil when gateway exposure is off.
+                properties:
+                  endpoints:
+                    description: Endpoints records one stable gateway allocation per
+                      exposed endpoint.
+                    items:
+                      description: DatabaseGatewayEndpointStatus describes one client
+                        endpoint allocation.
+                      properties:
+                        listenerName:
+                          type: string
+                        listenerPort:
+                          description: |-
+                            ListenerPort is the gateway listener port. For a NodePort gateway, use
+                            the gateway API's mapped node port when building an external address.
+                          format: int32
+                          type: integer
+                        member:
+                          default: ""
+                          description: Member identifies a dynamic endpoint member;
+                            empty for singleton endpoints.
+                          type: string
+                        message:
+                          type: string
+                        name:
+                          description: Name is the provider endpoint name (for example
+                            primary or member).
+                          type: string
+                        ready:
+                          description: Ready reports observed route readiness, not
+                            database health.
+                          type: boolean
+                      required:
+                      - name
+                      type: object
+                    type: array
+                    x-kubernetes-list-map-keys:
+                    - name
+                    - member
+                    x-kubernetes-list-type: map
+                  gatewayName:
+                    description: |-
+                      GatewayName is the shared Gateway this database's listener attaches to
+                      (e.g. "cc-gateway").
+                    type: string
+                  gatewayNamespace:
+                    description: |-
+                      GatewayNamespace is the namespace of the shared Gateway
+                      (e.g. "envoy-gateway-system").
+                    type: string
+                  gatewayPresent:
+                    description: |-
+                      GatewayPresent records whether the shared Gateway object
+                      (gatewayName/gatewayNamespace) existed at the last reconcile. The
+                      translators emit the ListenerSet/TCPRoute only while it is true: a
+                      route whose parent Gateway does not exist is claimed by no controller,
+                      never gets a status.parents verdict, and wedges GitOps delivery for
+                      the whole environment (CLUS-8512). The listener port above stays
+                      allocated (sticky) while this is false; emission resumes automatically
+                      on the reconcile after the Gateway appears. False also while the
+                      Gateway API CRDs are unregistered (no gateway addon — nothing to
+                      attach to either way).
+                    type: boolean
+                  hostname:
+                    description: Hostname is the configured public gateway DNS name,
+                      when available.
+                    type: string
+                type: object
               instances:
                 description: Instances represents the status of individual instances
                   in the cluster
@@ -1279,12 +1555,20 @@ spec:
                             type: string
                         type: object
                       type: array
+                    message:
+                      description: Message is the scheduler explanation, cleared when
+                        the pod is scheduled.
+                      type: string
                     name:
                       description: Name is the instance name
                       type: string
                     phase:
                       description: Phase indicates the instance phase (Running, Failed,
                         etc.)
+                      type: string
+                    reason:
+                      description: Reason is the Kubernetes scheduling failure reason
+                        while PodScheduled is false.
                       type: string
                     role:
                       description: Role indicates the instance role (primary, replica,
@@ -1342,6 +1626,16 @@ spec:
                   reason:
                     description: Reason is a short CamelCase string describing the
                       last transition.
+                    type: string
+                  requestedBackupName:
+                    description: |-
+                      RequestedBackupName preserves the original selector, including a native
+                      name alias, so completed restores do not follow a later reused name.
+                    type: string
+                  sourceDigest:
+                    description: |-
+                      SourceDigest identifies the source record and its restore locator. Status
+                      locators can change without changing the source resource's generation.
                     type: string
                   startedAt:
                     description: StartedAt marks when the current restore attempt
