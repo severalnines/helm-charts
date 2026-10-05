@@ -290,7 +290,7 @@ Create the name of the service account to use
       set -euo pipefail
       log() { echo "[$(date '+%H:%M:%S')] $*"; }
 
-      has_data=$(ls /var/lib/cmon/cmon.data /etc/cmon.d/cmon_*.cnf 2>/dev/null | head -1 || true)
+      has_data=$(ls /etc/cmon.d/cmon_*.cnf 2>/dev/null | head -1 || true)
       if [ -n "$has_data" ]; then
           log "PVCs already populated — skipping restore"
           exit 0
