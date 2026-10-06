@@ -1,0 +1,51 @@
+{{- /*
+Gateway-access namespace labeling (CLUS-6203).
+
+The shared cc-gateway restricts allowedRoutes/allowedListeners to namespaces
+labeled severalnines.com/gateway-access="true" (shared/pkg/gatewayedge). The
+DatabaseCluster reconciler stamps that label on every workload namespace with
+gateway exposure enabled — a PATCH on the cluster-scoped `namespaces`
+resource. Restricted installs (mode.write.enabled=false) have no cluster-wide
+write binding, and the per-namespace s9s-write RoleBindings cannot confer any
+verb on a cluster-scoped resource — so without this grant the label patch is
+Forbidden and gateway-exposed databases stay unreachable through the edge.
+
+Narrowest possible grant: `patch` only (get/list/watch on namespaces comes
+with s9s:cluster-read, which is always bound cluster-wide). Rendered only
+when the gateway addon is enabled. Subjects mirror rolebinding-cluster-read:
+the agent SA always (the pod runs as it when write mode is off), plus the
+write SA when write mode is on (redundant with s9s:cluster-write's namespace
+patch, kept for symmetry).
+*/}}
+{{- if and .Values.rbac.create .Values.gateway.enabled }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: s9s:namespace-label
+  labels:
+    {{- include "agent-operator.labels" . | nindent 4 }}
+rules:
+  - apiGroups: [""]
+    resources: ["namespaces"]
+    verbs: ["patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ include "agent-operator.fullname" . }}-namespace-label-binding
+  labels:
+    {{- include "agent-operator.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: s9s:namespace-label
+subjects:
+- kind: ServiceAccount
+  name: {{ .Values.rbac.serviceAccounts.agent.name }}
+  namespace: {{ include "agent-operator.namespace" . }}
+{{- if .Values.mode.write.enabled }}
+- kind: ServiceAccount
+  name: {{ .Values.rbac.serviceAccounts.write.name }}
+  namespace: {{ include "agent-operator.namespace" . }}
+{{- end }}
+{{- end }}
