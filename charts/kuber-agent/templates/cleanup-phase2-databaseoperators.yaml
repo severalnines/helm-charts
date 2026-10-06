@@ -21,7 +21,7 @@ spec:
         {{- include "agent-operator.selectorLabels" . | nindent 8 }}
     spec:
       restartPolicy: OnFailure
-      serviceAccountName: {{ include "agent-operator.serviceAccountName" . }}
+      serviceAccountName: {{ if .Values.mode.write.enabled }}{{ .Values.rbac.serviceAccounts.write.name }}{{ else }}{{ .Values.rbac.serviceAccounts.agent.name }}{{ end }}
       containers:
       - name: cleanup-databaseoperators
         image: "{{ .Values.cleanup.image.repository }}:{{ .Values.cleanup.image.tag }}"

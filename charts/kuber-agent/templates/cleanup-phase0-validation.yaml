@@ -21,7 +21,7 @@ spec:
         {{- include "agent-operator.selectorLabels" . | nindent 8 }}
     spec:
       restartPolicy: OnFailure
-      serviceAccountName: {{ include "agent-operator.serviceAccountName" . }}
+      serviceAccountName: {{ if .Values.mode.write.enabled }}{{ .Values.rbac.serviceAccounts.write.name }}{{ else }}{{ .Values.rbac.serviceAccounts.agent.name }}{{ end }}
       containers:
       - name: cleanup-validation
         image: "{{ .Values.cleanup.image.repository }}:{{ .Values.cleanup.image.tag }}"
@@ -48,11 +48,7 @@ spec:
           
           # List of resources to check
           resources=(
-            "databaseclusters.agent.severalnines.com"
-            "databaseoperators.agent.severalnines.com"
-            "databasebackups.agent.severalnines.com"
-            "databasebackupschedules.agent.severalnines.com"
-            "configversions.agent.severalnines.com"
+{{ include "agent-operator.packagedCrdNames" . | indent 12 }}
           )
           
           total_resources=0

@@ -102,6 +102,18 @@ spec:
                       Example: "Etc/UTC".
                     type: string
                 type: object
+              delivery:
+                description: Delivery optionally overrides destination selectors for
+                  this intent.
+                properties:
+                  configRef:
+                    properties:
+                      name:
+                        type: string
+                      namespace:
+                        type: string
+                    type: object
+                type: object
               manageLifecycle:
                 default: true
                 description: |-
@@ -109,6 +121,25 @@ spec:
                   When true (default), the controller reconciles and applies operator backup resources.
                   When false, the schedule is imported/read-only - the controller only observes status.
                 type: boolean
+              nativeSource:
+                description: |-
+                  NativeSource preserves the identity of an imported native schedule.
+                  It is observation-only and cannot be combined with lifecycle management.
+                properties:
+                  apiVersion:
+                    type: string
+                  kind:
+                    type: string
+                  member:
+                    description: Member is empty for a standalone schedule resource.
+                    type: string
+                  name:
+                    type: string
+                  namespace:
+                    type: string
+                  uid:
+                    type: string
+                type: object
               options:
                 description: Options contains backup-specific options
                 properties:
@@ -209,8 +240,9 @@ spec:
                         type: string
                     type: object
                   type:
-                    description: Type defines the storage type (s3, gcs, azureblob,
-                      local)
+                    description: |-
+                      Type defines storage (s3, gcs, azureblob, local). Native means an
+                      observe-only import whose storage configuration remains on NativeSource.
                     type: string
                 type: object
               target:
@@ -230,6 +262,9 @@ spec:
                     type: string
                 type: object
             type: object
+            x-kubernetes-validations:
+            - message: nativeSource is only valid for observe-only imported schedules
+              rule: '!has(self.nativeSource) || !self.manageLifecycle'
           status:
             description: DatabaseBackupScheduleStatus defines the observed state of
               DatabaseBackupSchedule
@@ -253,6 +288,9 @@ spec:
                       description: Message is a human-readable message indicating
                         details about the transition
                       type: string
+                    observedGeneration:
+                      format: int64
+                      type: integer
                     reason:
                       description: Reason is a unique, one-word, CamelCase reason
                         for the condition's last transition
@@ -265,6 +303,114 @@ spec:
                       type: string
                   type: object
                 type: array
+              delivery:
+                description: Delivery reports convergence independently of workload
+                  health.
+                properties:
+                  approval:
+                    description: DeliveryApproval carries a generic approval reference,
+                      not provider fields.
+                    properties:
+                      kind:
+                        type: string
+                      ref:
+                        type: string
+                      url:
+                        type: string
+                    type: object
+                  bundles:
+                    items:
+                      description: |-
+                        DeliveryBundleStatus preserves every outcome; a successful sibling cannot
+                        hide a pending approval, failed delivery or unavailable observation.
+                      properties:
+                        address:
+                          type: string
+                        approval:
+                          description: DeliveryApproval carries a generic approval
+                            reference, not provider fields.
+                          properties:
+                            kind:
+                              type: string
+                            ref:
+                              type: string
+                            url:
+                              type: string
+                          type: object
+                        contentDigest:
+                          type: string
+                        lastDeliveredAt:
+                          format: date-time
+                          type: string
+                        medium:
+                          type: string
+                        message:
+                          type: string
+                        owner:
+                          description: DeliveryOwner identifies the producer revision,
+                            independently of a strategy.
+                          properties:
+                            apiVersion:
+                              type: string
+                            generation:
+                              format: int64
+                              type: integer
+                            kind:
+                              type: string
+                            name:
+                              type: string
+                            namespace:
+                              type: string
+                            uid:
+                              description: |-
+                                UID is a type that holds unique ID values, including UUIDs.  Because we
+                                don't ONLY use UUIDs, this is an alias to string.  Being a type captures
+                                intent and helps make sure that UIDs and names do not get conflated.
+                              type: string
+                          type: object
+                        state:
+                          description: DeliveryState describes convergence of the
+                            current intent, not the last write.
+                          type: string
+                        target:
+                          type: string
+                        throttle:
+                          properties:
+                            reason:
+                              type: string
+                            until:
+                              format: date-time
+                              type: string
+                          type: object
+                        waitingOn:
+                          type: string
+                      required:
+                      - address
+                      type: object
+                    type: array
+                    x-kubernetes-list-map-keys:
+                    - address
+                    x-kubernetes-list-type: map
+                  lastDeliveredAt:
+                    format: date-time
+                    type: string
+                  medium:
+                    type: string
+                  state:
+                    description: DeliveryState describes convergence of the current
+                      intent, not the last write.
+                    type: string
+                  throttle:
+                    properties:
+                      reason:
+                        type: string
+                      until:
+                        format: date-time
+                        type: string
+                    type: object
+                  waitingOn:
+                    type: string
+                type: object
               lastScheduled:
                 description: LastScheduled is when the last backup was scheduled
                 format: date-time
@@ -277,10 +423,20 @@ spec:
               message:
                 description: Message provides additional information about the schedule
                 type: string
+              nativeScheduleName:
+                description: |-
+                  NativeScheduleName is the observed scheduler identity used by native backup records.
+                  It is not a CC object name or proof of a particular historical policy revision.
+                type: string
               nextScheduled:
                 description: NextScheduled is when the next backup is scheduled
                 format: date-time
                 type: string
+              observedGeneration:
+                description: ObservedGeneration identifies the evaluated schedule
+                  intent revision.
+                format: int64
+                type: integer
               providerSummary:
                 additionalProperties:
                   type: string
