@@ -5,13 +5,13 @@ description: An Umbrella Chart for observability components in CCX
 type: application
 
 ## version
-version: 0.6.21
-appVersion: "0.6.21"
+version: 0.6.22
+appVersion: "0.6.22"
 
 dependencies:
   - name: victoria-metrics-single
     repository: https://victoriametrics.github.io/helm-charts/
-    version: 0.22.0
+    version: 0.48.0
     condition: victoria-metrics-single.enabled
   - name: victoria-metrics-alert
     repository: https://victoriametrics.github.io/helm-charts/
@@ -34,12 +34,12 @@ dependencies:
     version: 1.7.0
     condition: alertmanager.enabled
   - name: grafana
-    repository: https://grafana.github.io/helm-charts
-    version: 10.5.15
+    repository: https://grafana-community.github.io/helm-charts
+    version: 13.2.7
     condition: grafana.enabled
   - name: loki
-    repository: https://grafana.github.io/helm-charts
-    version: 6.5.2
+    repository: https://grafana-community.github.io/helm-charts
+    version: 18.13.7
     condition: loki.enabled
   - name: prometheus-node-exporter
     repository: https://prometheus-community.github.io/helm-charts
