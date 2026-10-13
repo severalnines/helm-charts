@@ -1525,7 +1525,7 @@
           "multi": false,
           "name": "job",
           "options": [],
-          "query": "up",
+          "query": "mssql_up",
           "refresh": 1,
           "regex": "/job=\"(.*?)\"/",
           "skipUrlSync": false,
