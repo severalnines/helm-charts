@@ -67,6 +67,38 @@ spec:
                 type: object
               contentDigest:
                 type: string
+              files:
+                items:
+                  description: DeliveryFile carries non-object repository content
+                    relative to the destination root.
+                  properties:
+                    content:
+                      maxLength: 262144
+                      type: string
+                    mode:
+                      default: replace
+                      enum:
+                      - replace
+                      - create
+                      type: string
+                    path:
+                      maxLength: 512
+                      minLength: 1
+                      type: string
+                  required:
+                  - content
+                  - path
+                  type: object
+                maxItems: 64
+                type: array
+                x-kubernetes-list-map-keys:
+                - path
+                x-kubernetes-list-type: map
+              interactive:
+                description: |-
+                  Interactive marks a user submission. Destination ownership conflicts fail it
+                  before publication; unmarked historical requests retain migration skip behavior.
+                type: boolean
               objects:
                 items:
                   description: EmbeddedObject holds a single embedded Kubernetes resource.

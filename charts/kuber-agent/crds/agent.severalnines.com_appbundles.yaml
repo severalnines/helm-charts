@@ -590,16 +590,130 @@ spec:
                           type: string
                       required:
                       - address
+                      - target
                       type: object
                     type: array
                     x-kubernetes-list-map-keys:
                     - address
+                    - target
                     x-kubernetes-list-type: map
                   lastDeliveredAt:
                     format: date-time
                     type: string
                   medium:
                     type: string
+                  routes:
+                    description: |-
+                      Routes are lifecycle checkpoints, not publication or health evidence.
+                      Retain each producing route until its output and request are retired.
+                    items:
+                      description: |-
+                        DeliveryRouteReceipt retains where one owner's change set may have effects.
+                        It is checkpointed before writes; cleanup still verifies the actual destination.
+                      properties:
+                        address:
+                          type: string
+                        config:
+                          description: |-
+                            DeliveryRouteConfig freezes the non-secret configuration needed for retirement.
+                            Credential references remain references; credential values are never copied.
+                          properties:
+                            baseBranch:
+                              type: string
+                            basePath:
+                              type: string
+                            baseURL:
+                              description: BaseURL is the provider API endpoint needed
+                                to retire enterprise proposals.
+                              type: string
+                            credentialsRef:
+                              description: |-
+                                GitOpsCredentialsRef references a Secret that contains credentials for VCS hosting
+                                If Namespace is empty, the DeliveryConfig namespace is used. If Key is empty, "token" is assumed.
+                              properties:
+                                key:
+                                  type: string
+                                name:
+                                  type: string
+                                namespace:
+                                  type: string
+                              required:
+                              - name
+                              type: object
+                            name:
+                              type: string
+                            namespace:
+                              type: string
+                            repoURL:
+                              description: Git destination and credential reference
+                                only; policies stay on the config.
+                              type: string
+                            strategy:
+                              type: string
+                            uid:
+                              description: UID is empty only for a built-in in-memory
+                                destination.
+                              type: string
+                          required:
+                          - name
+                          - namespace
+                          - strategy
+                          type: object
+                        contributionTarget:
+                          description: DeliveryOwner identifies the producer revision,
+                            independently of a strategy.
+                          properties:
+                            apiVersion:
+                              type: string
+                            generation:
+                              format: int64
+                              type: integer
+                            kind:
+                              type: string
+                            name:
+                              type: string
+                            namespace:
+                              type: string
+                            uid:
+                              description: |-
+                                UID is a type that holds unique ID values, including UUIDs.  Because we
+                                don't ONLY use UUIDs, this is an alias to string.  Being a type captures
+                                intent and helps make sure that UIDs and names do not get conflated.
+                              type: string
+                          type: object
+                        id:
+                          type: string
+                        ownerUID:
+                          description: |-
+                            UID is a type that holds unique ID values, including UUIDs.  Because we
+                            don't ONLY use UUIDs, this is an alias to string.  Being a type captures
+                            intent and helps make sure that UIDs and names do not get conflated.
+                          type: string
+                        phase:
+                          description: Phase tracks cleanup without treating the receipt
+                            as delivery evidence.
+                          enum:
+                          - Active
+                          - Retiring
+                          - Retired
+                          - Abandoned
+                          type: string
+                        target:
+                          type: string
+                        workloadNamespace:
+                          type: string
+                      required:
+                      - address
+                      - config
+                      - id
+                      - ownerUID
+                      - phase
+                      - target
+                      type: object
+                    type: array
+                    x-kubernetes-list-map-keys:
+                    - id
+                    x-kubernetes-list-type: map
                   state:
                     description: DeliveryState describes convergence of the current
                       intent, not the last write.
