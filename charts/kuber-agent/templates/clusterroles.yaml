@@ -14,28 +14,22 @@ rules:
   - apiGroups: ["rbac.authorization.k8s.io"]
     resources: ["rolebindings"]
     verbs: ["get", "list", "watch"]
+  # Read-only view of the Gateway API publishing edge (CLUS-6203): the addon's
+  # Discover lists GatewayClasses, and the kuber-proxy /k8s/gateways +
+  # /k8s/httproutes endpoints feed the UI's published-URL resolution. Served
+  # via the direct provider only (never informers — the CRDs are optional and
+  # a maybe-absent CRD would wedge a reflector); restricted installs need this
+  # read like any other, or the gateway feature goes dark there.
+  # listenersets/tcproutes: the DatabaseCluster reconciler's listener-port
+  # collision scan LISTS live ListenerSets cluster-wide before allocating a
+  # DB exposure port — without this read, gateway DB exposure fails with
+  # GatewayPortAllocationFailed on restricted installs (found live on the
+  # restricted kuber-cc-incus stack).
+  - apiGroups: ["gateway.networking.k8s.io"]
+    resources: ["gatewayclasses", "gateways", "httproutes", "listenersets", "tcproutes"]
+    verbs: ["get", "list", "watch"]
   - apiGroups: ["agent.severalnines.com"]
-    resources:
-      [
-        "databaseclusters",
-        "databaseoperators",
-        "databasebackups",
-        "databasebackupschedules",
-        "appbundles",
-        "clusterchangerequests",
-        "databaseclusters/status",
-        "databaseoperators/status",
-        "databasebackups/status",
-        "databasebackupschedules/status",
-        "appbundles/status",
-        "clusterchangerequests/status",
-        "databaseclusters/finalizers",
-        "databaseoperators/finalizers",
-        "databasebackups/finalizers",
-        "databasebackupschedules/finalizers",
-        "appbundles/finalizers",
-        "clusterchangerequests/finalizers"
-      ]
+    resources: {{ include "agent-operator.intentResources" . }}
     verbs: ["get", "list", "watch"]
   - apiGroups: [""]
     resources:
@@ -74,28 +68,7 @@ rules:
   - apiGroups: ["storage.k8s.io"]
     resources: ["storageclasses"]
     verbs: ["get", "list", "watch"]
-  - apiGroups: ["postgresql.cnpg.io"]
-    resources: ["clusters", "backups", "scheduledbackups"]
-    verbs: ["get", "list", "watch"]
-  - apiGroups: ["moco.cybozu.com"]
-    resources:
-      ["mysqlclusters", "mysqlbackups", "mysqlbackuppolicies", "backuppolicies"]
-    verbs: ["get", "list", "watch"]
-  - apiGroups: ["pxc.percona.com"]
-    resources:
-      [
-        "perconaxtradbclusters",
-        "perconaxtradbbackups",
-        "perconaxtradbbackupjobs",
-        "perconaxtradbrestores"
-      ]
-    verbs: ["get", "list", "watch"]
-  - apiGroups: ["stackgres.io"]
-    resources: ["sgclusters", "sgbackups", "sgbackupconfigs", "sgschedules"]
-    verbs: ["get", "list", "watch"]
-  - apiGroups: ["elasticsearch.k8s.elastic.co"]
-    resources: ["elasticsearches"]
-    verbs: ["get", "list", "watch"]
+{{ include "agent-operator.providerReadRules" . | indent 2 }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
@@ -107,6 +80,16 @@ rules:
 - apiGroups: [""]
   resources: ["secrets", "serviceaccounts"]
   verbs: ["get", "list", "watch"]
+- apiGroups: ["rbac.authorization.k8s.io"]
+  resources: ["roles"]
+  verbs: ["get", "list", "watch"]
+# Owned-inventory discovery needs to read the resources it writes.
+- apiGroups: ["cert-manager.io"]
+  resources: ["issuers", "certificates"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["gateway.envoyproxy.io"]
+  resources: ["envoyproxies"]
+  verbs: ["get", "list", "watch"]
 ---
 # CLUS-7411: full verbs on the agent's OWN intent CRDs only — nothing else.
 # No ClusterRoleBinding here: this role is bound per-namespace via the
@@ -116,8 +99,8 @@ rules:
 # placed in a user namespace, where restricted RBAC denies the agent's
 # status/finalizer writes. Never bound automatically. New deploys don't need
 # it: intent CRs land in the operator namespace, where s9s-write already
-# binds s9s:cluster-write. Keep the resource list in sync with the
-# agent.severalnines.com block of s9s:cluster-write below.
+# binds s9s:cluster-write. Resource names for both roles come from the
+# generated intent registry helper; verbs and bindings remain explicit here.
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
@@ -126,27 +109,7 @@ metadata:
     {{- include "agent-operator.labels" . | nindent 4 }}
 rules:
   - apiGroups: ["agent.severalnines.com"]
-    resources:
-      [
-        "databaseclusters",
-        "databaseoperators",
-        "databasebackups",
-        "databasebackupschedules",
-        "appbundles",
-        "clusterchangerequests",
-        "databaseclusters/status",
-        "databaseoperators/status",
-        "databasebackups/status",
-        "databasebackupschedules/status",
-        "appbundles/status",
-        "clusterchangerequests/status",
-        "databaseclusters/finalizers",
-        "databaseoperators/finalizers",
-        "databasebackups/finalizers",
-        "databasebackupschedules/finalizers",
-        "appbundles/finalizers",
-        "clusterchangerequests/finalizers",
-      ]
+    resources: {{ include "agent-operator.intentResources" . }}
     verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -175,35 +138,9 @@ rules:
     resources: ["jobs", "cronjobs"]
     verbs: ["create", "update", "patch", "delete"]
   - apiGroups: ["agent.severalnines.com"]
-    resources:
-      [
-        "databaseclusters",
-        "databaseoperators",
-        "databasebackups",
-        "databasebackupschedules",
-        "appbundles",
-        "clusterchangerequests",
-        "databaseclusters/status",
-        "databaseoperators/status",
-        "databasebackups/status",
-        "databasebackupschedules/status",
-        "appbundles/status",
-        "clusterchangerequests/status",
-        "databaseclusters/finalizers",
-        "databaseoperators/finalizers",
-        "databasebackups/finalizers",
-        "databasebackupschedules/finalizers",
-        "appbundles/finalizers",
-        "clusterchangerequests/finalizers",
-      ]
+    resources: {{ include "agent-operator.intentResources" . }}
     verbs: ["create", "update", "patch", "delete"]
-  - apiGroups: ["postgresql.cnpg.io"]
-    resources: ["clusters", "backups", "scheduledbackups"]
-    verbs: ["create", "update", "patch", "delete"]
-  - apiGroups: ["moco.cybozu.com"]
-    resources:
-      ["mysqlclusters", "mysqlbackups", "mysqlbackuppolicies", "backuppolicies"]
-    verbs: ["create", "update", "patch", "delete"]
+{{ include "agent-operator.providerWriteRules" . | indent 2 }}
   - apiGroups: ["events.k8s.io"]
     resources: ["events"]
     verbs: ["create", "patch", "update"]
@@ -217,6 +154,24 @@ rules:
   - apiGroups: ["kustomize.toolkit.fluxcd.io"]
     resources: ["kustomizations"]
     verbs: ["create", "patch", "update", "delete"]
+
+  # Gateway API publishing edge (CLUS-6203), direct-apply path: the gateway
+  # addon's auxiliaries (GatewayClass, shared cc-gateway Gateway, EnvoyProxy
+  # config CR, selfSigned Issuer + Certificate), the prometheus-stack Grafana
+  # HTTPRoute, and per-database exposure (ListenerSet + TCPRoute — delete is
+  # also the disable-teardown path). GitOps mode never uses these (Argo
+  # applies); they exist so direct-apply installs can run the addon at all.
+  - apiGroups: ["gateway.networking.k8s.io"]
+    resources: ["gatewayclasses", "gateways", "httproutes", "listenersets", "tcproutes"]
+    verbs: ["create", "update", "patch", "delete"]
+  # Owned-inventory discovery needs to read the resources it writes.
+  - apiGroups: ["gateway.envoyproxy.io"]
+    resources: ["envoyproxies"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  # Owned-inventory discovery needs to read the resources it writes.
+  - apiGroups: ["cert-manager.io"]
+    resources: ["issuers", "certificates"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
 
   - apiGroups: ["coordination.k8s.io"]
     resources: ["leases"]
@@ -233,10 +188,9 @@ rules:
 #
 # All user-namespace access is READ-ONLY. The controller never writes
 # `corev1.Secret`s in user namespaces — neither data nor metadata. Pattern A
-# status surface lives on a CCR in the agent namespace (CCR-as-status), so
-# no user-Secret update permission is required. The CCR get/create/update/
-# delete verbs come from the write-mode role above (agent.severalnines.com /
-# clusterchangerequests).
+# status is carried by DeliveryRequest in the agent namespace, so no
+# user-Secret update permission is required. Its verbs come from the
+# generated intent resource roster in the write-mode role above.
 #
 # CLUS-7411: the agent probes the full informer capability at startup via
 # SelfSubjectAccessReview before wiring Pattern A. Restricted mode intentionally
