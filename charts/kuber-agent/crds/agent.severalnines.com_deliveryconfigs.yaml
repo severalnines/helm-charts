@@ -143,6 +143,7 @@ spec:
                     description: |-
                       PublishedTTL starts when the destination is verified. Publication does
                       not mean that Argo/Flux has materialized the change in the live cluster.
+                      Owner-bound apply requests compared at the destination are re-checked in place on expiry instead of deleted.
                     type: string
                 type: object
               selector:
