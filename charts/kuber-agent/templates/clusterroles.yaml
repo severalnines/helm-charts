@@ -9,10 +9,11 @@ rules:
   - apiGroups: ["apiextensions.k8s.io"]
     resources: ["customresourcedefinitions"]
     verbs: ["get", "list", "watch"]
-  # Read-only view of RBAC grants so the UI can badge namespace access
-  # (s9s-read-extra RoleBindings) — CLUS-7411 namespace-access visibility.
+  # Role definitions are needed to inventory addon output; reading them does
+  # not grant access to the Secrets their rules describe. RoleBindings also
+  # expose namespace access to the UI. No RBAC writes, bind or escalate.
   - apiGroups: ["rbac.authorization.k8s.io"]
-    resources: ["rolebindings"]
+    resources: ["roles", "rolebindings"]
     verbs: ["get", "list", "watch"]
   # Read-only view of the Gateway API publishing edge (CLUS-6203): the addon's
   # Discover lists GatewayClasses, and the kuber-proxy /k8s/gateways +
