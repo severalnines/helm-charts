@@ -81,9 +81,6 @@ rules:
 - apiGroups: [""]
   resources: ["secrets", "serviceaccounts"]
   verbs: ["get", "list", "watch"]
-- apiGroups: ["rbac.authorization.k8s.io"]
-  resources: ["roles"]
-  verbs: ["get", "list", "watch"]
 # Owned-inventory discovery needs to read the resources it writes.
 - apiGroups: ["cert-manager.io"]
   resources: ["issuers", "certificates"]
