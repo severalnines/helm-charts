@@ -88,7 +88,6 @@ spec:
           echo "Cleanup timeout per phase: {{ .Values.cleanup.timeoutSeconds }}s"
           echo "Expected cleanup order:"
           echo "  1. DatabaseClusters"
-          echo "  2. DatabaseOperators"
           echo "  3. CRDs"
           echo "  4. Operator itself"
           echo "========================================="

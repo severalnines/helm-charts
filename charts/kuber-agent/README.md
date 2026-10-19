@@ -186,6 +186,7 @@ helm uninstall kuber-agent
 This will automatically:
 
 1. **Phase 1**: Delete all DatabaseClusters across all namespaces
-2. **Phase 2**: Delete all DatabaseOperators across all namespaces
 3. **Phase 3**: Delete all CRDs installed by the agent-operator
 4. **Phase 4**: Delete the operator itself (standard Helm uninstall)
+
+The retired DatabaseOperator CRD is not installed. A narrow startup retirement role permits removal of legacy mirrors and that named CRD, without deleting operator AppBundles. Remove this temporary role after the first minor release following the release shipping retirement. Phase 2 is removed; later cleanup phase numbers remain stable.

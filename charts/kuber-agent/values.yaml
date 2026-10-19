@@ -52,7 +52,7 @@ controllerManager:
     port: 8082
 
   # Optional: run only a subset of controllers. Empty = all
-  # Valid: databasecluster, databaseoperator, databasebackupschedule, databasebackup, appbundle, gc
+  # Valid: databasecluster, databasebackupschedule, databasebackup, appbundle, gc
   controllers: []
 
 # Dev overrides (command/startupProbe) - enabled via values
