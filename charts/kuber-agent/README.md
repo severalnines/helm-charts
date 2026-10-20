@@ -196,3 +196,11 @@ so the agent can inventory addon output, including the SOPS keygen Role, without
 reading Secrets or the age key. Secret/ServiceAccount reads remain in the existing
 namespace-approved extra role. No write, bind or escalate permissions change.
 Retire this read only if live owned-Role inventory is removed.
+
+Certificate inventory reads: `s9s:cluster-read` grants `get/list/watch` on
+cert-manager Issuers and Certificates so gateway delivery and cleanup can observe
+owned output without a namespace grant that exposes TLS Secrets. Private keys
+remain in Secrets, whose reads are namespace-approved. ClusterIssuer reads are
+not added because gateway inventory uses namespaced Issuers. No write, bind or
+escalate permissions change. Retire this read only if owned certificate inventory
+is removed.

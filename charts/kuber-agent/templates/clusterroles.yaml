@@ -15,6 +15,10 @@ rules:
   - apiGroups: ["rbac.authorization.k8s.io"]
     resources: ["roles", "rolebindings"]
     verbs: ["get", "list", "watch"]
+  # Observe gateway certificate inventory without access to TLS private keys.
+  - apiGroups: ["cert-manager.io"]
+    resources: ["issuers", "certificates"]
+    verbs: ["get", "list", "watch"]
   # Read-only view of the Gateway API publishing edge (CLUS-6203): the addon's
   # Discover lists GatewayClasses, and the kuber-proxy /k8s/gateways +
   # /k8s/httproutes endpoints feed the UI's published-URL resolution. Served
@@ -82,9 +86,6 @@ rules:
   resources: ["secrets", "serviceaccounts"]
   verbs: ["get", "list", "watch"]
 # Owned-inventory discovery needs to read the resources it writes.
-- apiGroups: ["cert-manager.io"]
-  resources: ["issuers", "certificates"]
-  verbs: ["get", "list", "watch"]
 - apiGroups: ["gateway.envoyproxy.io"]
   resources: ["envoyproxies"]
   verbs: ["get", "list", "watch"]
