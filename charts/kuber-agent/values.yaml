@@ -32,12 +32,13 @@ createNamespace: true
 controllerManager:
   replicas: 1
   # Leader election guards against two managers acting at once. With a
-  # single replica there is no second manager to guard against, and the
+  # single replica the chart uses Recreate to prevent rollout overlap. The
   # cost is real: controller-runtime EXITS when it cannot renew the lease,
   # so every transient API-server blip restarts the agent, drops its gRPC
   # stream to the proxy, and fails in-flight requests. Observed on
   # cc-test5: 43 restarts in 10 days, all "leader election lost".
-  # Turn this on only when running more than one replica.
+  # With leader election enabled (also forced for multiple replicas), the
+  # chart keeps rolling updates. Recreate has a brief restart outage.
   leaderElect: false
   manager:
     resources:

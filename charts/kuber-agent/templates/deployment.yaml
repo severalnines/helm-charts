@@ -8,6 +8,13 @@ metadata:
     {{- include "agent-operator.labels" . | nindent 4 }}
 spec:
   replicas: {{ .Values.controllerManager.replicas }}
+  {{- if and (not .Values.controllerManager.leaderElect) (le (int .Values.controllerManager.replicas) 1) }}
+  # A rolling update can overlap two pods even with replicas=1. Without
+  # election their different addon configs would both write the same intent.
+  strategy:
+    type: Recreate
+    rollingUpdate: null
+  {{- end }}
   selector:
     matchLabels:
       control-plane: controller-manager
