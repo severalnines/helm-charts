@@ -204,3 +204,11 @@ remain in Secrets, whose reads are namespace-approved. ClusterIssuer reads are
 not added because gateway inventory uses namespaced Issuers. No write, bind or
 escalate permissions change. Retire this read only if owned certificate inventory
 is removed.
+
+EnvoyProxy reads remain namespace-approved through `s9s:cluster-read-extra`:
+EnvoyProxy bootstrap overrides and literal deployment environment values can
+contain credentials. The managed gateway requests that existing namespace scope
+as a separate approval; it also includes Secret/ServiceAccount reads there.
+There is no cluster-wide EnvoyProxy read grant. The namespace permission survives
+gateway deletion until explicitly revoked; an already-deleting older gateway
+uses the normal explicit namespace-access approval flow to recover missing reads.
