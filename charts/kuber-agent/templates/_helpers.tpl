@@ -75,3 +75,16 @@ europe-docker.pkg.dev/severalnines-public/clustercontrol/kuber-agent
 {{- define "agent-operator.imagePullPolicyDefault" -}}
 Always
 {{- end -}}
+{{/* Cleanup follows the actual packaged CRDs; no second kind roster. */}}
+{{- define "agent-operator.packagedCrdNames" -}}
+{{- $files := .Files.Glob "crds/*.yaml" -}}
+{{- if eq (len $files) 0 -}}
+{{- fail "cleanup requires a packaged chart containing its crds/ manifests" -}}
+{{- end -}}
+{{- range $path, $_ := $files -}}
+{{- $crd := $.Files.Get $path | fromYaml -}}
+{{- if eq $crd.kind "CustomResourceDefinition" -}}
+{{- printf "%s\n" (quote $crd.metadata.name) -}}
+{{- end -}}
+{{- end -}}
+{{- end -}}
