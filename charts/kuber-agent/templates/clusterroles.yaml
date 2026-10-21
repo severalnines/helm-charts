@@ -11,9 +11,10 @@ rules:
     verbs: ["get", "list", "watch"]
   # Role definitions are needed to inventory addon output; reading them does
   # not grant access to the Secrets their rules describe. RoleBindings also
-  # expose namespace access to the UI. No RBAC writes, bind or escalate.
+  # expose namespace access to the UI. Cluster-scoped definitions are needed
+  # for PrometheusAgent inventory. No RBAC writes, bind or escalate.
   - apiGroups: ["rbac.authorization.k8s.io"]
-    resources: ["roles", "rolebindings"]
+    resources: ["roles", "rolebindings", "clusterroles", "clusterrolebindings"]
     verbs: ["get", "list", "watch"]
   # Observe gateway certificate inventory without access to TLS private keys.
   - apiGroups: ["cert-manager.io"]
@@ -88,6 +89,10 @@ rules:
 # Owned-inventory discovery needs to read the resources it writes.
 - apiGroups: ["gateway.envoyproxy.io"]
   resources: ["envoyproxies"]
+  verbs: ["get", "list", "watch"]
+# PrometheusAgent can contain inline remote-write credentials.
+- apiGroups: ["monitoring.coreos.com"]
+  resources: ["prometheusagents"]
   verbs: ["get", "list", "watch"]
 ---
 # CLUS-7411: full verbs on the agent's OWN intent CRDs only — nothing else.
