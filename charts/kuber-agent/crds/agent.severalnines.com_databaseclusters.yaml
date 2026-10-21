@@ -1733,6 +1733,11 @@ spec:
                     description: Message provides additional human-readable context
                       about the last transition.
                     type: string
+                  nativeTargetUid:
+                    description: |-
+                      NativeTargetUID identifies the native restore already observed with these
+                      inputs. A missing or replacement target must not trigger automatic replay.
+                    type: string
                   phase:
                     description: Phase reflects the phase of the restore attempt (InProgress,
                       Succeeded, Failed).
@@ -1746,6 +1751,53 @@ spec:
                       RequestedBackupName preserves the original selector, including a native
                       name alias, so completed restores do not follow a later reused name.
                     type: string
+                  source:
+                    description: |-
+                      Source records the validated non-secret source locator. It does not include
+                      credentials or authorize recreating a missing native restore target.
+                    properties:
+                      backupId:
+                        type: string
+                      completionTime:
+                        format: date-time
+                        type: string
+                      generation:
+                        format: int64
+                        type: integer
+                      location:
+                        type: string
+                      namespace:
+                        type: string
+                      spec:
+                        description: DatabaseBackupSpec defines the desired state
+                          of DatabaseBackup
+                        properties:
+                          backupName:
+                            description: BackupName is a unique identifier for this
+                              backup
+                            type: string
+                          scheduleName:
+                            description: ScheduleName is the name of the DatabaseBackupSchedule
+                              that triggered this backup
+                            type: string
+                          target:
+                            description: Target contains information about the database
+                              that was backed up
+                            properties:
+                              name:
+                                description: Name is the name of the database cluster
+                                type: string
+                              namespace:
+                                description: Namespace is the namespace where the
+                                  database cluster is located
+                                type: string
+                              operatorType:
+                                description: OperatorType is the type of database
+                                  operator (pxc, cnpg, moco, stackgres, eck)
+                                type: string
+                            type: object
+                        type: object
+                    type: object
                   sourceDigest:
                     description: |-
                       SourceDigest identifies the source record and its restore locator. Status
