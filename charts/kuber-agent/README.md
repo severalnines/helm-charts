@@ -135,7 +135,7 @@ kubectl -n severalnines-system create secret generic s9s-gitops-token \
 
 ### Upgrade note — restricted mode now grants write in listed target namespaces
 
-Since chart 1.1.2 (CLUS-7411), `mode.write.enabled=false` (no cluster-wide
+Since chart 1.1.6 (CLUS-7411), `mode.write.enabled=false` (no cluster-wide
 write) **renders namespace-scoped `s9s:cluster-write` RoleBindings in every
 namespace listed in `rbac.namespaces.targets`**, bound to the plain agent SA.
 Previously these namespaces got read-only bindings in restricted mode — the
@@ -186,6 +186,29 @@ helm uninstall kuber-agent
 This will automatically:
 
 1. **Phase 1**: Delete all DatabaseClusters across all namespaces
-2. **Phase 2**: Delete all DatabaseOperators across all namespaces
 3. **Phase 3**: Delete all CRDs installed by the agent-operator
 4. **Phase 4**: Delete the operator itself (standard Helm uninstall)
+
+The retired DatabaseOperator CRD is not installed. A narrow startup retirement role permits removal of legacy mirrors and that named CRD, without deleting operator AppBundles. Remove this temporary role after the first minor release following the release shipping retirement. Phase 2 is removed; later cleanup phase numbers remain stable.
+
+Role inventory reads: `s9s:cluster-read` grants `get/list/watch` on Role definitions
+so the agent can inventory addon output, including the SOPS keygen Role, without
+reading Secrets or the age key. Secret/ServiceAccount reads remain in the existing
+namespace-approved extra role. No write, bind or escalate permissions change.
+Retire this read only if live owned-Role inventory is removed.
+
+Certificate inventory reads: `s9s:cluster-read` grants `get/list/watch` on
+cert-manager Issuers and Certificates so gateway delivery and cleanup can observe
+owned output without a namespace grant that exposes TLS Secrets. Private keys
+remain in Secrets, whose reads are namespace-approved. ClusterIssuer reads are
+not added because gateway inventory uses namespaced Issuers. No write, bind or
+escalate permissions change. Retire this read only if owned certificate inventory
+is removed.
+
+EnvoyProxy reads remain namespace-approved through `s9s:cluster-read-extra`:
+EnvoyProxy bootstrap overrides and literal deployment environment values can
+contain credentials. The managed gateway requests that existing namespace scope
+as a separate approval; it also includes Secret/ServiceAccount reads there.
+There is no cluster-wide EnvoyProxy read grant. The namespace permission survives
+gateway deletion until explicitly revoked; an already-deleting older gateway
+uses the normal explicit namespace-access approval flow to recover missing reads.
