@@ -278,6 +278,8 @@ spec:
           value: "{{ .Values.cmon.kuberProxy.env.STATE_STORAGE | default "jetstream" }}"
         - name: DAPR_APP_ID
           value: "{{ .Values.cmon.kuberProxy.env.DAPR_APP_ID | default "kuber-proxy" }}"
+        - name: KUBERNETES_EVENTS_ENABLED
+          value: {{ .Values.cmon.kuberProxy.env.KUBERNETES_EVENTS_ENABLED | default false | quote }}
         {{- if .Values.cmon.kuberProxy.env.PROXY_CERT_PATH }}
         - name: PROXY_CERT_PATH
           value: "{{ .Values.cmon.kuberProxy.env.PROXY_CERT_PATH }}"

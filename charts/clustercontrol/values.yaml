@@ -136,6 +136,8 @@ cmon:
       BASE_DIR: /usr/share/kuber-proxy
       STATE_STORAGE: jetstream
       DAPR_APP_ID: kuber-proxy
+      # Opt-in Kubernetes Events preview; requires a kuber-proxy build with clustercontrol-k8s#406.
+      KUBERNETES_EVENTS_ENABLED: false
       # Optional environment variables (uncomment and configure as needed)
       # PROXY_CERT_PATH: /path_to/server.crt
       # PROXY_KEY_PATH: /path_to/server.key

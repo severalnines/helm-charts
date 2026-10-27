@@ -76,6 +76,26 @@ helm show values s9s/clustercontrol > values.yaml
 helm install clustercontrol s9s/clustercontrol -f values.yaml
 ```
 
+### Enable the Kubernetes Events preview
+
+The preview is disabled by default. Use a kuber-proxy image containing
+[clustercontrol-k8s#406](https://github.com/severalnines/clustercontrol-k8s/pull/406),
+selecting that build with `cmon.kuberProxy.image` (or `cmon.kuberProxy.devImage`
+when `devBuild=true`). Add this to your custom values file:
+
+```yaml
+cmon:
+  kuberProxy:
+    env:
+      KUBERNETES_EVENTS_ENABLED: true
+```
+
+Apply it with `helm upgrade --install clustercontrol s9s/clustercontrol -f values.yaml`.
+The chart passes `KUBERNETES_EVENTS_ENABLED="true"` to kuber-proxy. The frontend
+will use the `kubernetesEventsEnabled` field from the backend's `/agent-config`
+response to decide whether to show Events. Set the value to `false` to disable
+the preview; upgrades that reuse old values without this setting keep it disabled.
+
 ## Notes
 Inside the cluster: cmon API via `cmon-master:9501`, cmon-proxy (UI + API) via `https://cmon-master:19051`.
 
