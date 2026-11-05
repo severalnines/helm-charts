@@ -145,3 +145,20 @@ Keep these maps aligned with values.yaml.
 -}}
 {{- mergeOverwrite $defaults (.Values.cmon.tls | default dict) | toYaml -}}
 {{- end -}}
+
+{{/*
+TLS port of the cmon RPC v2 API. cmon 2.5.1 and newer serve it on 9500 (plus a
+deprecated copy on 9501 that goes away in 2.6); older cmon serve TLS only on
+9501 (on 9500 they serve the plain-HTTP RPC v1 removed in 2.5.1). Derived from the cmon image tag
+so the chart keeps working with older images; tags that are not a version
+(latest, digests, dev builds) get 9500. Override with .Values.cmon.rpcPort.
+*/}}
+{{- define "cc.cmonRpcPort" -}}
+{{- if .Values.cmon.rpcPort }}
+{{- .Values.cmon.rpcPort }}
+{{- else }}
+{{- $tag := last (splitList ":" (include "cc.cmonImage" .)) }}
+{{- $ver := regexFind "^[0-9]+\\.[0-9]+\\.[0-9]+(-[0-9A-Za-z.-]+)?$" $tag }}
+{{- if and $ver (not (contains "/" $tag)) (semverCompare "<2.5.1-0" $ver) }}9501{{ else }}9500{{ end }}
+{{- end }}
+{{- end }}

@@ -5,9 +5,19 @@ metadata:
   name: cmon-master
 spec:
   ports:
+  {{- $rpcPort := include "cc.cmonRpcPort" . | int }}
+  # cmon RPC v2 (TLS). 9501 stays for in-cluster clients configured with it
+  # (e.g. ccmgr.yaml written by an older chart) and is routed to the current
+  # port, so it keeps working once cmon drops its own 9501 listener.
+  {{- if ne $rpcPort 9501 }}
+  - port: {{ $rpcPort }}
+    protocol: TCP
+    targetPort: {{ $rpcPort }}
+    name: {{ $rpcPort }}-port
+  {{- end }}
   - port: 9501
     protocol: TCP
-    targetPort: 9501
+    targetPort: {{ $rpcPort }}
     name: 9501-port
   - port: 8080
     protocol: TCP
@@ -92,7 +102,7 @@ spec:
   {{- if $ps.ports.cmon }}
   - name: cmon-rpc
     port: {{ $ps.ports.cmon }}
-    targetPort: 9501
+    targetPort: {{ include "cc.cmonRpcPort" . }}
     protocol: TCP
     {{- if and (eq $ps.type "NodePort") $ps.nodePorts.cmon }}
     nodePort: {{ $ps.nodePorts.cmon }}

@@ -60,8 +60,8 @@ publicService:
     http: 80
     # kuber-proxy gRPC for kuber-agents running in OTHER clusters (agents dial this port). 0 disables.
     grpc: 50051
-    # cmon RPC API (TLS, port 9501 in the pod). Not needed by the UI (cmon-proxy proxies it);
-    # set to e.g. 9501 to expose it for external tools such as the s9s CLI. 0 disables.
+    # cmon RPC API (TLS, cmon.rpcPort in the pod). Not needed by the UI (cmon-proxy proxies it);
+    # set to e.g. 9500 to expose it for external tools such as the s9s CLI. 0 disables.
     cmon: 0
   # Only used with type NodePort. Empty = auto-allocated.
   nodePorts:
@@ -91,6 +91,9 @@ cmon:
     password: cmon
   image: severalnines/cmon:2.5.0-24068
   devImage: severalnines/cmon:2.5.0-24068
+  # TLS port of the cmon RPC v2 API used by the probes, s9s and cmon-proxy.
+  # Empty = from the image tag: 9500 for cmon 2.5.1 and newer, 9501 for older.
+  rpcPort: ""
   extra_args: # extra arguments for ClusterControl binary
     - -s
     - --no-log-db
