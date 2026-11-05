@@ -98,10 +98,6 @@ case "${1:-menu}" in
         run_phase "1" "DatabaseClusters"
         cleanup_jobs
         ;;
-    "2"|"operators") 
-        run_phase "2" "DatabaseOperators"
-        cleanup_jobs
-        ;;
     "3"|"crds")
         run_phase "3" "CRDs"
         cleanup_jobs
@@ -109,7 +105,6 @@ case "${1:-menu}" in
     "all")
         run_phase "0" "Validation"
         run_phase "1" "DatabaseClusters" 
-        run_phase "2" "DatabaseOperators"
         run_phase "3" "CRDs"
         cleanup_jobs
         ;;
@@ -124,7 +119,6 @@ case "${1:-menu}" in
         echo "Phases:"
         echo "  0, validation  - Test validation phase"
         echo "  1, clusters    - Test DatabaseClusters cleanup"
-        echo "  2, operators   - Test DatabaseOperators cleanup" 
         echo "  3, crds        - Test CRDs cleanup"
         echo "  all            - Test all phases in sequence"
         echo "  cleanup        - Remove test jobs"
