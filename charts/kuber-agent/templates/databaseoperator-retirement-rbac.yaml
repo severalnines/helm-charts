@@ -1,0 +1,33 @@
+{{- if .Values.rbac.create }}
+# Temporary upgrade permission: retire only the released DatabaseOperator mirror.
+# Remove after the first minor release following the release shipping this cleanup.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "agent-operator.fullname" . }}-databaseoperator-retirement
+  labels:
+    {{- include "agent-operator.labels" . | nindent 4 }}
+rules:
+  - apiGroups: ["apiextensions.k8s.io"]
+    resources: ["customresourcedefinitions"]
+    resourceNames: ["databaseoperators.agent.severalnines.com"]
+    verbs: ["get", "delete"]
+  - apiGroups: ["agent.severalnines.com"]
+    resources: ["databaseoperators"]
+    verbs: ["list", "patch", "delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ include "agent-operator.fullname" . }}-databaseoperator-retirement
+  labels:
+    {{- include "agent-operator.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ include "agent-operator.fullname" . }}-databaseoperator-retirement
+subjects:
+  - kind: ServiceAccount
+    name: {{ if .Values.mode.write.enabled }}{{ .Values.rbac.serviceAccounts.write.name }}{{ else }}{{ .Values.rbac.serviceAccounts.agent.name }}{{ end }}
+    namespace: {{ include "agent-operator.namespace" . }}
+{{- end }}

@@ -124,6 +124,11 @@ spec:
               message:
                 description: Message provides additional information about the backup
                 type: string
+              observedGeneration:
+                description: ObservedGeneration identifies the backup record revision
+                  evaluated by the status writer.
+                format: int64
+                type: integer
               observedResourceState:
                 description: ObservedResourceState indicates whether the underlying
                   job/backup resource is still reachable.
