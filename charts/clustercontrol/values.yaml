@@ -92,8 +92,15 @@ cmon:
   image: severalnines/cmon:2.5.0-24068
   devImage: severalnines/cmon:2.5.0-24068
   # TLS port of the cmon RPC v2 API used by the probes, s9s and cmon-proxy.
-  # Empty = from the image tag: 9500 for cmon 2.5.1 and newer, 9501 for older.
+  # Empty = from the image tag: 9500 when the tag is a version (X.Y.Z or X.Y.Z-BUILD)
+  # at or above rpcPortCutoff, 9501 otherwise (latest, untagged, digests, dev tags).
+  # Every cmon older than 2.6 serves TLS RPC v2 on 9501.
   rpcPort: ""
+  # First cmon version that serves TLS RPC v2 on 9500. Builds without the RPC v1
+  # removal (clustercontrol-enterprise #3955) serve plain-HTTP RPC v1 on 9500.
+  # TODO: lower to the first 2.5.1 build that contains #3955 (e.g. "2.5.1-25500")
+  # once it is published.
+  rpcPortCutoff: "2.6.0-0"
   extra_args: # extra arguments for ClusterControl binary
     - -s
     - --no-log-db
