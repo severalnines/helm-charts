@@ -21,3 +21,7 @@ jobs:
       - name: Lint
         run: |-
           helm lint charts/*
+
+      - name: clustercontrol cmon RPC port render checks
+        run: |-
+          charts/clustercontrol/tests/rpc-port-render.sh
