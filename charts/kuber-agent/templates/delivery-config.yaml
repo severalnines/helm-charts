@@ -1,0 +1,15 @@
+{{- $delivery := .Values.delivery | default dict -}}
+{{- if and (dig "createDefault" true $delivery) (not .Values.gitops.enabled) }}
+apiVersion: agent.severalnines.com/v1alpha1
+kind: DeliveryConfig
+metadata:
+  name: default
+  namespace: {{ include "agent-operator.namespace" . }}
+  labels:
+    {{- include "agent-operator.labels" . | nindent 4 }}
+spec:
+  strategy: direct
+  target: local
+  approval:
+    gate: none
+{{- end }}
