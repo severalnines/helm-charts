@@ -77,7 +77,13 @@ helm install clustercontrol s9s/clustercontrol -f values.yaml
 ```
 
 ## Notes
-Inside the cluster: cmon API via `cmon-master:9501`, cmon-proxy (UI + API) via `https://cmon-master:19051`.
+Inside the cluster: cmon API via `https://cmon-master:9500` or `https://cmon-master:9501` (the Service routes
+both to the port cmon serves TLS RPC v2 on), cmon-proxy (UI + API) via `https://cmon-master:19051`.
+
+The pod-side port is `cmon.rpcPort`. When empty it is taken from the cmon image tag: `9500` for a version tag
+(`X.Y.Z` or `X.Y.Z-BUILD`) at or above `cmon.rpcPortCutoff`, `9501` for anything else (`latest`, untagged
+images, digests, dev tags). Every cmon older than 2.6 serves TLS RPC v2 on `9501`; builds without the RPC v1
+removal serve plain-HTTP RPC v1 on `9500`.
 
 ## Access UI
 cmon-proxy (ccmgr) serves the UI and proxies the cmon RPC API and cmon-ssh (incl. web SSH), so the chart
@@ -91,8 +97,8 @@ kubectl get svc -n clustercontrol cmon-master-public
 and open `https://<EXTERNAL-IP>`. Ports on that Service: `443` (UI/API, TLS terminated by cmon-proxy),
 `80` (HTTP -> HTTPS redirect and ACME challenges) and `50051` (kuber-proxy gRPC, used by kuber-agents
 running in *other* clusters). Set a port to `0` to drop it, e.g. `--set publicService.ports.grpc=0`.
-The cmon RPC API (9501) is not exposed by default; set `publicService.ports.cmon=9501` if external
-tools (s9s CLI, another ClusterControl) need to reach it directly.
+The cmon RPC API (`cmon.rpcPort` in the pod) is not exposed by default; set `publicService.ports.cmon=9500`
+if external tools (s9s CLI, another ClusterControl) need to reach it directly.
 
 Other exposure modes (`publicService.type`): `NodePort` (pin ports with `publicService.nodePorts.*`) for
 clusters without a load-balancer provider, or `ClusterIP` if you front cmon-proxy with your own
