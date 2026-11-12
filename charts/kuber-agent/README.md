@@ -19,6 +19,15 @@ helm install kuber-agent kuber-agent --repo https://severalnines.github.io/helm-
 
 ## Values
 
+`controllerManager.deliveryRequestWorkers` sets `DELIVERY_REQUEST_WORKERS` at startup. It defaults to two; use one to restore serial processing. Empty, non-integer and non-positive environment values are rejected.
+
+Two is a conservative overlap trial, not a measured optimum. In the three-request
+QA sample with one delivery worker and one CPU, queue-to-first-converge waits
+were 0.377, 54.974 and 108.562 seconds. Two workers let independent transactions
+overlap while bounding simultaneous operations; owner and Git ref admission
+still serialize conflicting work. This sample does not prove a two-worker
+speedup. Use one to restore the previous serial behavior while QA compares it.
+
 | Parameter                              | Description                                                                            | Default                                                                |
 | -------------------------------------- | -------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
 | `image.repository`                     | Operator image repository                                                              | `europe-docker.pkg.dev/severalnines-public/clustercontrol/kuber-agent` |
@@ -34,6 +43,7 @@ helm install kuber-agent kuber-agent --repo https://severalnines.github.io/helm-
 | `namespaceOverride`                    | Override the namespace for resources                                                   | `""`                                                                   |
 | `createNamespace`                      | Create the namespace                                                                   | `true`                                                                 |
 | `controllerManager.replicas`           | Number of operator replicas                                                            | `1`                                                                    |
+| `controllerManager.deliveryRequestWorkers` | Concurrent independent delivery requests; positive integer, `1` restores serial processing | `2` |
 | `controllerManager.healthProbe.port`   | Health/readiness probe port                                                            | `8082`                                                                 |
 | `controllerManager.controllers`        | List of enabled controllers (empty = all)                                              | `[]`                                                                   |
 | `controllerManager.manager.resources`  | Resource requests/limits for manager container                                         | see values.yaml                                                        |
@@ -63,6 +73,7 @@ helm install kuber-agent kuber-agent --repo https://severalnines.github.io/helm-
 | `gitops.tool`                          | GitOps tool: `argo` or `flux`                                                          | `argo`                                                                 |
 | `gitops.argo.namespace`                | Argo CD namespace                                                                      | `argocd`                                                               |
 | `gitops.flux.namespace`                | Flux namespace                                                                         | `flux-system`                                                          |
+| `sops.sweepInterval`                   | Periodic SOPS stale-source recovery cadence                                            | `""` (operator default `10m`)                                          |
 | `controllerAuth.secret.enabled`        | Create a secret with controller token for PRs/commits                                  | `false`                                                                |
 | `controllerAuth.secret.name`           | Name of the controller token secret                                                    | `""` (defaults to `<release>-gitops-token`)                            |
 | `controllerAuth.secret.key`            | Key in the secret containing the token                                                 | `token`                                                                |
@@ -135,7 +146,7 @@ kubectl -n severalnines-system create secret generic s9s-gitops-token \
 
 ### Upgrade note — restricted mode now grants write in listed target namespaces
 
-Since chart 1.1.2 (CLUS-7411), `mode.write.enabled=false` (no cluster-wide
+Since chart 1.1.6 (CLUS-7411), `mode.write.enabled=false` (no cluster-wide
 write) **renders namespace-scoped `s9s:cluster-write` RoleBindings in every
 namespace listed in `rbac.namespaces.targets`**, bound to the plain agent SA.
 Previously these namespaces got read-only bindings in restricted mode — the
@@ -186,6 +197,7 @@ helm uninstall kuber-agent
 This will automatically:
 
 1. **Phase 1**: Delete all DatabaseClusters across all namespaces
-2. **Phase 2**: Delete all DatabaseOperators across all namespaces
 3. **Phase 3**: Delete all CRDs installed by the agent-operator
 4. **Phase 4**: Delete the operator itself (standard Helm uninstall)
+
+The retired DatabaseOperator CRD is not installed. A narrowly scoped startup retirement role permits removal of old mirrors and that named CRD on upgrade; it does not delete operator AppBundles. Phase 2 is removed; later cleanup phase numbers remain stable.
