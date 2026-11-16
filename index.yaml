@@ -3190,6 +3190,30 @@ entries:
   clustercontrol:
   - apiVersion: v2
     appVersion: 2.5.0-24068
+    created: "2026-11-16T11:13:36.60183627Z"
+    dependencies:
+    - condition: installMysqlOperator
+      name: mysql-operator
+      repository: oci://europe-docker.pkg.dev/severalnines-public/clustercontrol/helm-charts
+      version: 2.0.21
+    - condition: createDatabases
+      name: mysql-innodbcluster
+      repository: oci://europe-docker.pkg.dev/severalnines-public/clustercontrol/helm-charts
+      version: 2.0.21
+    - alias: monitoring
+      condition: monitoring.enabled
+      name: victoria-metrics-single
+      repository: oci://europe-docker.pkg.dev/severalnines-public/clustercontrol/helm-charts
+      version: 0.9.16
+    description: A ClusterControl Helm Chart for Kubernetes
+    digest: e19237c8dde8fa7e1a3c04bcfdb221e24b613ba4e39364f7573550b6f2ec3fff
+    name: clustercontrol
+    type: application
+    urls:
+    - https://github.com/severalnines/helm-charts/releases/download/clustercontrol-0.6.0/clustercontrol-0.6.0.tgz
+    version: 0.6.0
+  - apiVersion: v2
+    appVersion: 2.5.0-24068
     created: "2026-09-21T06:28:52.137817296Z"
     dependencies:
     - condition: installMysqlOperator
@@ -3541,4 +3565,4 @@ entries:
     urls:
     - https://github.com/severalnines/helm-charts/releases/download/kuber-agent-0.1.0/kuber-agent-0.1.0.tgz
     version: 0.1.0
-generated: "2026-11-12T11:27:08.108266795Z"
+generated: "2026-11-16T11:13:36.602176154Z"
