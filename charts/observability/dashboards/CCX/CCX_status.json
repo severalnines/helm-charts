@@ -425,7 +425,7 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "sum(rate(container_cpu_usage_seconds_total{namespace=\"$namespace\", image!=\"\", exported_cluster=\"$cluster\"}[1m])) by (container) * 100",
+          "expr": "sum(rate(container_cpu_usage_seconds_total{namespace=\"$namespace\", image!=\"\", exported_cluster=~\"$cluster\"}[1m])) by (container) * 100",
           "instant": false,
           "legendFormat": "{{ container }}",
           "range": true,
@@ -521,7 +521,7 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "sum(container_memory_working_set_bytes{namespace=\"$namespace\", image!=\"\", exported_cluster=\"$cluster\"}) by (container)",
+          "expr": "sum(container_memory_working_set_bytes{namespace=\"$namespace\", image!=\"\", exported_cluster=~\"$cluster\"}) by (container)",
           "instant": false,
           "legendFormat": "{{ container }}",
           "range": true,
@@ -539,58 +539,119 @@
       "description": "",
       "fieldConfig": {
         "defaults": {
-          "mappings": [
-            {
-              "options": {
-                "0": {
-                  "index": 1,
-                  "text": "DOWN"
-                },
-                "1": {
-                  "index": 0,
-                  "text": "UP"
-                }
-              },
-              "type": "value"
-            }
-          ],
+          "custom": {
+            "align": "left",
+            "filterable": true
+          },
+          "mappings": [],
           "thresholds": {
             "mode": "absolute",
             "steps": [
               {
-                "color": "red",
-                "value": null
-              },
-              {
                 "color": "green",
-                "value": 1
+                "value": null
               }
             ]
           },
-          "unit": "short"
+          "unit": "none"
         },
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Status"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "thresholds"
+                }
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background"
+                }
+              },
+              {
+                "id": "custom.width",
+                "value": 120
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "0": {
+                        "index": 1,
+                        "text": "DOWN"
+                      },
+                      "1": {
+                        "index": 0,
+                        "text": "UP"
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "red",
+                      "value": null
+                    },
+                    {
+                      "color": "green",
+                      "value": 1
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Cluster ID"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 100
+              }
+            ]
+          }
+        ]
       },
       "gridPos": {
-        "h": 8,
-        "w": 6,
+        "h": 10,
+        "w": 24,
         "x": 0,
-        "y": 6
+        "y": 14
       },
       "id": 6,
       "options": {
-        "colorMode": "background",
-        "graphMode": "none",
-        "justifyMode": "center",
-        "orientation": "auto",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
           "fields": "",
-          "values": false
+          "reducer": [
+            "sum"
+          ],
+          "show": false
         },
-        "textMode": "auto"
+        "showHeader": true,
+        "sortBy": [
+          {
+            "desc": false,
+            "displayName": "Status"
+          }
+        ]
       },
       "pluginVersion": "9.3.6",
       "targets": [
@@ -601,223 +662,45 @@
           },
           "editorMode": "code",
           "expr": "cmon_cluster_up{kubernetes_namespace=~\"$namespace\", exported_cluster=~\"$cluster\"}",
-          "legendFormat": "{{ ClusterName }}",
-          "range": true,
+          "format": "table",
+          "instant": true,
+          "range": false,
           "refId": "A"
         }
       ],
       "title": "Datastores",
-      "transparent": true,
-      "type": "stat"
-    },
-    {
-      "datasource": {
-        "type": "camptocamp-prometheus-alertmanager-datasource",
-        "uid": "ZdHEzZEVz"
-      },
-      "description": "",
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "align": "center",
-            "displayMode": "color-background",
-            "filterable": false,
-            "inspect": false
-          },
-          "decimals": 2,
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "transparent",
-                "value": null
-              }
-            ]
-          },
-          "unit": "short"
-        },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "instance"
-            },
-            "properties": [
-              {
-                "id": "custom.hidden",
-                "value": false
-              },
-              {
-                "id": "custom.width",
-                "value": 171
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "ClusterName"
-            },
-            "properties": [
-              {
-                "id": "custom.width",
-                "value": 306
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "alertname"
-            },
-            "properties": [
-              {
-                "id": "custom.width",
-                "value": 264
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "summary"
-            },
-            "properties": [
-              {
-                "id": "custom.width"
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "severity"
-            },
-            "properties": [
-              {
-                "id": "custom.width",
-                "value": 96
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "ip"
-            },
-            "properties": [
-              {
-                "id": "custom.width",
-                "value": 152
-              }
-            ]
-          }
-        ]
-      },
-      "gridPos": {
-        "h": 6,
-        "w": 24,
-        "x": 0,
-        "y": 14
-      },
-      "id": 15,
-      "options": {
-        "footer": {
-          "fields": "",
-          "reducer": [
-            "sum"
-          ],
-          "show": false
-        },
-        "showHeader": true,
-        "sortBy": []
-      },
-      "pluginVersion": "9.3.6",
-      "targets": [
-        {
-          "active": true,
-          "datasource": {
-            "type": "camptocamp-prometheus-alertmanager-datasource",
-            "uid": "ZdHEzZEVz"
-          },
-          "filters": "environment=$namespace, exported_cluster=$cluster",
-          "refId": "A"
-        }
-      ],
-      "title": "Active Alerts",
       "transformations": [
         {
           "id": "organize",
           "options": {
             "excludeByName": {
-              "ClusterID": true,
-              "ClusterType": true,
-              "ControllerId": true,
-              "SeverityValue": true,
               "Time": true,
-              "alertgroup": true,
-              "alertstatus": true,
-              "alertstatus_code": true,
-              "app_kubernetes_io_component": true,
-              "app_kubernetes_io_instance": true,
-              "app_kubernetes_io_managed_by": true,
-              "app_kubernetes_io_name": true,
-              "app_kubernetes_io_part_of": true,
-              "app_kubernetes_io_version": true,
-              "cid": true,
+              "__name__": true,
+              "app": true,
               "cluster": true,
-              "container": true,
-              "datid": true,
-              "datname": true,
-              "deployment": false,
-              "description": true,
-              "environment": true,
+              "controller_revision_hash": true,
+              "ControllerId": true,
               "exported_cluster": true,
-              "exported_namespace": true,
-              "exported_use_cmon_sd": true,
-              "helm_sh_chart": true,
               "instance": true,
-              "ip": false,
               "job": true,
               "kubernetes_namespace": true,
               "kubernetes_pod_name": true,
-              "name": true,
-              "namespace": true,
-              "node": true,
-              "pod": true,
-              "pod_template_hash": true,
+              "monitor": true,
               "run": true,
-              "use_cmon_sd": true
+              "statefulset_kubernetes_io_pod_name": true,
+              "use_cmon_sd": true,
+              "apps_kubernetes_io_pod_index": true
             },
             "indexByName": {
-              "SeverityValue": 8,
-              "Time": 1,
-              "alertgroup": 11,
-              "alertname": 0,
-              "alertstatus": 14,
-              "alertstatus_code": 15,
-              "cluster": 6,
-              "datid": 12,
-              "datname": 13,
-              "description": 10,
-              "environment": 5,
-              "instance": 4,
-              "ip": 3,
-              "job": 7,
-              "severity": 2,
-              "summary": 9
+              "Status": 0,
+              "Name": 1,
+              "Cluster ID": 2
             },
-            "renameByName": {}
-          }
-        },
-        {
-          "id": "merge",
-          "options": {
-            "reducers": []
+            "renameByName": {
+              "ClusterID": "Cluster ID",
+              "ClusterName": "Name",
+              "Value": "Status"
+            }
           }
         }
       ],
@@ -900,11 +783,14 @@
         "h": 17,
         "w": 24,
         "x": 0,
-        "y": 20
+        "y": 24
       },
       "id": 8,
       "links": [],
       "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
         "orientation": "auto",
         "reduceOptions": {
           "calcs": [
@@ -913,8 +799,11 @@
           "fields": "",
           "values": false
         },
-        "showThresholdLabels": false,
-        "showThresholdMarkers": false
+        "text": {
+          "titleSize": 18,
+          "valueSize": 28
+        },
+        "textMode": "auto"
       },
       "pluginVersion": "9.3.6",
       "targets": [
@@ -932,7 +821,7 @@
         }
       ],
       "title": "Deployments $namespace $cluster",
-      "type": "gauge"
+      "type": "stat"
     }
   ],
   "refresh": "30s",
@@ -970,7 +859,7 @@
           "type": "prometheus",
           "uid": "${datasource}"
         },
-        "definition": "label_values(namespace)",
+        "definition": "label_values(cmon_up, kubernetes_namespace)",
         "hide": 0,
         "includeAll": false,
         "label": "Namespace",
@@ -978,7 +867,7 @@
         "name": "namespace",
         "options": [],
         "query": {
-          "query": "label_values(namespace)",
+          "query": "label_values(cmon_up, kubernetes_namespace)",
           "refId": "StandardVariableQuery"
         },
         "refresh": 1,

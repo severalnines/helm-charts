@@ -121,15 +121,11 @@ victoria-metrics-single:
             bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
             kubernetes_sd_configs:
               - role: node
+            # Scraped directly from the kubelet (node InternalIP:10250, default metrics_path /metrics);
+            # the VM chart's RBAC no longer grants nodes/proxy, so the API-server proxy path returns 403.
             relabel_configs:
               - action: labelmap
                 regex: __meta_kubernetes_node_label_(.+)
-              - target_label: __address__
-                replacement: kubernetes.default.svc:443
-              - source_labels: [ __meta_kubernetes_node_name ]
-                regex: (.+)
-                target_label: __metrics_path__
-                replacement: /api/v1/nodes/$1/proxy/metrics
               - target_label: cluster
                 replacement: *cluster_name
             # -- Scrape rule using kubernetes service discovery for cadvisor
@@ -155,6 +151,9 @@ victoria-metrics-single:
             bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
             kubernetes_sd_configs:
               - role: node
+            # Scraped directly from the kubelet (node InternalIP:10250); the VM chart's RBAC no longer
+            # grants nodes/proxy, so the old API-server proxy path (/api/v1/nodes/<n>/proxy/...) returns 403.
+            metrics_path: /metrics/cadvisor
             # This configuration will work only on kubelet 1.7.3+
             # As the scrape endpoints for cAdvisor have changed
             # if you are using older version you need to change the replacement to
@@ -163,12 +162,6 @@ victoria-metrics-single:
             relabel_configs:
               - action: labelmap
                 regex: __meta_kubernetes_node_label_(.+)
-              - target_label: __address__
-                replacement: kubernetes.default.svc:443
-              - source_labels: [ __meta_kubernetes_node_name ]
-                regex: (.+)
-                target_label: __metrics_path__
-                replacement: /api/v1/nodes/$1/proxy/metrics/cadvisor
               - target_label: cluster
                 replacement: *cluster_name
             # -- Scrape rule using kubernetes service discovery for node exporter
@@ -1474,6 +1467,21 @@ karma:
 
 loki:
   enabled: false
+  # The grafana-community loki chart (>= 17.x) defaults to Monolithic; keep SimpleScalable so existing
+  # write/read/backend StatefulSets and their PVCs are reused instead of replaced.
+  deploymentMode: SimpleScalable
+  # Built-in MinIO is deprecated upstream (removal 2026-10-31). Required to keep rendering while MinIO is
+  # still used; migrate to an external S3-compatible store before the subchart is removed.
+  ignoreMinioDeprecation: true
+  # Service names changed from loki-<component> to <release>-loki-<component>, which changes the
+  # immutable StatefulSet spec.serviceName. These pre-upgrade Jobs delete the StatefulSets with
+  # --cascade=orphan so Helm can recreate them; pods and PVCs are kept.
+  write:
+    statefulSetRecreateJob:
+      enabled: true
+  backend:
+    statefulSetRecreateJob:
+      enabled: true
   loki:
     compactor:
       compaction_interval: 10m
@@ -1495,6 +1503,11 @@ loki:
             period: 24h
   minio:
     enabled: true
+    # Pin the credentials of the previous loki chart (6.x) MinIO defaults; newer charts default to
+    # root-user/supersecretpassword, which would lock Loki out of the existing buckets.
+    rootUser: enterprise-logs
+    rootPassword: supersecret
+    users: []
   gateway:
     ingress:
       enabled: true

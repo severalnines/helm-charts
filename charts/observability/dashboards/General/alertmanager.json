@@ -3494,7 +3494,7 @@
           "type": "prometheus",
           "uid": "$datasource"
         },
-        "definition": "query_result(alertmanager_build_info)",
+        "definition": "query_result(alertmanager_build_info{kubernetes_namespace!=\"elastx\"})",
         "hide": 0,
         "includeAll": true,
         "label": "Instance",
@@ -3502,7 +3502,7 @@
         "name": "instance",
         "options": [],
         "query": {
-          "query": "query_result(alertmanager_build_info)",
+          "query": "query_result(alertmanager_build_info{kubernetes_namespace!=\"elastx\"})",
           "refId": "Metrics-instance-Variable-Query"
         },
         "refresh": 2,
