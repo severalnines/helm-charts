@@ -59,7 +59,7 @@ spec:
             # (there is no Service named cmon-ssh).
             ccmgradm init \
               --local-cmon \
-              --cmon-url cmon-master:9501 \
+              --cmon-url cmon-master:{{ include "cc.cmonRpcPort" . }} \
               --frontend-path /var/www/frontend \
               --port 443 \
               --kuber-proxy-url http://localhost:{{ .Values.cmon.kuberProxy.env.HTTP_PORT | default 8081 }}
@@ -128,7 +128,7 @@ spec:
           name: cmon-license
         startupProbe:
           exec:
-            command: ['sh', '-c', 'cat /root/.s9s/cmon-license/license | s9s --controller=https://localhost:9501 tree --save .runtime/cmon_license']
+            command: ['sh', '-c', 'cat /root/.s9s/cmon-license/license | s9s --controller=https://localhost:{{ include "cc.cmonRpcPort" . }} tree --save .runtime/cmon_license']
           timeoutSeconds: 10
           failureThreshold: 10
           periodSeconds: 5
@@ -136,7 +136,7 @@ spec:
         livenessProbe:
           httpGet:
             path: /v2/controller?operation=ping
-            port: 9501
+            port: {{ include "cc.cmonRpcPort" . }}
             scheme: HTTPS
           initialDelaySeconds: 60
           timeoutSeconds: 10
