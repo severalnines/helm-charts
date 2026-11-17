@@ -1,11 +1,12 @@
 {
   "title": "ccx-db-monitoring",
   "uid": "postgres12-monitor",
-  "schemaVersion": 38,
+  "schemaVersion": 41,
   "version": 1,
   "tags": [
-    "postgresql",
-    "postgres"
+    "ccx",
+    "postgres",
+    "postgresql"
   ],
   "timezone": "browser",
   "refresh": "1m",
@@ -35,9 +36,17 @@
           "type": "prometheus",
           "uid": "${datasource}"
         },
-        "query": "label_values(pg_up, job)",
+        "query": {
+          "qryType": 1,
+          "query": "label_values(pg_up, job)",
+          "refId": "PrometheusVariableQueryEditor-VariableQuery"
+        },
         "refresh": 2,
-        "hide": 0
+        "hide": 0,
+        "definition": "label_values(pg_up, job)",
+        "current": {},
+        "options": [],
+        "description": "postgres_exporter scrape job of the database to show."
       },
       {
         "name": "datname",
@@ -47,12 +56,28 @@
           "type": "prometheus",
           "uid": "${datasource}"
         },
-        "query": "label_values(pg_stat_database_numbackends{job=\"$job\"}, datname)",
+        "query": {
+          "qryType": 1,
+          "query": "label_values(pg_stat_database_numbackends{job=~\"$job\", datname!~\"template.*\"}, datname)",
+          "refId": "PrometheusVariableQueryEditor-VariableQuery"
+        },
         "includeAll": true,
         "allValue": ".*",
-        "multi": false,
+        "multi": true,
         "refresh": 2,
-        "hide": 0
+        "hide": 0,
+        "definition": "label_values(pg_stat_database_numbackends{job=~\"$job\", datname!~\"template.*\"}, datname)",
+        "current": {
+          "selected": true,
+          "text": [
+            "All"
+          ],
+          "value": [
+            "$__all"
+          ]
+        },
+        "options": [],
+        "description": "Database(s) to include in the per-database panels (template databases are always excluded)."
       }
     ]
   },
@@ -64,7 +89,7 @@
       "gridPos": {
         "x": 0,
         "y": 0,
-        "w": 4,
+        "w": 8,
         "h": 4
       },
       "datasource": {
@@ -103,7 +128,8 @@
           },
           "color": {
             "mode": "thresholds"
-          }
+          },
+          "unit": "none"
         }
       },
       "options": {
@@ -118,11 +144,12 @@
       },
       "targets": [
         {
-          "expr": "pg_up{job=\"$job\"}",
+          "expr": "min(pg_up{job=~\"$job\"})",
           "legendFormat": "",
           "instant": true
         }
-      ]
+      ],
+      "description": "1 when every postgres_exporter target of the job can reach PostgreSQL (min of pg_up)."
     },
     {
       "id": 3,
@@ -159,7 +186,8 @@
           },
           "color": {
             "mode": "thresholds"
-          }
+          },
+          "unit": "short"
         }
       },
       "options": {
@@ -173,11 +201,12 @@
       },
       "targets": [
         {
-          "expr": "sum(pg_stat_database_numbackends{job=\"$job\", datname!~\"template.*\"})",
+          "expr": "sum(pg_stat_database_numbackends{job=~\"$job\", datname=~\"$datname\", datname!~\"template.*\"})",
           "legendFormat": "",
           "instant": true
         }
-      ]
+      ],
+      "description": "Backends connected to the selected databases (pg_stat_database_numbackends, all states including idle), summed over all instances of the job."
     },
     {
       "id": 4,
@@ -221,11 +250,12 @@
       },
       "targets": [
         {
-          "expr": "sum(pg_database_size_bytes{job=\"$job\", datname!~\"template.*\"})",
+          "expr": "sum(max by (ClusterName, datname) (pg_database_size_bytes{job=~\"$job\", datname=~\"$datname\", datname!~\"template.*\"}))",
           "legendFormat": "",
           "instant": true
         }
-      ]
+      ],
+      "description": "Total on-disk size of the selected databases. Replicas hold a full copy, so each database is counted once (largest node value per database and ClusterName), not summed across nodes."
     },
     {
       "id": 5,
@@ -279,11 +309,12 @@
       },
       "targets": [
         {
-          "expr": "sum(pg_stat_database_blks_hit{job=\"$job\", datname!~\"template.*\"}) / (sum(pg_stat_database_blks_hit{job=\"$job\", datname!~\"template.*\"}) + sum(pg_stat_database_blks_read{job=\"$job\", datname!~\"template.*\"}))",
+          "expr": "sum(increase(pg_stat_database_blks_hit{job=~\"$job\", datname=~\"$datname\", datname!~\"template.*\"}[$__range])) / (sum(increase(pg_stat_database_blks_hit{job=~\"$job\", datname=~\"$datname\", datname!~\"template.*\"}[$__range])) + sum(increase(pg_stat_database_blks_read{job=~\"$job\", datname=~\"$datname\", datname!~\"template.*\"}[$__range])) > 0)",
           "legendFormat": "",
           "instant": true
         }
-      ]
+      ],
+      "description": "Share of block reads served from shared buffers over the selected time range (increase of blks_hit / (blks_hit + blks_read)), selected databases. No value when there were no block reads in the range."
     },
     {
       "id": 6,
@@ -327,11 +358,12 @@
       },
       "targets": [
         {
-          "expr": "sum(rate(pg_stat_database_xact_commit{job=\"$job\", datname!~\"template.*\"}[5m])) + sum(rate(pg_stat_database_xact_rollback{job=\"$job\", datname!~\"template.*\"}[5m]))",
+          "expr": "sum(rate(pg_stat_database_xact_commit{job=~\"$job\", datname=~\"$datname\", datname!~\"template.*\"}[$__rate_interval])) + sum(rate(pg_stat_database_xact_rollback{job=~\"$job\", datname=~\"$datname\", datname!~\"template.*\"}[$__rate_interval]))",
           "legendFormat": "",
           "instant": true
         }
-      ]
+      ],
+      "description": "Commits plus rollbacks per second in the selected databases."
     },
     {
       "id": 10,
@@ -384,10 +416,11 @@
       },
       "targets": [
         {
-          "expr": "pg_stat_database_numbackends{job=\"$job\", datname!~\"template.*\"}",
+          "expr": "sum by (datname) (pg_stat_database_numbackends{job=~\"$job\", datname=~\"$datname\", datname!~\"template.*\"})",
           "legendFormat": "{{datname}}"
         }
-      ]
+      ],
+      "description": "Connected backends per database."
     },
     {
       "id": 12,
@@ -439,11 +472,12 @@
       },
       "targets": [
         {
-          "expr": "sum(pg_stat_database_numbackends{job=\"$job\", datname!~\"template.*\"}) / pg_settings_max_connections{job=\"$job\"} * 100",
+          "expr": "100 * max(sum by (instance) (pg_stat_database_numbackends{job=~\"$job\", datname=~\"$datname\", datname!~\"template.*\"}) / clamp_min(max by (instance) (pg_settings_max_connections{job=~\"$job\"}), 1))",
           "legendFormat": "",
           "instant": true
         }
-      ]
+      ],
+      "description": "Connections to the selected databases as % of max_connections on the busiest instance."
     },
     {
       "id": 13,
@@ -480,14 +514,15 @@
       },
       "targets": [
         {
-          "expr": "sum(pg_stat_database_numbackends{job=\"$job\", datname!~\"template.*\"})",
+          "expr": "sum(pg_stat_database_numbackends{job=~\"$job\", datname=~\"$datname\", datname!~\"template.*\"})",
           "legendFormat": "Used"
         },
         {
-          "expr": "pg_settings_max_connections{job=\"$job\"}",
+          "expr": "sum(pg_settings_max_connections{job=~\"$job\"})",
           "legendFormat": "Max"
         }
-      ]
+      ],
+      "description": "Connections to the selected databases versus the configured max_connections, both summed over all instances of the job."
     },
     {
       "id": 20,
@@ -540,14 +575,15 @@
       },
       "targets": [
         {
-          "expr": "sum(rate(pg_stat_database_xact_commit{job=\"$job\", datname=~\"$datname\"}[5m]))",
+          "expr": "sum(rate(pg_stat_database_xact_commit{job=~\"$job\", datname=~\"$datname\", datname!~\"template.*\"}[$__rate_interval]))",
           "legendFormat": "Commits/s"
         },
         {
-          "expr": "sum(rate(pg_stat_database_xact_rollback{job=\"$job\", datname=~\"$datname\"}[5m]))",
+          "expr": "sum(rate(pg_stat_database_xact_rollback{job=~\"$job\", datname=~\"$datname\", datname!~\"template.*\"}[$__rate_interval]))",
           "legendFormat": "Rollbacks/s"
         }
-      ]
+      ],
+      "description": "Committed and rolled-back transactions per second in the selected databases."
     },
     {
       "id": 22,
@@ -588,22 +624,23 @@
       },
       "targets": [
         {
-          "expr": "sum(rate(pg_stat_database_tup_inserted{job=\"$job\", datname=~\"$datname\"}[5m]))",
+          "expr": "sum(rate(pg_stat_database_tup_inserted{job=~\"$job\", datname=~\"$datname\", datname!~\"template.*\"}[$__rate_interval]))",
           "legendFormat": "Inserts/s"
         },
         {
-          "expr": "sum(rate(pg_stat_database_tup_updated{job=\"$job\", datname=~\"$datname\"}[5m]))",
+          "expr": "sum(rate(pg_stat_database_tup_updated{job=~\"$job\", datname=~\"$datname\", datname!~\"template.*\"}[$__rate_interval]))",
           "legendFormat": "Updates/s"
         },
         {
-          "expr": "sum(rate(pg_stat_database_tup_deleted{job=\"$job\", datname=~\"$datname\"}[5m]))",
+          "expr": "sum(rate(pg_stat_database_tup_deleted{job=~\"$job\", datname=~\"$datname\", datname!~\"template.*\"}[$__rate_interval]))",
           "legendFormat": "Deletes/s"
         },
         {
-          "expr": "sum(rate(pg_stat_database_tup_fetched{job=\"$job\", datname=~\"$datname\"}[5m]))",
+          "expr": "sum(rate(pg_stat_database_tup_fetched{job=~\"$job\", datname=~\"$datname\", datname!~\"template.*\"}[$__rate_interval]))",
           "legendFormat": "Fetches/s"
         }
-      ]
+      ],
+      "description": "Rows inserted, updated, deleted and fetched per second in the selected databases."
     },
     {
       "id": 23,
@@ -657,14 +694,15 @@
       },
       "targets": [
         {
-          "expr": "sum(rate(pg_stat_database_deadlocks{job=\"$job\", datname=~\"$datname\"}[5m]))",
+          "expr": "sum(rate(pg_stat_database_deadlocks{job=~\"$job\", datname=~\"$datname\", datname!~\"template.*\"}[$__rate_interval]))",
           "legendFormat": "Deadlocks/s"
         },
         {
-          "expr": "sum(rate(pg_stat_database_conflicts{job=\"$job\", datname=~\"$datname\"}[5m]))",
+          "expr": "sum(rate(pg_stat_database_conflicts{job=~\"$job\", datname=~\"$datname\", datname!~\"template.*\"}[$__rate_interval]))",
           "legendFormat": "Conflicts/s"
         }
-      ]
+      ],
+      "description": "Deadlocks and recovery conflicts (cancelled queries on replicas) per second in the selected databases."
     },
     {
       "id": 30,
@@ -731,10 +769,11 @@
       },
       "targets": [
         {
-          "expr": "sum(rate(pg_stat_database_blks_hit{job=\"$job\", datname=~\"$datname\"}[5m])) / (sum(rate(pg_stat_database_blks_hit{job=\"$job\", datname=~\"$datname\"}[5m])) + sum(rate(pg_stat_database_blks_read{job=\"$job\", datname=~\"$datname\"}[5m])))",
+          "expr": "sum(rate(pg_stat_database_blks_hit{job=~\"$job\", datname=~\"$datname\", datname!~\"template.*\"}[$__rate_interval])) / (sum(rate(pg_stat_database_blks_hit{job=~\"$job\", datname=~\"$datname\", datname!~\"template.*\"}[$__rate_interval])) + sum(rate(pg_stat_database_blks_read{job=~\"$job\", datname=~\"$datname\", datname!~\"template.*\"}[$__rate_interval])) > 0)",
           "legendFormat": "Cache Hit %"
         }
-      ]
+      ],
+      "description": "Share of block reads served from shared buffers over the interval, for the selected databases; gaps mean no block reads in the interval."
     },
     {
       "id": 32,
@@ -775,14 +814,15 @@
       },
       "targets": [
         {
-          "expr": "sum(rate(pg_stat_database_blks_hit{job=\"$job\", datname=~\"$datname\"}[5m]))",
+          "expr": "sum(rate(pg_stat_database_blks_hit{job=~\"$job\", datname=~\"$datname\", datname!~\"template.*\"}[$__rate_interval]))",
           "legendFormat": "Blocks Hit/s"
         },
         {
-          "expr": "sum(rate(pg_stat_database_blks_read{job=\"$job\", datname=~\"$datname\"}[5m]))",
+          "expr": "sum(rate(pg_stat_database_blks_read{job=~\"$job\", datname=~\"$datname\", datname!~\"template.*\"}[$__rate_interval]))",
           "legendFormat": "Blocks Read/s (disk)"
         }
-      ]
+      ],
+      "description": "Blocks found in shared buffers versus blocks read from disk/OS cache per second."
     },
     {
       "id": 33,
@@ -800,7 +840,7 @@
       },
       "fieldConfig": {
         "defaults": {
-          "unit": "bytes",
+          "unit": "Bps",
           "min": 0,
           "custom": {
             "lineWidth": 1,
@@ -823,10 +863,11 @@
       },
       "targets": [
         {
-          "expr": "sum(rate(pg_stat_database_temp_bytes{job=\"$job\", datname=~\"$datname\"}[5m]))",
+          "expr": "sum(rate(pg_stat_database_temp_bytes{job=~\"$job\", datname=~\"$datname\", datname!~\"template.*\"}[$__rate_interval]))",
           "legendFormat": "Temp Bytes/s"
         }
-      ]
+      ],
+      "description": "Bytes per second written to temporary files by queries (sorts/hashes exceeding work_mem)."
     },
     {
       "id": 40,
@@ -847,7 +888,7 @@
       "gridPos": {
         "x": 0,
         "y": 32,
-        "w": 14,
+        "w": 19,
         "h": 8
       },
       "datasource": {
@@ -879,17 +920,18 @@
       },
       "targets": [
         {
-          "expr": "sum by (mode) (pg_locks_count{job=\"$job\", datname=~\"$datname\"})",
+          "expr": "sum by (mode) (pg_locks_count{job=~\"$job\", datname=~\"$datname\", datname!~\"template.*\"})",
           "legendFormat": "{{mode}}"
         }
-      ]
+      ],
+      "description": "Locks currently held or awaited, by lock mode, in the selected databases."
     },
     {
       "id": 42,
       "type": "stat",
       "title": "Total Locks",
       "gridPos": {
-        "x": 14,
+        "x": 19,
         "y": 32,
         "w": 5,
         "h": 4
@@ -919,7 +961,8 @@
           },
           "color": {
             "mode": "thresholds"
-          }
+          },
+          "unit": "short"
         }
       },
       "options": {
@@ -932,18 +975,19 @@
       },
       "targets": [
         {
-          "expr": "sum(pg_locks_count{job=\"$job\", datname=~\"$datname\"})",
+          "expr": "sum(pg_locks_count{job=~\"$job\", datname=~\"$datname\", datname!~\"template.*\"})",
           "legendFormat": "",
           "instant": true
         }
-      ]
+      ],
+      "description": "Total locks currently held or awaited in the selected databases."
     },
     {
       "id": 43,
       "type": "stat",
       "title": "Exclusive Locks",
       "gridPos": {
-        "x": 14,
+        "x": 19,
         "y": 36,
         "w": 5,
         "h": 4
@@ -973,7 +1017,8 @@
           },
           "color": {
             "mode": "thresholds"
-          }
+          },
+          "unit": "short"
         }
       },
       "options": {
@@ -986,54 +1031,12 @@
       },
       "targets": [
         {
-          "expr": "sum(pg_locks_count{job=\"$job\", datname=~\"$datname\", mode=~\".*ExclusiveLock\"})",
+          "expr": "sum(pg_locks_count{job=~\"$job\", datname=~\"$datname\", datname!~\"template.*\", mode=~\"(?i).*exclusivelock\"})",
           "legendFormat": "",
           "instant": true
         }
-      ]
-    },
-    {
-      "id": 44,
-      "type": "timeseries",
-      "title": "Lock Wait Rate (Deadlocks as Proxy)",
-      "gridPos": {
-        "x": 19,
-        "y": 32,
-        "w": 5,
-        "h": 8
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${datasource}"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "unit": "ops",
-          "min": 0,
-          "custom": {
-            "lineWidth": 2
-          },
-          "color": {
-            "fixedColor": "red",
-            "mode": "fixed"
-          }
-        }
-      },
-      "options": {
-        "tooltip": {
-          "mode": "single"
-        },
-        "legend": {
-          "displayMode": "list",
-          "placement": "bottom"
-        }
-      },
-      "targets": [
-        {
-          "expr": "sum(rate(pg_stat_database_deadlocks{job=\"$job\", datname=~\"$datname\"}[5m]))",
-          "legendFormat": "Deadlocks/s"
-        }
-      ]
+      ],
+      "description": "Exclusive-type locks (ExclusiveLock, RowExclusiveLock, AccessExclusiveLock...) in the selected databases."
     },
     {
       "id": 50,
@@ -1085,14 +1088,15 @@
       },
       "targets": [
         {
-          "expr": "rate(pg_stat_bgwriter_checkpoints_timed_total{job=\"$job\"}[5m])",
+          "expr": "sum(rate(pg_stat_bgwriter_checkpoints_timed_total{job=~\"$job\"}[$__rate_interval])) or sum(rate(pg_stat_checkpointer_num_timed_total{job=~\"$job\"}[$__rate_interval]))",
           "legendFormat": "Timed/s"
         },
         {
-          "expr": "rate(pg_stat_bgwriter_checkpoints_req_total{job=\"$job\"}[5m])",
+          "expr": "sum(rate(pg_stat_bgwriter_checkpoints_req_total{job=~\"$job\"}[$__rate_interval])) or sum(rate(pg_stat_checkpointer_num_requested_total{job=~\"$job\"}[$__rate_interval]))",
           "legendFormat": "Requested/s"
         }
-      ]
+      ],
+      "description": "Scheduled (timed) vs requested checkpoints per second; reads pg_stat_bgwriter_* (PG<=16) or pg_stat_checkpointer_* (PG17+, needs the exporter's stat_checkpointer collector). Empty when the exporter exposes neither, as on the current live install."
     },
     {
       "id": 52,
@@ -1133,22 +1137,23 @@
       },
       "targets": [
         {
-          "expr": "rate(pg_stat_bgwriter_buffers_checkpoint_total{job=\"$job\"}[5m])",
+          "expr": "sum(rate(pg_stat_bgwriter_buffers_checkpoint_total{job=~\"$job\"}[$__rate_interval])) or sum(rate(pg_stat_checkpointer_buffers_written_total{job=~\"$job\"}[$__rate_interval]))",
           "legendFormat": "Checkpoint"
         },
         {
-          "expr": "rate(pg_stat_bgwriter_buffers_clean_total{job=\"$job\"}[5m])",
+          "expr": "sum(rate(pg_stat_bgwriter_buffers_clean_total{job=~\"$job\"}[$__rate_interval]))",
           "legendFormat": "BGWriter"
         },
         {
-          "expr": "rate(pg_stat_bgwriter_buffers_backend_total{job=\"$job\"}[5m])",
+          "expr": "sum(rate(pg_stat_bgwriter_buffers_backend_total{job=~\"$job\"}[$__rate_interval]))",
           "legendFormat": "Backend (direct)"
         },
         {
-          "expr": "rate(pg_stat_bgwriter_buffers_alloc_total{job=\"$job\"}[5m])",
+          "expr": "sum(rate(pg_stat_bgwriter_buffers_alloc_total{job=~\"$job\"}[$__rate_interval]))",
           "legendFormat": "Allocated"
         }
-      ]
+      ],
+      "description": "Buffers written by checkpoints, the background writer and backends, plus buffers allocated. Checkpoint buffers fall back to pg_stat_checkpointer_*; 'Backend (direct)' does not exist on PG17+ (moved to pg_stat_io)."
     },
     {
       "id": 53,
@@ -1189,14 +1194,15 @@
       },
       "targets": [
         {
-          "expr": "rate(pg_stat_bgwriter_checkpoint_write_time_total{job=\"$job\"}[5m])",
+          "expr": "sum(rate(pg_stat_bgwriter_checkpoint_write_time_total{job=~\"$job\"}[$__rate_interval])) or sum(rate(pg_stat_checkpointer_write_time_total{job=~\"$job\"}[$__rate_interval]))",
           "legendFormat": "Write time/s (ms)"
         },
         {
-          "expr": "rate(pg_stat_bgwriter_checkpoint_sync_time_total{job=\"$job\"}[5m])",
+          "expr": "sum(rate(pg_stat_bgwriter_checkpoint_sync_time_total{job=~\"$job\"}[$__rate_interval])) or sum(rate(pg_stat_checkpointer_sync_time_total{job=~\"$job\"}[$__rate_interval]))",
           "legendFormat": "Sync time/s (ms)"
         }
-      ]
+      ],
+      "description": "Time per second spent writing and syncing checkpoint files; reads pg_stat_bgwriter_* (PG<=16) or pg_stat_checkpointer_* (PG17+). Empty when the exporter exposes neither."
     },
     {
       "id": 60,
@@ -1270,12 +1276,13 @@
       ],
       "targets": [
         {
-          "expr": "pg_database_size_bytes{job=\"$job\", datname!~\"template.*\"}",
+          "expr": "sum by (datname) (max by (ClusterName, datname) (pg_database_size_bytes{job=~\"$job\", datname=~\"$datname\", datname!~\"template.*\"}))",
           "legendFormat": "{{datname}}",
           "format": "table",
           "instant": true
         }
-      ]
+      ],
+      "description": "Current size of each selected database, counted once per cluster (largest node value; replicas are not summed)."
     },
     {
       "id": 62,
@@ -1315,10 +1322,11 @@
       },
       "targets": [
         {
-          "expr": "pg_database_size_bytes{job=\"$job\", datname!~\"template.*\"}",
+          "expr": "sum by (datname) (max by (ClusterName, datname) (pg_database_size_bytes{job=~\"$job\", datname=~\"$datname\", datname!~\"template.*\"}))",
           "legendFormat": "{{datname}}"
         }
-      ]
+      ],
+      "description": "Size of each selected database over time, counted once per cluster (largest node value; replicas are not summed)."
     },
     {
       "id": 70,
@@ -1371,19 +1379,20 @@
       },
       "targets": [
         {
-          "expr": "sum(rate(pg_stat_user_tables_seq_scan{job=\"$job\"}[5m]))",
+          "expr": "sum(rate(pg_stat_user_tables_seq_scan{job=~\"$job\", datname=~\"$datname\", datname!~\"template.*\"}[$__rate_interval]))",
           "legendFormat": "Seq Scans/s"
         },
         {
-          "expr": "sum(rate(pg_stat_user_tables_idx_scan{job=\"$job\"}[5m]))",
+          "expr": "sum(rate(pg_stat_user_tables_idx_scan{job=~\"$job\", datname=~\"$datname\", datname!~\"template.*\"}[$__rate_interval]))",
           "legendFormat": "Index Scans/s"
         }
-      ]
+      ],
+      "description": "Sequential vs index scans per second on user tables in the selected databases; many seq scans suggest missing indexes."
     },
     {
       "id": 72,
       "type": "timeseries",
-      "title": "Table Bloat Indicators (Dead Tuples Rate)",
+      "title": "Table Bloat Indicators (Dead Tuples)",
       "gridPos": {
         "x": 12,
         "y": 59,
@@ -1419,10 +1428,11 @@
       },
       "targets": [
         {
-          "expr": "topk(10, pg_stat_user_tables_n_dead_tup{job=\"$job\"})",
+          "expr": "topk(10, max by (datname, schemaname, relname) (pg_stat_user_tables_n_dead_tup{job=~\"$job\", datname=~\"$datname\", datname!~\"template.*\"}))",
           "legendFormat": "{{relname}}"
         }
-      ]
+      ],
+      "description": "Ten user tables with the most dead tuples right now (count, largest node value; vacuum/bloat candidates) in the selected databases."
     },
     {
       "id": 80,
@@ -1475,14 +1485,15 @@
       },
       "targets": [
         {
-          "expr": "sum(rate(pg_stat_user_tables_autovacuum_count{job=\"$job\"}[5m]))",
+          "expr": "sum(rate(pg_stat_user_tables_autovacuum_count{job=~\"$job\", datname=~\"$datname\", datname!~\"template.*\"}[$__rate_interval]))",
           "legendFormat": "Autovacuum/s"
         },
         {
-          "expr": "sum(rate(pg_stat_user_tables_autoanalyze_count{job=\"$job\"}[5m]))",
+          "expr": "sum(rate(pg_stat_user_tables_autoanalyze_count{job=~\"$job\", datname=~\"$datname\", datname!~\"template.*\"}[$__rate_interval]))",
           "legendFormat": "Autoanalyze/s"
         }
-      ]
+      ],
+      "description": "Autovacuum and autoanalyze runs per second on user tables in the selected databases."
     },
     {
       "id": 82,
@@ -1523,14 +1534,28 @@
       },
       "targets": [
         {
-          "expr": "rate(pg_stat_bgwriter_maxwritten_clean_total{job=\"$job\"}[5m])",
+          "expr": "sum(rate(pg_stat_bgwriter_maxwritten_clean_total{job=~\"$job\"}[$__rate_interval]))",
           "legendFormat": "Max Written Clean Stops/s"
         },
         {
-          "expr": "rate(pg_stat_bgwriter_buffers_backend_fsync_total{job=\"$job\"}[5m])",
+          "expr": "sum(rate(pg_stat_bgwriter_buffers_backend_fsync_total{job=~\"$job\"}[$__rate_interval]))",
           "legendFormat": "Backend Fsync/s"
         }
-      ]
+      ],
+      "description": "Times the background writer stopped because it hit bgwriter_lru_maxpages, and backend fsync calls (the latter absent on PG17+)."
     }
-  ]
+  ],
+  "links": [
+    {
+      "type": "dashboards",
+      "tags": [
+        "ccx"
+      ],
+      "asDropdown": true,
+      "title": "CCX dashboards",
+      "includeVars": true,
+      "keepTime": true
+    }
+  ],
+  "description": "PostgreSQL exporter dashboard for CCX's own control-plane database (enabled with externalToolsMonitoring: [ccxDb]); works for any postgres_exporter job."
 }

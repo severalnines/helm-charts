@@ -1,0 +1,1803 @@
+{
+  "uid": "ccx-mssql",
+  "title": "CCX / SQL Server",
+  "description": "CCX Microsoft SQL Server datastores (single and Always On) discovered via cmon service discovery.",
+  "tags": [
+    "ccx",
+    "datastores",
+    "mssql"
+  ],
+  "schemaVersion": 41,
+  "version": 1,
+  "editable": true,
+  "graphTooltip": 1,
+  "timezone": "browser",
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "refresh": "1m",
+  "fiscalYearStartMonth": 0,
+  "liveNow": false,
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "links": [
+    {
+      "type": "dashboards",
+      "tags": [
+        "ccx"
+      ],
+      "asDropdown": true,
+      "title": "CCX dashboards",
+      "includeVars": true,
+      "keepTime": true
+    },
+    {
+      "type": "link",
+      "title": "Node Exporter",
+      "icon": "dashboard",
+      "url": "/d/rYdddlPWk/node-exporter-full",
+      "keepTime": true,
+      "tooltip": "Host metrics (pick the node there, or click a series here)"
+    }
+  ],
+  "templating": {
+    "list": [
+      {
+        "name": "datasource",
+        "label": "Data source",
+        "type": "datasource",
+        "query": "prometheus",
+        "current": {},
+        "hide": 0,
+        "refresh": 1,
+        "regex": "",
+        "options": []
+      },
+      {
+        "name": "environment",
+        "label": "Namespace",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+        },
+        "definition": "query_result(count by (ns) (label_replace({__name__=~\"cmon_up|requests_total\"}, \"ns\", \"$1\", \"kubernetes_namespace\", \"(.+)\")) or count by (ns) (label_replace(mssql_up{job=~\"cmon-sd.*\"}, \"ns\", \"$1\", \"environment\", \"(.+)\")))",
+        "query": "query_result(count by (ns) (label_replace({__name__=~\"cmon_up|requests_total\"}, \"ns\", \"$1\", \"kubernetes_namespace\", \"(.+)\")) or count by (ns) (label_replace(mssql_up{job=~\"cmon-sd.*\"}, \"ns\", \"$1\", \"environment\", \"(.+)\")))",
+        "current": {},
+        "includeAll": false,
+        "multi": false,
+        "refresh": 2,
+        "sort": 1,
+        "regex": "/ns=\"([^\"]+)\"/",
+        "options": [],
+        "hide": 0
+      },
+      {
+        "name": "datastore",
+        "label": "Datastore",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+        },
+        "description": "Pick by datastore name; the value used in queries is the CCX datastore UUID (ClusterName).",
+        "definition": "query_result(count by (ClusterName, DatastoreName) (mssql_up{job=~\"cmon-sd.*\",environment=~\"$environment\"}))",
+        "query": "query_result(count by (ClusterName, DatastoreName) (mssql_up{job=~\"cmon-sd.*\",environment=~\"$environment\"}))",
+        "regex": "/ClusterName=\"(?<value>[^\"]+)\".*DatastoreName=\"(?<text>[^\"]*)\"/",
+        "current": {},
+        "includeAll": false,
+        "multi": false,
+        "refresh": 2,
+        "sort": 5,
+        "options": [],
+        "hide": 0
+      },
+      {
+        "name": "instance",
+        "label": "Node",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+        },
+        "definition": "label_values(mssql_up{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\"}, instance)",
+        "query": "label_values(mssql_up{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\"}, instance)",
+        "current": {},
+        "includeAll": true,
+        "multi": true,
+        "allValue": ".*",
+        "refresh": 2,
+        "sort": 1,
+        "regex": "",
+        "options": [],
+        "hide": 0
+      }
+    ]
+  },
+  "panels": [
+    {
+      "type": "row",
+      "title": "Overview",
+      "id": 1,
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "panels": []
+    },
+    {
+      "type": "table",
+      "title": "Nodes",
+      "description": "One row per SQL Server node: exporter status, CCX cluster type, user connections and page life expectancy; click the IP for host metrics.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "max by (DatastoreName, instance, ip, job, ClusterType) (mssql_up{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\"})",
+          "legendFormat": "",
+          "refId": "A",
+          "range": false,
+          "instant": true,
+          "format": "table"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "max by (DatastoreName, instance, ip, job, ClusterType) (mssql_userconnections{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\"})",
+          "legendFormat": "",
+          "refId": "B",
+          "range": false,
+          "instant": true,
+          "format": "table"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "max by (DatastoreName, instance, ip, job, ClusterType) (mssql_PLE{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\"})",
+          "legendFormat": "",
+          "refId": "C",
+          "range": false,
+          "instant": true,
+          "format": "table"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            }
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Status"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "0": {
+                        "text": "DOWN",
+                        "color": "red",
+                        "index": 0
+                      },
+                      "1": {
+                        "text": "UP",
+                        "color": "green",
+                        "index": 1
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Page life expectancy"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "s"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "IP"
+            },
+            "properties": [
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Node metrics for ${__data.fields.ip}",
+                    "url": "/d/rYdddlPWk/node-exporter-full?var-datasource=${datasource}&var-job=${__data.fields.job}&var-node=${__data.fields.ip}:9100&${__url_time_range}"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false,
+          "reducer": [
+            "sum"
+          ],
+          "fields": ""
+        },
+        "sortBy": [
+          {
+            "displayName": "Datastore",
+            "desc": false
+          }
+        ]
+      },
+      "transformations": [
+        {
+          "id": "merge",
+          "options": {}
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true,
+              "job": true
+            },
+            "renameByName": {
+              "DatastoreName": "Datastore",
+              "ClusterType": "Type",
+              "ip": "IP",
+              "instance": "Instance",
+              "Value #A": "Status",
+              "Value #B": "User connections",
+              "Value #C": "Page life expectancy"
+            },
+            "indexByName": {}
+          }
+        }
+      ],
+      "id": 2,
+      "gridPos": {
+        "h": 7,
+        "w": 24,
+        "x": 0,
+        "y": 1
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Nodes up",
+      "description": "Number of SQL Server exporters reporting the server as reachable, out of the nodes selected.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(mssql_up{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\"})",
+          "legendFormat": "up",
+          "refId": "A",
+          "range": true,
+          "instant": false
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "count(mssql_up{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\"})",
+          "legendFormat": "total",
+          "refId": "B",
+          "range": true,
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "mappings": [],
+          "links": [],
+          "color": {
+            "mode": "thresholds"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value_and_name",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "wideLayout": true
+      },
+      "id": 3,
+      "gridPos": {
+        "h": 5,
+        "w": 4,
+        "x": 0,
+        "y": 8
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Up per node",
+      "description": "1 when the exporter can reach SQL Server, 0 when it cannot.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "mssql_up{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\"}",
+          "legendFormat": "{{DatastoreName}} {{ip}}",
+          "refId": "A",
+          "range": true,
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "links": [
+            {
+              "title": "Node metrics for ${__field.labels.ip}",
+              "url": "/d/rYdddlPWk/node-exporter-full?var-datasource=${datasource}&var-job=${__field.labels.job}&var-node=${__field.labels.ip}:9100&${__url_time_range}"
+            }
+          ],
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 0,
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            }
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "min": 0,
+          "max": 1
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ],
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "id": 4,
+      "gridPos": {
+        "h": 5,
+        "w": 8,
+        "x": 4,
+        "y": 8
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Deadlocks in range",
+      "description": "Deadlocks across the selected nodes during the dashboard time range.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(increase(mssql_deadlocks{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\"}[$__range]))",
+          "legendFormat": "deadlocks",
+          "refId": "A",
+          "range": true,
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          },
+          "mappings": [],
+          "links": [],
+          "color": {
+            "mode": "thresholds"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "wideLayout": true
+      },
+      "id": 5,
+      "gridPos": {
+        "h": 5,
+        "w": 4,
+        "x": 12,
+        "y": 8
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Blocked processes",
+      "description": "Processes currently blocked waiting on another session, summed over the selected nodes.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(mssql_blockedprocesses{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\"})",
+          "legendFormat": "blocked",
+          "refId": "A",
+          "range": true,
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              },
+              {
+                "color": "red",
+                "value": 5
+              }
+            ]
+          },
+          "mappings": [],
+          "links": [],
+          "color": {
+            "mode": "thresholds"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "wideLayout": true
+      },
+      "id": 6,
+      "gridPos": {
+        "h": 5,
+        "w": 4,
+        "x": 16,
+        "y": 8
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Batch requests/s",
+      "description": "SQL batches received per second across the selected nodes.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(rate(mssql_batchrequestpersecond{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\"}[$__rate_interval]))",
+          "legendFormat": "batches/s",
+          "refId": "A",
+          "range": true,
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "mappings": [],
+          "links": [],
+          "color": {
+            "mode": "thresholds"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "area",
+        "textMode": "auto",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "wideLayout": true
+      },
+      "id": 7,
+      "gridPos": {
+        "h": 5,
+        "w": 4,
+        "x": 20,
+        "y": 8
+      }
+    },
+    {
+      "type": "row",
+      "title": "Workload",
+      "id": 8,
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 13
+      },
+      "panels": []
+    },
+    {
+      "type": "timeseries",
+      "title": "Batch requests per second",
+      "description": "SQL batches received per second per node (rate of the cumulative Batch Requests/sec counter).",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "rate(mssql_batchrequestpersecond{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\"}[$__rate_interval])",
+          "legendFormat": "{{DatastoreName}} {{ip}}",
+          "refId": "A",
+          "range": true,
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "links": [
+            {
+              "title": "Node metrics for ${__field.labels.ip}",
+              "url": "/d/rYdddlPWk/node-exporter-full?var-datasource=${datasource}&var-job=${__field.labels.job}&var-node=${__field.labels.ip}:9100&${__url_time_range}"
+            }
+          ],
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            }
+          },
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ],
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "id": 9,
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 0,
+        "y": 14
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Transactions per second",
+      "description": "Transactions started per second per node (rate of the cumulative Transactions/sec counter).",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "rate(mssql_transactions{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\"}[$__rate_interval])",
+          "legendFormat": "{{DatastoreName}} {{ip}}",
+          "refId": "A",
+          "range": true,
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops",
+          "links": [
+            {
+              "title": "Node metrics for ${__field.labels.ip}",
+              "url": "/d/rYdddlPWk/node-exporter-full?var-datasource=${datasource}&var-job=${__field.labels.job}&var-node=${__field.labels.ip}:9100&${__url_time_range}"
+            }
+          ],
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            }
+          },
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ],
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "id": 10,
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 12,
+        "y": 14
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "User connections",
+      "description": "Currently connected user sessions per node.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "mssql_userconnections{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\"}",
+          "legendFormat": "{{DatastoreName}} {{ip}}",
+          "refId": "A",
+          "range": true,
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "links": [
+            {
+              "title": "Node metrics for ${__field.labels.ip}",
+              "url": "/d/rYdddlPWk/node-exporter-full?var-datasource=${datasource}&var-job=${__field.labels.job}&var-node=${__field.labels.ip}:9100&${__url_time_range}"
+            }
+          ],
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            }
+          },
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ],
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "id": 11,
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 0,
+        "y": 21
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Processes by status",
+      "description": "Current number of SQL Server processes per status (running, runnable, sleeping, background, ...), summed over the selected nodes.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum by (status) (mssql_process_status{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\"})",
+          "legendFormat": "{{status}}",
+          "refId": "A",
+          "range": true,
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "links": [],
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            }
+          },
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ],
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "id": 12,
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 12,
+        "y": 21
+      }
+    },
+    {
+      "type": "row",
+      "title": "Memory & I/O",
+      "id": 13,
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 28
+      },
+      "panels": []
+    },
+    {
+      "type": "timeseries",
+      "title": "Server memory: total vs target",
+      "description": "Memory SQL Server currently uses (Total Server Memory) and the amount it wants (Target Server Memory); total well below target is normal after a restart.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "mssql_totalmemoryKB{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\"} * 1024",
+          "legendFormat": "{{DatastoreName}} {{ip}} total",
+          "refId": "A",
+          "range": true,
+          "instant": false
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "mssql_targtmemoryKB{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\"} * 1024",
+          "legendFormat": "{{DatastoreName}} {{ip}} target",
+          "refId": "B",
+          "range": true,
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "links": [
+            {
+              "title": "Node metrics for ${__field.labels.ip}",
+              "url": "/d/rYdddlPWk/node-exporter-full?var-datasource=${datasource}&var-job=${__field.labels.job}&var-node=${__field.labels.ip}:9100&${__url_time_range}"
+            }
+          ],
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 0,
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            }
+          },
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ],
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "id": 14,
+      "gridPos": {
+        "h": 7,
+        "w": 8,
+        "x": 0,
+        "y": 29
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Memory total / target",
+      "description": "Total server memory as a fraction of target; staying at 100% under load suggests memory pressure.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "mssql_totalmemoryKB{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\"} / clamp_min(mssql_targtmemoryKB{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\"}, 1)",
+          "legendFormat": "{{DatastoreName}} {{ip}}",
+          "refId": "A",
+          "range": true,
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "links": [
+            {
+              "title": "Node metrics for ${__field.labels.ip}",
+              "url": "/d/rYdddlPWk/node-exporter-full?var-datasource=${datasource}&var-job=${__field.labels.job}&var-node=${__field.labels.ip}:9100&${__url_time_range}"
+            }
+          ],
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            }
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ],
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "id": 15,
+      "gridPos": {
+        "h": 7,
+        "w": 8,
+        "x": 8,
+        "y": 29
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Page life expectancy",
+      "description": "Seconds a page is expected to stay in the buffer pool; it grows steadily when there is no memory pressure and drops sharply when pages are evicted.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "mssql_PLE{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\"}",
+          "legendFormat": "{{DatastoreName}} {{ip}}",
+          "refId": "A",
+          "range": true,
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "links": [
+            {
+              "title": "Node metrics for ${__field.labels.ip}",
+              "url": "/d/rYdddlPWk/node-exporter-full?var-datasource=${datasource}&var-job=${__field.labels.job}&var-node=${__field.labels.ip}:9100&${__url_time_range}"
+            }
+          ],
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 0,
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            }
+          },
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ],
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "id": 16,
+      "gridPos": {
+        "h": 7,
+        "w": 8,
+        "x": 16,
+        "y": 29
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Page reads / writes",
+      "description": "Physical database page reads and writes per second (rate of the cumulative Page reads/sec and Page writes/sec counters).",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "rate(mssql_pagereadspersecond{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\"}[$__rate_interval])",
+          "legendFormat": "{{DatastoreName}} {{ip}} reads",
+          "refId": "A",
+          "range": true,
+          "instant": false
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "-rate(mssql_pagewritespersecond{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\"}[$__rate_interval])",
+          "legendFormat": "{{DatastoreName}} {{ip}} writes",
+          "refId": "B",
+          "range": true,
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "iops",
+          "links": [
+            {
+              "title": "Node metrics for ${__field.labels.ip}",
+              "url": "/d/rYdddlPWk/node-exporter-full?var-datasource=${datasource}&var-job=${__field.labels.job}&var-node=${__field.labels.ip}:9100&${__url_time_range}"
+            }
+          ],
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            }
+          },
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ],
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "id": 17,
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 0,
+        "y": 36
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Buffer cache hit ratio (raw)",
+      "description": "Raw value of the Buffer cache hit ratio counter as exported; the exporter does not export the matching base counter, so this is NOT a percentage and is only useful for spotting changes.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "mssql_buffercacheitration{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\"}",
+          "legendFormat": "{{DatastoreName}} {{ip}}",
+          "refId": "A",
+          "range": true,
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "links": [
+            {
+              "title": "Node metrics for ${__field.labels.ip}",
+              "url": "/d/rYdddlPWk/node-exporter-full?var-datasource=${datasource}&var-job=${__field.labels.job}&var-node=${__field.labels.ip}:9100&${__url_time_range}"
+            }
+          ],
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 0,
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            }
+          },
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ],
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "id": 18,
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 12,
+        "y": 36
+      }
+    },
+    {
+      "type": "row",
+      "title": "Locking & errors",
+      "id": 19,
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 43
+      },
+      "panels": []
+    },
+    {
+      "type": "timeseries",
+      "title": "Blocked processes",
+      "description": "Processes blocked waiting on a lock held by another session, per node.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "mssql_blockedprocesses{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\"}",
+          "legendFormat": "{{DatastoreName}} {{ip}}",
+          "refId": "A",
+          "range": true,
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "links": [
+            {
+              "title": "Node metrics for ${__field.labels.ip}",
+              "url": "/d/rYdddlPWk/node-exporter-full?var-datasource=${datasource}&var-job=${__field.labels.job}&var-node=${__field.labels.ip}:9100&${__url_time_range}"
+            }
+          ],
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            }
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ],
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "id": 20,
+      "gridPos": {
+        "h": 7,
+        "w": 8,
+        "x": 0,
+        "y": 44
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Deadlocks",
+      "description": "Deadlocks per second per node (rate of the cumulative Number of Deadlocks/sec counter).",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "rate(mssql_deadlocks{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\"}[$__rate_interval])",
+          "legendFormat": "{{DatastoreName}} {{ip}}",
+          "refId": "A",
+          "range": true,
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops",
+          "links": [
+            {
+              "title": "Node metrics for ${__field.labels.ip}",
+              "url": "/d/rYdddlPWk/node-exporter-full?var-datasource=${datasource}&var-job=${__field.labels.job}&var-node=${__field.labels.ip}:9100&${__url_time_range}"
+            }
+          ],
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            }
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ],
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "id": 21,
+      "gridPos": {
+        "h": 7,
+        "w": 8,
+        "x": 8,
+        "y": 44
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Lock timeouts and exceptions",
+      "description": "Lock timeouts and SQL exceptions per second per node (rates of cumulative counters).",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "rate(mssql_timeouts{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\"}[$__rate_interval])",
+          "legendFormat": "{{DatastoreName}} {{ip}} timeouts",
+          "refId": "A",
+          "range": true,
+          "instant": false
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "rate(mssql_exceptions{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\"}[$__rate_interval])",
+          "legendFormat": "{{DatastoreName}} {{ip}} exceptions",
+          "refId": "B",
+          "range": true,
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops",
+          "links": [
+            {
+              "title": "Node metrics for ${__field.labels.ip}",
+              "url": "/d/rYdddlPWk/node-exporter-full?var-datasource=${datasource}&var-job=${__field.labels.job}&var-node=${__field.labels.ip}:9100&${__url_time_range}"
+            }
+          ],
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            }
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ],
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "id": 22,
+      "gridPos": {
+        "h": 7,
+        "w": 8,
+        "x": 16,
+        "y": 44
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Log space used",
+      "description": "Transaction log space used as reported by the exporter (gauge); a steady climb means the log is not being truncated by log backups.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "mssql_logspaceused{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\"}",
+          "legendFormat": "{{DatastoreName}} {{ip}}",
+          "refId": "A",
+          "range": true,
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "links": [
+            {
+              "title": "Node metrics for ${__field.labels.ip}",
+              "url": "/d/rYdddlPWk/node-exporter-full?var-datasource=${datasource}&var-job=${__field.labels.job}&var-node=${__field.labels.ip}:9100&${__url_time_range}"
+            }
+          ],
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            }
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ],
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "id": 23,
+      "gridPos": {
+        "h": 6,
+        "w": 24,
+        "x": 0,
+        "y": 51
+      }
+    },
+    {
+      "type": "row",
+      "title": "Availability Group",
+      "id": 24,
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 57
+      },
+      "panels": []
+    },
+    {
+      "type": "text",
+      "title": "Availability Group health",
+      "description": "Explains why AG / HADR health is not shown and what would be needed.",
+      "options": {
+        "mode": "markdown",
+        "content": "The SQL Server exporter deployed on CCX nodes does **not** expose Always On Availability Group health: no `mssql_*` series for AG, HADR, replica or synchronization state exist in VictoriaMetrics, so replica role, synchronization state, send/redo queue and failover readiness cannot be graphed here.\n\nTo add it, extend the exporter with custom queries over the HADR DMVs, for example:\n\n- `sys.dm_hadr_availability_replica_states` (role, connected_state, synchronization_health)\n- `sys.dm_hadr_database_replica_states` (synchronization_state, log_send_queue_size, redo_queue_size, last_commit_time for estimated data loss)\n- `sys.availability_groups` / `sys.availability_replicas` (AG and replica names, availability mode)\n\nUntil then, the table on the right shows which datastores are AG-based (`mssql_ao_*` cluster type) and whether every replica's exporter is up."
+      },
+      "id": 25,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 58
+      }
+    },
+    {
+      "type": "table",
+      "title": "AG datastores",
+      "description": "SQL Server datastores in the selection with their CCX cluster type and how many replicas report up.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "count by (DatastoreName, ClusterType) (mssql_up{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\"})",
+          "legendFormat": "",
+          "refId": "A",
+          "range": false,
+          "instant": true,
+          "format": "table"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum by (DatastoreName, ClusterType) (mssql_up{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\"})",
+          "legendFormat": "",
+          "refId": "B",
+          "range": false,
+          "instant": true,
+          "format": "table"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            }
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false,
+          "reducer": [
+            "sum"
+          ],
+          "fields": ""
+        },
+        "sortBy": [
+          {
+            "displayName": "Datastore",
+            "desc": false
+          }
+        ]
+      },
+      "transformations": [
+        {
+          "id": "merge",
+          "options": {}
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            },
+            "renameByName": {
+              "DatastoreName": "Datastore",
+              "ClusterType": "Type",
+              "Value #A": "Nodes",
+              "Value #B": "Nodes up"
+            },
+            "indexByName": {}
+          }
+        }
+      ],
+      "id": 26,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 58
+      }
+    }
+  ]
+}

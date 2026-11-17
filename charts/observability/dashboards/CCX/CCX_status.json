@@ -21,12 +21,22 @@
       }
     ]
   },
-  "description": "General overview of CCX",
+  "description": "CCX control-plane status per environment: cmon, datastores, CCX pods and deployment health.",
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 6,
-  "links": [],
+  "links": [
+    {
+      "type": "dashboards",
+      "tags": [
+        "ccx"
+      ],
+      "asDropdown": true,
+      "title": "CCX dashboards",
+      "includeVars": true,
+      "keepTime": true
+    }
+  ],
   "liveNow": false,
   "panels": [
     {
@@ -34,9 +44,17 @@
         "type": "prometheus",
         "uid": "${datasource}"
       },
-      "description": "",
+      "description": "Container image and tag per container in Running pods of the environment (kube-state-metrics kube_pod_container_info joined with kube_pod_status_phase, so completed CronJob/Job pods with old tags are excluded); Pods = number of running pods with that image. Replaces the old helm_chart_info panel, which is not exported.",
       "fieldConfig": {
         "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false
+          },
+          "unit": "short",
           "mappings": [],
           "thresholds": {
             "mode": "absolute",
@@ -46,66 +64,120 @@
                 "value": null
               }
             ]
-          },
-          "unit": "short"
+          }
         },
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Container"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 260
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Tag"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 200
+              },
+              {
+                "id": "unit",
+                "value": "string"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Pods"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 80
+              }
+            ]
+          }
+        ]
       },
       "gridPos": {
-        "h": 3,
+        "h": 8,
         "w": 24,
         "x": 0,
         "y": 0
       },
       "id": 13,
       "options": {
-        "colorMode": "background",
-        "graphMode": "none",
-        "justifyMode": "center",
-        "orientation": "vertical",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false,
+          "reducer": [
+            "sum"
           ],
-          "fields": "/^version$/",
-          "limit": 50,
-          "values": true
+          "fields": ""
         },
-        "text": {
-          "titleSize": 35,
-          "valueSize": 50
-        },
-        "textMode": "value_and_name"
+        "sortBy": [
+          {
+            "displayName": "Container",
+            "desc": false
+          }
+        ]
       },
-      "pluginVersion": "9.3.6",
       "targets": [
         {
           "datasource": {
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "editorMode": "code",
-          "exemplar": false,
-          "expr": "sum (last_over_time(helm_chart_info{namespace=\"$namespace\", exported_cluster=\"$cluster\"})) by (chart, version)",
-          "format": "table",
-          "hide": false,
+          "refId": "A",
           "instant": true,
-          "interval": "",
-          "legendFormat": "{{ version }}",
           "range": false,
-          "refId": "A"
+          "format": "table",
+          "expr": "count by (container, tag, image) (label_replace(kube_pod_container_info{namespace=~\"$namespace\", exported_cluster=~\"$cluster\"} * on (namespace, pod) group_left () (kube_pod_status_phase{namespace=~\"$namespace\", exported_cluster=~\"$cluster\", phase=\"Running\"} == 1), \"tag\", \"$1\", \"image\", \".*:([^:/@]+)$\"))"
         }
       ],
-      "title": "$namespace CCX Helm Charts Versions",
+      "title": "$namespace CCX image versions",
       "transparent": true,
-      "type": "stat"
+      "type": "table",
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            },
+            "indexByName": {
+              "container": 0,
+              "tag": 1,
+              "Value": 2,
+              "image": 3
+            },
+            "renameByName": {
+              "container": "Container",
+              "tag": "Tag",
+              "Value": "Pods",
+              "image": "Image"
+            }
+          }
+        }
+      ]
     },
     {
       "datasource": {
         "type": "prometheus",
         "uid": "${datasource}"
       },
-      "description": "",
+      "description": "Number of cmon controllers reporting cmon_up=1 in the environment; DOWN when none is up or the cmon exporter is not scraped. Counted once per controller/datastore, so a cmon pod restart (old and new series overlapping for one scrape) doesn't double it. Shows no data when no cmon reports in the selection. \"no cmon metrics\" means the cmon exporter is not being scraped (see Exporter scrape failing on CCX / cmon Controller).",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -135,7 +207,9 @@
                 "value": 1
               }
             ]
-          }
+          },
+          "unit": "short",
+          "noValue": "no cmon metrics"
         },
         "overrides": []
       },
@@ -143,7 +217,7 @@
         "h": 3,
         "w": 2,
         "x": 0,
-        "y": 3
+        "y": 8
       },
       "id": 2,
       "options": {
@@ -168,7 +242,7 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "count(cmon_up{kubernetes_namespace=~\"$namespace\", exported_cluster=~\"$cluster\"})",
+          "expr": "sum(max by (kubernetes_namespace) (cmon_up{kubernetes_namespace=~\"$namespace\", exported_cluster=~\"$cluster\"})) or (count(cmon_up{kubernetes_namespace=~\"$namespace\", exported_cluster=~\"$cluster\"}) * 0)",
           "legendFormat": "__auto",
           "range": true,
           "refId": "A"
@@ -182,7 +256,7 @@
         "type": "prometheus",
         "uid": "${datasource}"
       },
-      "description": "",
+      "description": "Datastores that cmon reports as up (cmon_cluster_up == 1). Counted once per controller/datastore, so a cmon pod restart (old and new series overlapping for one scrape) doesn't double it. Shows no data when no cmon reports in the selection. \"no cmon metrics\" means the cmon exporter is not being scraped (see Exporter scrape failing on CCX / cmon Controller).",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -206,13 +280,11 @@
               {
                 "color": "green",
                 "value": null
-              },
-              {
-                "color": "red",
-                "value": 80
               }
             ]
-          }
+          },
+          "unit": "short",
+          "noValue": "no cmon metrics"
         },
         "overrides": []
       },
@@ -220,7 +292,7 @@
         "h": 3,
         "w": 2,
         "x": 2,
-        "y": 3
+        "y": 8
       },
       "id": 3,
       "options": {
@@ -245,7 +317,7 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "count(cmon_cluster_up{kubernetes_namespace=~\"$namespace\", exported_cluster=~\"$cluster\"} == 1)",
+          "expr": "count(max by (kubernetes_namespace, ClusterName) (cmon_cluster_up{kubernetes_namespace=~\"$namespace\", exported_cluster=~\"$cluster\"}) == 1) or (count(cmon_up{kubernetes_namespace=~\"$namespace\", exported_cluster=~\"$cluster\"}) * 0)",
           "legendFormat": "__auto",
           "range": true,
           "refId": "A"
@@ -259,25 +331,14 @@
         "type": "prometheus",
         "uid": "${datasource}"
       },
-      "description": "",
+      "description": "Datastores that cmon reports as down (cmon_cluster_up == 0); 0 means all datastores are up. Counted once per controller/datastore, so a cmon pod restart (old and new series overlapping for one scrape) doesn't double it. Shows no data when no cmon reports in the selection. \"no cmon metrics\" means the cmon exporter is not being scraped (see Exporter scrape failing on CCX / cmon Controller).",
       "fieldConfig": {
         "defaults": {
           "color": {
             "mode": "thresholds"
           },
           "decimals": 0,
-          "mappings": [
-            {
-              "options": {
-                "0": {
-                  "color": "green",
-                  "index": 0,
-                  "text": "NONE"
-                }
-              },
-              "type": "value"
-            }
-          ],
+          "mappings": [],
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -286,16 +347,13 @@
                 "value": null
               },
               {
-                "color": "green",
-                "value": 0
-              },
-              {
                 "color": "red",
                 "value": 1
               }
             ]
           },
-          "unit": "short"
+          "unit": "short",
+          "noValue": "no cmon metrics"
         },
         "overrides": []
       },
@@ -303,7 +361,7 @@
         "h": 3,
         "w": 2,
         "x": 4,
-        "y": 3
+        "y": 8
       },
       "id": 4,
       "options": {
@@ -329,7 +387,7 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "count(cmon_cluster_up{kubernetes_namespace=~\"$namespace\", exported_cluster=~\"$cluster\"} == 0)",
+          "expr": "count(max by (kubernetes_namespace, ClusterName) (cmon_cluster_up{kubernetes_namespace=~\"$namespace\", exported_cluster=~\"$cluster\"}) == 0) or (count(cmon_up{kubernetes_namespace=~\"$namespace\", exported_cluster=~\"$cluster\"}) * 0)",
           "instant": false,
           "legendFormat": "__auto",
           "range": true,
@@ -344,7 +402,7 @@
         "type": "prometheus",
         "uid": "${datasource}"
       },
-      "description": "1 minute average",
+      "description": "CPU used per container in the environment, as % of one core (cAdvisor). Shows the 10 series with the highest peak in the selected time range.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -402,7 +460,7 @@
         "h": 11,
         "w": 9,
         "x": 6,
-        "y": 3
+        "y": 8
       },
       "id": 10,
       "options": {
@@ -425,7 +483,7 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "sum(rate(container_cpu_usage_seconds_total{namespace=\"$namespace\", image!=\"\", exported_cluster=\"$cluster\"}[1m])) by (container) * 100",
+          "expr": "topk_max(10, sum by (container) (rate(container_cpu_usage_seconds_total{job=~\".*cadvisor.*\", namespace=~\"$namespace\", exported_cluster=~\"$cluster\", container!=\"\", container!=\"POD\", image!=\"\"}[$__rate_interval])) * 100)",
           "instant": false,
           "legendFormat": "{{ container }}",
           "range": true,
@@ -440,7 +498,7 @@
         "type": "prometheus",
         "uid": "${datasource}"
       },
-      "description": "",
+      "description": "Working-set memory per container in the environment (cAdvisor). Shows the 10 series with the highest peak in the selected time range.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -498,7 +556,7 @@
         "h": 11,
         "w": 9,
         "x": 15,
-        "y": 3
+        "y": 8
       },
       "id": 11,
       "options": {
@@ -521,7 +579,7 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "sum(container_memory_working_set_bytes{namespace=\"$namespace\", image!=\"\", exported_cluster=\"$cluster\"}) by (container)",
+          "expr": "topk_max(10, sum by (container) (container_memory_working_set_bytes{job=~\".*cadvisor.*\", namespace=~\"$namespace\", exported_cluster=~\"$cluster\", container!=\"\", container!=\"POD\", image!=\"\"}))",
           "instant": false,
           "legendFormat": "{{ container }}",
           "range": true,
@@ -536,61 +594,138 @@
         "type": "prometheus",
         "uid": "${datasource}"
       },
-      "description": "",
+      "description": "All datastores managed by cmon in the environment with their status (1 = up, 0 = down).",
       "fieldConfig": {
         "defaults": {
+          "custom": {
+            "align": "left",
+            "filterable": true
+          },
           "mappings": [
             {
+              "type": "value",
               "options": {
                 "0": {
-                  "index": 1,
-                  "text": "DOWN"
+                  "index": 0,
+                  "text": "DOWN",
+                  "color": "red"
                 },
                 "1": {
-                  "index": 0,
-                  "text": "UP"
+                  "index": 1,
+                  "text": "UP",
+                  "color": "green"
                 }
-              },
-              "type": "value"
+              }
             }
           ],
           "thresholds": {
             "mode": "absolute",
             "steps": [
               {
-                "color": "red",
-                "value": null
-              },
-              {
                 "color": "green",
-                "value": 1
+                "value": null
               }
             ]
           },
-          "unit": "short"
+          "unit": "none"
         },
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Status"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "thresholds"
+                }
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background"
+                }
+              },
+              {
+                "id": "custom.width",
+                "value": 120
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "0": {
+                        "index": 1,
+                        "text": "DOWN"
+                      },
+                      "1": {
+                        "index": 0,
+                        "text": "UP"
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "red",
+                      "value": null
+                    },
+                    {
+                      "color": "green",
+                      "value": 1
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Cluster ID"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 100
+              }
+            ]
+          }
+        ]
       },
       "gridPos": {
-        "h": 8,
-        "w": 6,
+        "h": 10,
+        "w": 24,
         "x": 0,
-        "y": 6
+        "y": 19
       },
       "id": 6,
       "options": {
-        "colorMode": "background",
-        "graphMode": "none",
-        "justifyMode": "center",
-        "orientation": "auto",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
           "fields": "",
-          "values": false
+          "reducer": [
+            "sum"
+          ],
+          "show": false
         },
-        "textMode": "auto"
+        "showHeader": true,
+        "sortBy": [
+          {
+            "desc": false,
+            "displayName": "Status"
+          }
+        ]
       },
       "pluginVersion": "9.3.6",
       "targets": [
@@ -601,223 +736,45 @@
           },
           "editorMode": "code",
           "expr": "cmon_cluster_up{kubernetes_namespace=~\"$namespace\", exported_cluster=~\"$cluster\"}",
-          "legendFormat": "{{ ClusterName }}",
-          "range": true,
+          "format": "table",
+          "instant": true,
+          "range": false,
           "refId": "A"
         }
       ],
       "title": "Datastores",
-      "transparent": true,
-      "type": "stat"
-    },
-    {
-      "datasource": {
-        "type": "camptocamp-prometheus-alertmanager-datasource",
-        "uid": "ZdHEzZEVz"
-      },
-      "description": "",
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "align": "center",
-            "displayMode": "color-background",
-            "filterable": false,
-            "inspect": false
-          },
-          "decimals": 2,
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "transparent",
-                "value": null
-              }
-            ]
-          },
-          "unit": "short"
-        },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "instance"
-            },
-            "properties": [
-              {
-                "id": "custom.hidden",
-                "value": false
-              },
-              {
-                "id": "custom.width",
-                "value": 171
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "ClusterName"
-            },
-            "properties": [
-              {
-                "id": "custom.width",
-                "value": 306
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "alertname"
-            },
-            "properties": [
-              {
-                "id": "custom.width",
-                "value": 264
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "summary"
-            },
-            "properties": [
-              {
-                "id": "custom.width"
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "severity"
-            },
-            "properties": [
-              {
-                "id": "custom.width",
-                "value": 96
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "ip"
-            },
-            "properties": [
-              {
-                "id": "custom.width",
-                "value": 152
-              }
-            ]
-          }
-        ]
-      },
-      "gridPos": {
-        "h": 6,
-        "w": 24,
-        "x": 0,
-        "y": 14
-      },
-      "id": 15,
-      "options": {
-        "footer": {
-          "fields": "",
-          "reducer": [
-            "sum"
-          ],
-          "show": false
-        },
-        "showHeader": true,
-        "sortBy": []
-      },
-      "pluginVersion": "9.3.6",
-      "targets": [
-        {
-          "active": true,
-          "datasource": {
-            "type": "camptocamp-prometheus-alertmanager-datasource",
-            "uid": "ZdHEzZEVz"
-          },
-          "filters": "environment=$namespace, exported_cluster=$cluster",
-          "refId": "A"
-        }
-      ],
-      "title": "Active Alerts",
       "transformations": [
         {
           "id": "organize",
           "options": {
             "excludeByName": {
-              "ClusterID": true,
-              "ClusterType": true,
-              "ControllerId": true,
-              "SeverityValue": true,
               "Time": true,
-              "alertgroup": true,
-              "alertstatus": true,
-              "alertstatus_code": true,
-              "app_kubernetes_io_component": true,
-              "app_kubernetes_io_instance": true,
-              "app_kubernetes_io_managed_by": true,
-              "app_kubernetes_io_name": true,
-              "app_kubernetes_io_part_of": true,
-              "app_kubernetes_io_version": true,
-              "cid": true,
+              "__name__": true,
+              "app": true,
               "cluster": true,
-              "container": true,
-              "datid": true,
-              "datname": true,
-              "deployment": false,
-              "description": true,
-              "environment": true,
+              "controller_revision_hash": true,
+              "ControllerId": true,
               "exported_cluster": true,
-              "exported_namespace": true,
-              "exported_use_cmon_sd": true,
-              "helm_sh_chart": true,
               "instance": true,
-              "ip": false,
               "job": true,
               "kubernetes_namespace": true,
               "kubernetes_pod_name": true,
-              "name": true,
-              "namespace": true,
-              "node": true,
-              "pod": true,
-              "pod_template_hash": true,
+              "monitor": true,
               "run": true,
-              "use_cmon_sd": true
+              "statefulset_kubernetes_io_pod_name": true,
+              "use_cmon_sd": true,
+              "apps_kubernetes_io_pod_index": true
             },
             "indexByName": {
-              "SeverityValue": 8,
-              "Time": 1,
-              "alertgroup": 11,
-              "alertname": 0,
-              "alertstatus": 14,
-              "alertstatus_code": 15,
-              "cluster": 6,
-              "datid": 12,
-              "datname": 13,
-              "description": 10,
-              "environment": 5,
-              "instance": 4,
-              "ip": 3,
-              "job": 7,
-              "severity": 2,
-              "summary": 9
+              "Status": 0,
+              "Name": 1,
+              "Cluster ID": 2
             },
-            "renameByName": {}
-          }
-        },
-        {
-          "id": "merge",
-          "options": {
-            "reducers": []
+            "renameByName": {
+              "ClusterID": "Cluster ID",
+              "ClusterName": "Name",
+              "Value": "Status"
+            }
           }
         }
       ],
@@ -829,7 +786,7 @@
         "type": "prometheus",
         "uid": "${datasource}"
       },
-      "description": "",
+      "description": "Available / desired replicas per deployment (OK = 100%); deployments scaled to 0 are hidden to avoid division by zero.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -849,50 +806,52 @@
           ],
           "mappings": [
             {
+              "type": "range",
               "options": {
-                "1": {
+                "from": 1,
+                "to": 1000,
+                "result": {
                   "index": 0,
                   "text": "OK"
                 }
-              },
-              "type": "value"
+              }
             },
             {
+              "type": "range",
               "options": {
                 "from": 0,
+                "to": 0.9999,
                 "result": {
                   "index": 1,
                   "text": "BAD"
-                },
-                "to": 0.99
-              },
-              "type": "range"
+                }
+              }
             }
           ],
           "max": 1,
           "min": 0,
           "thresholds": {
-            "mode": "percentage",
+            "mode": "absolute",
             "steps": [
               {
                 "color": "red",
                 "value": null
               },
               {
-                "color": "red",
-                "value": 50
+                "color": "orange",
+                "value": 0.5
               },
               {
-                "color": "orange",
-                "value": 90
+                "color": "yellow",
+                "value": 0.9
               },
               {
                 "color": "green",
-                "value": 100
+                "value": 1
               }
             ]
           },
-          "unit": "short"
+          "unit": "percentunit"
         },
         "overrides": []
       },
@@ -900,11 +859,14 @@
         "h": 17,
         "w": 24,
         "x": 0,
-        "y": 20
+        "y": 29
       },
       "id": 8,
       "links": [],
       "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
         "orientation": "auto",
         "reduceOptions": {
           "calcs": [
@@ -913,8 +875,11 @@
           "fields": "",
           "values": false
         },
-        "showThresholdLabels": false,
-        "showThresholdMarkers": false
+        "text": {
+          "titleSize": 18,
+          "valueSize": 28
+        },
+        "textMode": "auto"
       },
       "pluginVersion": "9.3.6",
       "targets": [
@@ -924,29 +889,27 @@
             "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "kube_deployment_status_replicas_available{namespace=~\"$namespace\", exported_cluster=~\"$cluster\"} / kube_deployment_status_replicas{namespace=~\"$namespace\", exported_cluster=~\"$cluster\"}",
+          "expr": "sum by (deployment) (kube_deployment_status_replicas_available{namespace=~\"$namespace\", exported_cluster=~\"$cluster\"}) / (sum by (deployment) (kube_deployment_spec_replicas{namespace=~\"$namespace\", exported_cluster=~\"$cluster\"}) > 0)",
           "interval": "",
           "legendFormat": "{{ deployment }}",
           "range": true,
           "refId": "A"
         }
       ],
-      "title": "Deployments $namespace $cluster",
-      "type": "gauge"
+      "title": "Deployments $namespace",
+      "type": "stat"
     }
   ],
   "refresh": "30s",
-  "schemaVersion": 37,
+  "schemaVersion": 41,
   "style": "dark",
-  "tags": [],
+  "tags": [
+    "ccx"
+  ],
   "templating": {
     "list": [
       {
-        "current": {
-          "selected": true,
-          "text": "default",
-          "value": "default"
-        },
+        "current": {},
         "hide": 0,
         "includeAll": false,
         "multi": false,
@@ -963,56 +926,57 @@
         "allValue": ".*",
         "current": {
           "selected": true,
-          "text": "testing",
-          "value": "testing"
+          "text": "All",
+          "value": "$__all"
         },
         "datasource": {
           "type": "prometheus",
           "uid": "${datasource}"
         },
-        "definition": "label_values(namespace)",
-        "hide": 0,
-        "includeAll": false,
-        "label": "Namespace",
-        "multi": false,
-        "name": "namespace",
-        "options": [],
-        "query": {
-          "query": "label_values(namespace)",
-          "refId": "StandardVariableQuery"
-        },
-        "refresh": 1,
-        "regex": "",
-        "skipUrlSync": false,
-        "sort": 0,
-        "type": "query"
-      },
-      {
-        "allValue": ".*",
-        "current": {
-          "selected": true,
-          "text": "ccx",
-          "value": "ccx"
-        },
-        "datasource": {
-          "type": "prometheus",
-          "uid": "${datasource}"
-        },
-        "definition": "label_values(cluster)",
+        "definition": "label_values(cmon_up, exported_cluster)",
         "hide": 0,
         "includeAll": true,
         "multi": false,
         "name": "cluster",
         "options": [],
         "query": {
-          "query": "label_values(cluster)",
-          "refId": "StandardVariableQuery"
+          "qryType": 1,
+          "query": "label_values(cmon_up, exported_cluster)",
+          "refId": "PrometheusVariableQueryEditor-VariableQuery"
         },
-        "refresh": 1,
+        "refresh": 2,
         "regex": "",
         "skipUrlSync": false,
-        "sort": 0,
-        "type": "query"
+        "sort": 1,
+        "type": "query",
+        "label": "Cluster",
+        "description": "Monitoring cluster label (exported_cluster) - same label the panels filter on."
+      },
+      {
+        "allValue": ".*",
+        "current": {},
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+        },
+        "definition": "label_values(cmon_up{exported_cluster=~\"$cluster\"}, kubernetes_namespace)",
+        "hide": 0,
+        "includeAll": false,
+        "label": "Environment",
+        "multi": false,
+        "name": "namespace",
+        "options": [],
+        "query": {
+          "qryType": 1,
+          "query": "label_values(cmon_up{exported_cluster=~\"$cluster\"}, kubernetes_namespace)",
+          "refId": "PrometheusVariableQueryEditor-VariableQuery"
+        },
+        "refresh": 2,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 1,
+        "type": "query",
+        "description": "CCX environment (Kubernetes namespace running cmon)."
       }
     ]
   },

@@ -24,41 +24,32 @@
           "uid": "$datasource"
         },
         "enable": true,
-        "expr": "changes(process_start_time_seconds{ instance=~\"$instance\"}[2m]) > 0",
+        "expr": "changes(process_start_time_seconds[2m]) > 0 and on (instance) alertmanager_build_info{instance=~\"$instance\"}",
         "hide": false,
         "iconColor": "#bf1b00",
         "name": "Restarts",
         "showIn": 0,
         "step": "1m",
         "tagKeys": "instance",
-        "titleFormat": "Restart"
+        "titleFormat": "Alertmanager restart",
+        "textFormat": "{{instance}}"
       }
     ]
   },
   "description": "Dashboard showing Prometheus Alertmanager metrics for observing status of the cluster and possible debbuging.",
   "editable": true,
   "fiscalYearStartMonth": 0,
-  "gnetId": 9578,
   "graphTooltip": 1,
-  "id": 31,
   "links": [
     {
-      "icon": "doc",
-      "tags": [],
-      "targetBlank": true,
-      "title": "Docs",
-      "tooltip": "Official documentation of Alertmanager",
-      "type": "link",
-      "url": "https://prometheus.io/docs/alerting/alertmanager/"
-    },
-    {
-      "icon": "info",
-      "tags": [],
-      "targetBlank": true,
-      "title": "GitHub",
-      "tooltip": "Alertmanager sources on GitHub",
-      "type": "link",
-      "url": "https://github.com/prometheus/alertmanager"
+      "type": "dashboards",
+      "tags": [
+        "ccx"
+      ],
+      "asDropdown": true,
+      "title": "CCX dashboards",
+      "includeVars": true,
+      "keepTime": true
     }
   ],
   "liveNow": false,
@@ -91,7 +82,8 @@
     },
     {
       "datasource": {
-        "uid": "$datasource"
+        "type": "prometheus",
+        "uid": "${datasource}"
       },
       "fieldConfig": {
         "defaults": {
@@ -144,18 +136,18 @@
         "orientation": "horizontal",
         "reduceOptions": {
           "calcs": [
-            "mean"
+            "lastNotNull"
           ],
           "fields": "",
           "values": false
         },
         "textMode": "auto"
       },
-      "pluginVersion": "9.1.5",
       "targets": [
         {
           "datasource": {
-            "uid": "$datasource"
+            "type": "prometheus",
+            "uid": "${datasource}"
           },
           "expr": "count(alertmanager_build_info{instance=~\"$instance\"})",
           "format": "time_series",
@@ -164,142 +156,23 @@
         }
       ],
       "title": "Number of instances",
-      "type": "stat"
+      "type": "stat",
+      "description": "Number of Alertmanager instances exporting metrics right now."
     },
     {
-      "columns": [],
-      "datasource": {
-        "uid": "$datasource"
-      },
-      "description": "Table containing list of Alertmanager instances showing it's version, up time, last reload time and if it was successful.",
-      "fontSize": "90%",
+      "id": 26,
+      "title": "Instance versions and up time",
       "gridPos": {
         "h": 5,
         "w": 9,
         "x": 3,
         "y": 1
       },
-      "id": 26,
-      "links": [],
-      "scroll": true,
-      "showHeader": true,
-      "sort": {
-        "col": 13,
-        "desc": false
-      },
-      "styles": [
-        {
-          "alias": "Time",
-          "align": "auto",
-          "dateFormat": "YYYY-MM-DD HH:mm:ss",
-          "pattern": "Time",
-          "type": "hidden"
-        },
-        {
-          "alias": "Instance",
-          "align": "auto",
-          "colors": [
-            "rgba(245, 54, 54, 0.9)",
-            "rgba(237, 129, 40, 0.89)",
-            "rgba(50, 172, 45, 0.97)"
-          ],
-          "dateFormat": "YYYY-MM-DD HH:mm:ss",
-          "decimals": 2,
-          "mappingType": 1,
-          "pattern": "instance",
-          "thresholds": [],
-          "type": "string",
-          "unit": "short"
-        },
-        {
-          "alias": "Version",
-          "align": "auto",
-          "colors": [
-            "rgba(245, 54, 54, 0.9)",
-            "rgba(237, 129, 40, 0.89)",
-            "rgba(50, 172, 45, 0.97)"
-          ],
-          "dateFormat": "YYYY-MM-DD HH:mm:ss",
-          "decimals": 2,
-          "mappingType": 1,
-          "pattern": "version",
-          "thresholds": [],
-          "type": "string",
-          "unit": "short"
-        },
-        {
-          "alias": "Up time",
-          "align": "auto",
-          "colors": [
-            "rgba(245, 54, 54, 0.9)",
-            "rgba(237, 129, 40, 0.89)",
-            "rgba(50, 172, 45, 0.97)"
-          ],
-          "dateFormat": "YYYY-MM-DD HH:mm:ss",
-          "decimals": 0,
-          "mappingType": 1,
-          "pattern": "Value #A",
-          "thresholds": [],
-          "type": "number",
-          "unit": "s"
-        },
-        {
-          "alias": "Last reload",
-          "align": "auto",
-          "colors": [
-            "rgba(245, 54, 54, 0.9)",
-            "rgba(237, 129, 40, 0.89)",
-            "rgba(50, 172, 45, 0.97)"
-          ],
-          "dateFormat": "YYYY-MM-DD HH:mm:ss",
-          "decimals": 0,
-          "mappingType": 1,
-          "pattern": "Value #B",
-          "thresholds": [],
-          "type": "number",
-          "unit": "s"
-        },
-        {
-          "alias": "Last reload sucessfull",
-          "align": "auto",
-          "colorMode": "cell",
-          "colors": [
-            "rgba(245, 54, 54, 0.9)",
-            "rgba(237, 129, 40, 0.89)",
-            "rgba(50, 172, 45, 0.97)"
-          ],
-          "dateFormat": "YYYY-MM-DD HH:mm:ss",
-          "decimals": 2,
-          "mappingType": 1,
-          "pattern": "Value #C",
-          "thresholds": [
-            "0",
-            "1"
-          ],
-          "type": "number",
-          "unit": "short"
-        },
-        {
-          "alias": "",
-          "align": "auto",
-          "colors": [
-            "rgba(245, 54, 54, 0.9)",
-            "rgba(237, 129, 40, 0.89)",
-            "rgba(50, 172, 45, 0.97)"
-          ],
-          "dateFormat": "YYYY-MM-DD HH:mm:ss",
-          "decimals": 2,
-          "mappingType": 1,
-          "pattern": "/.*/",
-          "thresholds": [],
-          "type": "hidden",
-          "unit": "short"
-        }
-      ],
       "targets": [
         {
           "datasource": {
-            "uid": "$datasource"
+            "type": "prometheus",
+            "uid": "${datasource}"
           },
           "expr": "time() - (alertmanager_build_info{instance=~\"$instance\"} * on (instance, cluster) group_left process_start_time_seconds{instance=~\"$instance\"})",
           "format": "table",
@@ -309,7 +182,8 @@
         },
         {
           "datasource": {
-            "uid": "$datasource"
+            "type": "prometheus",
+            "uid": "${datasource}"
           },
           "expr": "time() - alertmanager_config_last_reload_success_timestamp_seconds{instance=~\"$instance\"}",
           "format": "table",
@@ -319,7 +193,8 @@
         },
         {
           "datasource": {
-            "uid": "$datasource"
+            "type": "prometheus",
+            "uid": "${datasource}"
           },
           "expr": "alertmanager_config_last_reload_successful{instance=~\"$instance\"}",
           "format": "table",
@@ -328,15 +203,161 @@
           "refId": "C"
         }
       ],
-      "title": "Instance versions and up time",
-      "transform": "table",
-      "type": "table-old"
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "description": "Version, uptime and configuration reload status per Alertmanager instance.",
+      "type": "table",
+      "transformations": [
+        {
+          "id": "joinByField",
+          "options": {
+            "byField": "instance",
+            "mode": "outer"
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {},
+            "indexByName": {
+              "instance": 0,
+              "version": 1,
+              "Value #A": 2,
+              "Value #B": 3,
+              "Value #C": 4
+            },
+            "renameByName": {
+              "instance": "Instance",
+              "version": "Version",
+              "Value #A": "Up time",
+              "Value #B": "Last reload",
+              "Value #C": "Last reload successful"
+            }
+          }
+        },
+        {
+          "id": "filterFieldsByName",
+          "options": {
+            "include": {
+              "names": [
+                "Instance",
+                "Version",
+                "Up time",
+                "Last reload",
+                "Last reload successful"
+              ]
+            }
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            }
+          },
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Up time"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "s"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Last reload"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "s"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Last reload successful"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "0": {
+                        "text": "NO",
+                        "color": "red",
+                        "index": 0
+                      },
+                      "1": {
+                        "text": "YES",
+                        "color": "green",
+                        "index": 1
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false,
+          "reducer": [
+            "sum"
+          ],
+          "fields": ""
+        }
+      }
     },
     {
       "datasource": {
-        "uid": "$datasource"
+        "type": "prometheus",
+        "uid": "${datasource}"
       },
-      "description": "Number of peers in the Alertmanager cluster.",
+      "description": "Largest gossip cluster among the selected Alertmanagers (peers per cluster). Each environment runs its own single-replica Alertmanager, so 1 is normal.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -388,18 +409,18 @@
         "orientation": "horizontal",
         "reduceOptions": {
           "calcs": [
-            "mean"
+            "lastNotNull"
           ],
           "fields": "",
           "values": false
         },
         "textMode": "auto"
       },
-      "pluginVersion": "9.1.5",
       "targets": [
         {
           "datasource": {
-            "uid": "$datasource"
+            "type": "prometheus",
+            "uid": "${datasource}"
           },
           "expr": "max(alertmanager_cluster_members{instance=~\"$instance\"})",
           "format": "time_series",
@@ -412,9 +433,10 @@
     },
     {
       "datasource": {
-        "uid": "$datasource"
+        "type": "prometheus",
+        "uid": "${datasource}"
       },
-      "description": "Current number of active alerts.",
+      "description": "Alerts currently active (not silenced/inhibited), summed over the selected Alertmanagers. There is one independent Alertmanager per environment, so they are summed, not deduplicated.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -465,20 +487,20 @@
         "orientation": "horizontal",
         "reduceOptions": {
           "calcs": [
-            "mean"
+            "lastNotNull"
           ],
           "fields": "",
           "values": false
         },
         "textMode": "auto"
       },
-      "pluginVersion": "9.1.5",
       "targets": [
         {
           "datasource": {
-            "uid": "$datasource"
+            "type": "prometheus",
+            "uid": "${datasource}"
           },
-          "expr": "max(alertmanager_alerts{state=\"active\", instance=~\"$instance\"})",
+          "expr": "sum(alertmanager_alerts{state=\"active\", instance=~\"$instance\"})",
           "format": "time_series",
           "intervalFactor": 1,
           "refId": "A"
@@ -489,9 +511,10 @@
     },
     {
       "datasource": {
-        "uid": "$datasource"
+        "type": "prometheus",
+        "uid": "${datasource}"
       },
-      "description": "Current number of suppressed alerts.",
+      "description": "Alerts currently suppressed by a silence or inhibition rule, summed over the selected Alertmanagers (one independent Alertmanager per environment).",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -542,20 +565,20 @@
         "orientation": "horizontal",
         "reduceOptions": {
           "calcs": [
-            "mean"
+            "lastNotNull"
           ],
           "fields": "",
           "values": false
         },
         "textMode": "auto"
       },
-      "pluginVersion": "9.1.5",
       "targets": [
         {
           "datasource": {
-            "uid": "$datasource"
+            "type": "prometheus",
+            "uid": "${datasource}"
           },
-          "expr": "max(alertmanager_alerts{state=\"suppressed\", instance=~\"$instance\"})",
+          "expr": "sum(alertmanager_alerts{state=\"suppressed\", instance=~\"$instance\"})",
           "format": "time_series",
           "intervalFactor": 1,
           "refId": "A"
@@ -566,9 +589,10 @@
     },
     {
       "datasource": {
-        "uid": "$datasource"
+        "type": "prometheus",
+        "uid": "${datasource}"
       },
-      "description": "Current number of active silences.",
+      "description": "Silences currently active, summed over the selected Alertmanagers (one independent Alertmanager per environment).",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -619,20 +643,20 @@
         "orientation": "horizontal",
         "reduceOptions": {
           "calcs": [
-            "mean"
+            "lastNotNull"
           ],
           "fields": "",
           "values": false
         },
         "textMode": "auto"
       },
-      "pluginVersion": "9.1.5",
       "targets": [
         {
           "datasource": {
-            "uid": "$datasource"
+            "type": "prometheus",
+            "uid": "${datasource}"
           },
-          "expr": "max(alertmanager_silences{state=\"active\", instance=~\"$instance\"})",
+          "expr": "sum(alertmanager_silences{state=\"active\", instance=~\"$instance\"})",
           "format": "time_series",
           "intervalFactor": 1,
           "refId": "A"
@@ -668,79 +692,32 @@
       "type": "row"
     },
     {
-      "aliasColors": {},
-      "bars": false,
-      "dashLength": 10,
-      "dashes": false,
-      "datasource": {
-        "uid": "$datasource"
-      },
-      "description": "Number of sent notifications to distinct integrations such as PagerDuty, Slack and so on. On negative axis are displayed failed notifications.",
-      "fill": 1,
-      "fillGradient": 0,
+      "id": 118,
+      "title": "Notifications sent from $instance",
       "gridPos": {
         "h": 5,
         "w": 12,
         "x": 0,
         "y": 7
       },
-      "hiddenSeries": false,
-      "id": 118,
-      "legend": {
-        "alignAsTable": true,
-        "avg": true,
-        "current": false,
-        "hideEmpty": true,
-        "hideZero": true,
-        "max": false,
-        "min": false,
-        "rightSide": true,
-        "show": true,
-        "sort": "total",
-        "sortDesc": true,
-        "total": true,
-        "values": true
-      },
-      "lines": true,
-      "linewidth": 1,
-      "links": [],
-      "nullPointMode": "null",
-      "options": {
-        "alertThreshold": true
-      },
-      "percentage": false,
-      "pluginVersion": "9.1.5",
-      "pointradius": 5,
-      "points": false,
-      "renderer": "flot",
-      "repeat": "instance",
-      "repeatDirection": "h",
-      "seriesOverrides": [
-        {
-          "alias": "/Failed.*/",
-          "color": "#99440a",
-          "transform": "negative-Y"
-        }
-      ],
-      "spaceLength": 10,
-      "stack": false,
-      "steppedLine": false,
       "targets": [
         {
           "datasource": {
-            "uid": "$datasource"
+            "type": "prometheus",
+            "uid": "${datasource}"
           },
-          "expr": "sum(increase(alertmanager_notifications_total{instance=~\"$instance\"}[$__interval])) by (integration)",
+          "expr": "sum by (integration) (increase(alertmanager_notifications_total{instance=~\"$instance\"}[$__rate_interval])) > 0",
           "format": "time_series",
           "intervalFactor": 1,
-          "legendFormat": "{{ integration}}",
+          "legendFormat": "Attempted {{integration}}",
           "refId": "B"
         },
         {
           "datasource": {
-            "uid": "$datasource"
+            "type": "prometheus",
+            "uid": "${datasource}"
           },
-          "expr": "sum(increase(alertmanager_notifications_failed_total{instance=~\"$instance\"}[$__interval])) by (integration)",
+          "expr": "sum by (integration) (increase(alertmanager_notifications_failed_total{instance=~\"$instance\"}[$__rate_interval])) > 0",
           "format": "time_series",
           "hide": false,
           "interval": "",
@@ -749,148 +726,167 @@
           "refId": "A"
         }
       ],
-      "thresholds": [],
-      "timeRegions": [],
-      "title": "Notifications sent from $instance",
-      "tooltip": {
-        "shared": true,
-        "sort": 0,
-        "value_type": "individual"
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
       },
-      "type": "graph",
-      "xaxis": {
-        "mode": "time",
-        "show": true,
-        "values": []
-      },
-      "yaxes": [
-        {
-          "format": "short",
-          "logBase": 1,
-          "show": true
+      "description": "Notification attempts per integration per interval (alertmanager_notifications_total counts every attempt, including failed ones); failed attempts are drawn below zero. Failed equal to attempted means every notification of that integration fails. Integrations with no attempts are hidden.",
+      "type": "timeseries",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": false,
+            "axisPlacement": "auto",
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "gradientMode": "none",
+            "lineInterpolation": "linear",
+            "pointSize": 5
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
         },
-        {
-          "format": "short",
-          "logBase": 1,
-          "show": true
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": "Failed.*"
+            },
+            "properties": [
+              {
+                "id": "custom.transform",
+                "value": "negative-Y"
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#99440a"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "showLegend": true,
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": [
+            "mean",
+            "sum"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
         }
-      ],
-      "yaxis": {
-        "align": false
       }
     },
     {
-      "aliasColors": {},
-      "bars": false,
-      "dashLength": 10,
-      "dashes": false,
-      "datasource": {
-        "uid": "$datasource"
-      },
-      "description": "Duration of notification sends in 0.99 and 0.9 quantiles per integration.",
-      "fill": 0,
-      "fillGradient": 0,
+      "id": 115,
+      "title": "Notification durations per integration on $instance",
       "gridPos": {
         "h": 6,
         "w": 12,
         "x": 0,
         "y": 12
       },
-      "hiddenSeries": false,
-      "id": 115,
-      "legend": {
-        "alignAsTable": true,
-        "avg": true,
-        "current": false,
-        "hideEmpty": true,
-        "hideZero": true,
-        "max": false,
-        "min": false,
-        "rightSide": true,
-        "show": true,
-        "sort": "avg",
-        "sortDesc": true,
-        "total": false,
-        "values": true
-      },
-      "lines": true,
-      "linewidth": 1,
-      "links": [],
-      "nullPointMode": "connected",
-      "options": {
-        "alertThreshold": true
-      },
-      "percentage": false,
-      "pluginVersion": "9.1.5",
-      "pointradius": 5,
-      "points": false,
-      "renderer": "flot",
-      "repeat": "instance",
-      "repeatDirection": "h",
-      "seriesOverrides": [
-        {
-          "alias": "/0.99.*/",
-          "linewidth": 1
-        },
-        {
-          "alias": "/0.5 .*/",
-          "linewidth": 2
-        }
-      ],
-      "spaceLength": 10,
-      "stack": false,
-      "steppedLine": false,
       "targets": [
         {
           "datasource": {
-            "uid": "$datasource"
+            "type": "prometheus",
+            "uid": "${datasource}"
           },
-          "expr": "sum(histogram_quantile(0.9,rate(alertmanager_notification_latency_seconds_bucket{instance=~\"$instance\"}[$__interval]))) by (integration)",
+          "expr": "sum by (integration) (rate(alertmanager_notification_latency_seconds_sum{instance=~\"$instance\"}[$__rate_interval])) / sum by (integration) (rate(alertmanager_notification_latency_seconds_count{instance=~\"$instance\"}[$__rate_interval]))",
           "format": "time_series",
           "intervalFactor": 1,
-          "legendFormat": "0.9q {{ integration }}",
+          "legendFormat": "avg {{integration}}",
           "refId": "B"
         },
         {
           "datasource": {
-            "uid": "$datasource"
+            "type": "prometheus",
+            "uid": "${datasource}"
           },
-          "expr": "sum(histogram_quantile(0.99,rate(alertmanager_notification_latency_seconds_bucket{instance=~\"$instance\"}[$__interval]))) by (integration)",
+          "expr": "max by (integration) (rate(alertmanager_notification_latency_seconds_sum{instance=~\"$instance\"}[$__rate_interval]) / rate(alertmanager_notification_latency_seconds_count{instance=~\"$instance\"}[$__rate_interval]))",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
-          "legendFormat": "0.99q  {{ integration }}",
+          "legendFormat": "slowest instance avg {{integration}}",
           "refId": "A"
         }
       ],
-      "thresholds": [],
-      "timeRegions": [],
-      "title": "Notification durations per integration on $instance",
-      "tooltip": {
-        "shared": true,
-        "sort": 0,
-        "value_type": "individual"
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
       },
-      "type": "graph",
-      "xaxis": {
-        "mode": "time",
-        "show": true,
-        "values": []
-      },
-      "yaxes": [
-        {
-          "format": "s",
-          "logBase": 1,
-          "show": true
+      "description": "Average notification delivery latency per integration (sum/count), overall and for the slowest Alertmanager. Percentiles are not shown: the histogram's smallest bucket is 1s (buckets 1/5/10/15/20s) and real latencies are ~20-150ms, so p90/p99 would only interpolate to 0.9s/0.99s.",
+      "type": "timeseries",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 0,
+            "showPoints": "never",
+            "spanNulls": false,
+            "axisPlacement": "auto",
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "gradientMode": "none",
+            "lineInterpolation": "linear",
+            "pointSize": 5
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
         },
-        {
-          "format": "short",
-          "logBase": 1,
-          "show": true
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "showLegend": true,
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": [
+            "mean"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
         }
-      ],
-      "yaxis": {
-        "align": false
       }
     },
     {
@@ -920,64 +916,19 @@
       "type": "row"
     },
     {
-      "aliasColors": {},
-      "bars": false,
-      "dashLength": 10,
-      "dashes": false,
-      "datasource": {
-        "uid": "$datasource"
-      },
-      "description": "Number of alerts by state such as `active`, `suppressed` etc.",
-      "fill": 4,
-      "fillGradient": 0,
+      "id": 6,
+      "title": "Active alerts in $instance",
       "gridPos": {
         "h": 5,
         "w": 12,
         "x": 0,
         "y": 19
       },
-      "hiddenSeries": false,
-      "id": 6,
-      "legend": {
-        "avg": false,
-        "current": false,
-        "max": false,
-        "min": false,
-        "show": false,
-        "total": false,
-        "values": false
-      },
-      "lines": true,
-      "linewidth": 1,
-      "links": [],
-      "nullPointMode": "null as zero",
-      "options": {
-        "alertThreshold": true
-      },
-      "percentage": false,
-      "pluginVersion": "9.1.5",
-      "pointradius": 5,
-      "points": false,
-      "renderer": "flot",
-      "repeat": "instance",
-      "repeatDirection": "h",
-      "seriesOverrides": [
-        {
-          "alias": "active",
-          "color": "#bf1b00"
-        },
-        {
-          "alias": "suppressed",
-          "color": "#2f575e"
-        }
-      ],
-      "spaceLength": 10,
-      "stack": true,
-      "steppedLine": false,
       "targets": [
         {
           "datasource": {
-            "uid": "$datasource"
+            "type": "prometheus",
+            "uid": "${datasource}"
           },
           "expr": "sum(alertmanager_alerts{instance=~\"$instance\"}) by (state)",
           "format": "time_series",
@@ -986,98 +937,105 @@
           "refId": "A"
         }
       ],
-      "thresholds": [],
-      "timeRegions": [],
-      "title": "Active alerts in $instance",
-      "tooltip": {
-        "shared": true,
-        "sort": 0,
-        "value_type": "individual"
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
       },
-      "type": "graph",
-      "xaxis": {
-        "mode": "time",
-        "show": true,
-        "values": []
-      },
-      "yaxes": [
-        {
-          "format": "short",
-          "logBase": 1,
-          "show": true
+      "description": "Alerts held by Alertmanager, by state (active / suppressed / unprocessed), stacked and summed over the selected Alertmanagers.",
+      "type": "timeseries",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 40,
+            "showPoints": "never",
+            "spanNulls": false,
+            "axisPlacement": "auto",
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            },
+            "gradientMode": "none",
+            "lineInterpolation": "linear",
+            "pointSize": 5
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
         },
-        {
-          "format": "short",
-          "logBase": 1,
-          "show": true
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "active"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#bf1b00"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "suppressed"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#2f575e"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "showLegend": false,
+          "displayMode": "list",
+          "placement": "bottom",
+          "calcs": []
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
         }
-      ],
-      "yaxis": {
-        "align": false
       }
     },
     {
-      "aliasColors": {},
-      "bars": false,
-      "dashLength": 10,
-      "dashes": false,
-      "datasource": {
-        "uid": "$datasource"
-      },
-      "description": "Number of received alerts from Prometheus by status `firing` on positive axis and `resolved` on negative axis.",
-      "fill": 1,
-      "fillGradient": 0,
+      "id": 8,
+      "title": "Received alerts by status for $instance",
       "gridPos": {
         "h": 5,
         "w": 12,
         "x": 0,
         "y": 24
       },
-      "hiddenSeries": false,
-      "id": 8,
-      "legend": {
-        "avg": false,
-        "current": false,
-        "max": false,
-        "min": false,
-        "show": false,
-        "total": false,
-        "values": false
-      },
-      "lines": true,
-      "linewidth": 1,
-      "links": [],
-      "nullPointMode": "null",
-      "options": {
-        "alertThreshold": true
-      },
-      "percentage": false,
-      "pluginVersion": "9.1.5",
-      "pointradius": 5,
-      "points": false,
-      "renderer": "flot",
-      "repeat": "instance",
-      "repeatDirection": "h",
-      "seriesOverrides": [
-        {
-          "alias": "resolved",
-          "color": "#7eb26d",
-          "transform": "negative-Y"
-        },
-        {
-          "alias": "firing",
-          "color": "#99440a"
-        }
-      ],
-      "spaceLength": 10,
-      "stack": false,
-      "steppedLine": false,
       "targets": [
         {
           "datasource": {
-            "uid": "$datasource"
+            "type": "prometheus",
+            "uid": "${datasource}"
           },
-          "expr": "sum(increase(alertmanager_alerts_received_total{instance=~\"$instance\"}[$__interval])) by (status)",
+          "expr": "sum(increase(alertmanager_alerts_received_total{instance=~\"$instance\"}[$__rate_interval])) by (status)",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
@@ -1085,34 +1043,91 @@
           "refId": "A"
         }
       ],
-      "thresholds": [],
-      "timeRegions": [],
-      "title": "Received alerts by status for $instance",
-      "tooltip": {
-        "shared": true,
-        "sort": 0,
-        "value_type": "individual"
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
       },
-      "type": "graph",
-      "xaxis": {
-        "mode": "time",
-        "show": true,
-        "values": []
-      },
-      "yaxes": [
-        {
-          "format": "short",
-          "logBase": 1,
-          "show": true
+      "description": "Alerts received from vmalert per interval, by status (firing / resolved).",
+      "type": "timeseries",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": false,
+            "axisPlacement": "auto",
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "gradientMode": "none",
+            "lineInterpolation": "linear",
+            "pointSize": 5
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
         },
-        {
-          "format": "short",
-          "logBase": 1,
-          "show": true
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "resolved"
+            },
+            "properties": [
+              {
+                "id": "custom.transform",
+                "value": "negative-Y"
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#7eb26d"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "firing"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#99440a"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "showLegend": false,
+          "displayMode": "list",
+          "placement": "bottom",
+          "calcs": []
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
         }
-      ],
-      "yaxis": {
-        "align": false
       }
     },
     {
@@ -1130,446 +1145,422 @@
       "id": 34,
       "panels": [
         {
-          "aliasColors": {},
-          "bars": false,
-          "dashLength": 10,
-          "dashes": false,
-          "datasource": {
-            "uid": "$datasource"
-          },
-          "description": "Shows cluster score representing cluster health. From Hashicorps official documentation: \n> This metric describes a node's perception of its own health based on how well it is meeting the soft real-time requirements of the protocol. This metric ranges from 0 to 8, where 0 indicates \"totally healthy\".\n\nFor more info see https://www.consul.io/docs/agent/telemetry.html#cluster-health",
-          "fill": 1,
+          "id": 57,
+          "title": "Clusterhealth score for $instance",
           "gridPos": {
             "h": 4,
             "w": 6,
             "x": 0,
             "y": 20
           },
-          "id": 57,
-          "legend": {
-            "avg": false,
-            "current": false,
-            "max": false,
-            "min": false,
-            "show": false,
-            "total": false,
-            "values": false
-          },
-          "lines": true,
-          "linewidth": 1,
-          "links": [],
-          "nullPointMode": "null",
-          "percentage": false,
-          "pointradius": 5,
-          "points": false,
-          "renderer": "flot",
-          "repeat": "instance",
-          "repeatDirection": "h",
-          "seriesOverrides": [
-            {
-              "alias": "Number of failed peers",
-              "color": "#bf1b00",
-              "fill": 7
-            }
-          ],
-          "spaceLength": 10,
-          "stack": false,
-          "steppedLine": false,
           "targets": [
             {
               "datasource": {
-                "uid": "$datasource"
+                "type": "prometheus",
+                "uid": "${datasource}"
               },
               "expr": "alertmanager_cluster_health_score{instance=~\"$instance\"}",
               "format": "time_series",
               "intervalFactor": 1,
-              "legendFormat": "Cluster health score",
+              "legendFormat": "{{kubernetes_namespace}} health score",
               "refId": "A"
             }
           ],
-          "thresholds": [],
-          "timeRegions": [],
-          "title": "Clusterhealth score for $instance",
-          "tooltip": {
-            "shared": true,
-            "sort": 0,
-            "value_type": "individual"
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
           },
-          "type": "graph",
-          "xaxis": {
-            "mode": "time",
-            "show": true,
-            "values": []
-          },
-          "yaxes": [
-            {
-              "format": "short",
-              "logBase": 1,
-              "show": true
+          "description": "Gossip cluster health score; 0 is healthy, higher means peers are failing to communicate.",
+          "type": "timeseries",
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "custom": {
+                "drawStyle": "line",
+                "lineWidth": 1,
+                "fillOpacity": 10,
+                "showPoints": "never",
+                "spanNulls": false,
+                "axisPlacement": "auto",
+                "stacking": {
+                  "mode": "none",
+                  "group": "A"
+                },
+                "gradientMode": "none",
+                "lineInterpolation": "linear",
+                "pointSize": 5
+              },
+              "color": {
+                "mode": "palette-classic"
+              },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              }
             },
-            {
-              "format": "short",
-              "logBase": 1,
-              "show": true
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Number of failed peers"
+                },
+                "properties": [
+                  {
+                    "id": "color",
+                    "value": {
+                      "mode": "fixed",
+                      "fixedColor": "#bf1b00"
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "options": {
+            "legend": {
+              "showLegend": false,
+              "displayMode": "list",
+              "placement": "bottom",
+              "calcs": []
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
             }
-          ],
-          "yaxis": {
-            "align": false
           }
         },
         {
-          "aliasColors": {},
-          "bars": false,
-          "dashLength": 10,
-          "dashes": false,
-          "datasource": {
-            "uid": "$datasource"
-          },
-          "description": "Shows gossip cluster members count in time and failing peers in case of any in red color.",
-          "fill": 1,
+          "id": 38,
+          "title": "Cluster members count on $instance",
           "gridPos": {
             "h": 4,
             "w": 6,
             "x": 0,
             "y": 24
           },
-          "id": 38,
-          "legend": {
-            "avg": false,
-            "current": false,
-            "max": false,
-            "min": false,
-            "show": false,
-            "total": false,
-            "values": false
-          },
-          "lines": true,
-          "linewidth": 1,
-          "links": [],
-          "nullPointMode": "null",
-          "percentage": false,
-          "pointradius": 5,
-          "points": false,
-          "renderer": "flot",
-          "repeat": "instance",
-          "repeatDirection": "h",
-          "seriesOverrides": [
-            {
-              "alias": "Number of failed peers",
-              "color": "#bf1b00",
-              "fill": 7
-            }
-          ],
-          "spaceLength": 10,
-          "stack": true,
-          "steppedLine": false,
           "targets": [
             {
               "datasource": {
-                "uid": "$datasource"
+                "type": "prometheus",
+                "uid": "${datasource}"
               },
               "expr": "alertmanager_cluster_members{instance=~\"$instance\"}",
               "format": "time_series",
               "intervalFactor": 1,
-              "legendFormat": "Number of cluster members",
+              "legendFormat": "{{kubernetes_namespace}} members",
               "refId": "A"
             },
             {
               "datasource": {
-                "uid": "$datasource"
+                "type": "prometheus",
+                "uid": "${datasource}"
               },
               "expr": "alertmanager_cluster_failed_peers{instance=~\"$instance\"}",
               "format": "time_series",
               "intervalFactor": 1,
-              "legendFormat": "Number of failed peers",
+              "legendFormat": "{{kubernetes_namespace}} failed peers",
               "refId": "B"
             }
           ],
-          "thresholds": [],
-          "timeRegions": [],
-          "title": "Cluster members count on $instance",
-          "tooltip": {
-            "shared": true,
-            "sort": 0,
-            "value_type": "individual"
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
           },
-          "type": "graph",
-          "xaxis": {
-            "mode": "time",
-            "show": true,
-            "values": []
-          },
-          "yaxes": [
-            {
-              "format": "short",
-              "logBase": 1,
-              "show": true
+          "description": "Gossip cluster members and failed peers.",
+          "type": "timeseries",
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "custom": {
+                "drawStyle": "line",
+                "lineWidth": 1,
+                "fillOpacity": 10,
+                "showPoints": "never",
+                "spanNulls": false,
+                "axisPlacement": "auto",
+                "stacking": {
+                  "mode": "normal",
+                  "group": "A"
+                },
+                "gradientMode": "none",
+                "lineInterpolation": "linear",
+                "pointSize": 5
+              },
+              "color": {
+                "mode": "palette-classic"
+              },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              }
             },
-            {
-              "format": "short",
-              "logBase": 1,
-              "show": true
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Number of failed peers"
+                },
+                "properties": [
+                  {
+                    "id": "color",
+                    "value": {
+                      "mode": "fixed",
+                      "fixedColor": "#bf1b00"
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "options": {
+            "legend": {
+              "showLegend": false,
+              "displayMode": "list",
+              "placement": "bottom",
+              "calcs": []
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
             }
-          ],
-          "yaxis": {
-            "align": false
           }
         },
         {
-          "aliasColors": {},
-          "bars": false,
-          "dashLength": 10,
-          "dashes": false,
-          "datasource": {
-            "uid": "$datasource"
-          },
-          "description": "On positive axis shows number of peers that joined the cluster and on negative axis number of peers that left the cluster.",
-          "fill": 1,
+          "id": 75,
+          "title": "Cluster peers left/joined on $instance",
           "gridPos": {
             "h": 6,
             "w": 6,
             "x": 0,
             "y": 28
           },
-          "id": 75,
-          "legend": {
-            "avg": false,
-            "current": false,
-            "max": false,
-            "min": false,
-            "show": false,
-            "total": false,
-            "values": false
-          },
-          "lines": true,
-          "linewidth": 1,
-          "links": [],
-          "nullPointMode": "null as zero",
-          "percentage": false,
-          "pointradius": 5,
-          "points": false,
-          "renderer": "flot",
-          "repeat": "instance",
-          "repeatDirection": "h",
-          "seriesOverrides": [
-            {
-              "alias": "Cluster left peers",
-              "color": "#890f02",
-              "transform": "negative-Y"
-            }
-          ],
-          "spaceLength": 10,
-          "stack": false,
-          "steppedLine": false,
           "targets": [
             {
               "datasource": {
-                "uid": "$datasource"
+                "type": "prometheus",
+                "uid": "${datasource}"
               },
-              "expr": "increase(alertmanager_cluster_peers_left_total{instance=~\"$instance\"}[$__interval])",
+              "expr": "increase(alertmanager_cluster_peers_left_total{instance=~\"$instance\"}[$__rate_interval])",
               "format": "time_series",
               "intervalFactor": 1,
-              "legendFormat": "Cluster joined peers",
+              "legendFormat": "{{kubernetes_namespace}} left",
               "refId": "A"
             },
             {
               "datasource": {
-                "uid": "$datasource"
+                "type": "prometheus",
+                "uid": "${datasource}"
               },
-              "expr": "increase(alertmanager_cluster_peers_joined_total{instance=~\"$instance\"}[$__interval])",
+              "expr": "increase(alertmanager_cluster_peers_joined_total{instance=~\"$instance\"}[$__rate_interval])",
               "format": "time_series",
               "intervalFactor": 1,
-              "legendFormat": "Cluster left peers",
+              "legendFormat": "{{kubernetes_namespace}} joined",
               "refId": "B"
             }
           ],
-          "thresholds": [],
-          "timeRegions": [],
-          "title": "Cluster peers left/joined on $instance",
-          "tooltip": {
-            "shared": true,
-            "sort": 0,
-            "value_type": "individual"
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
           },
-          "type": "graph",
-          "xaxis": {
-            "mode": "time",
-            "show": true,
-            "values": []
-          },
-          "yaxes": [
-            {
-              "format": "short",
-              "logBase": 1,
-              "show": true
+          "description": "Peers that left or joined the gossip cluster per interval.",
+          "type": "timeseries",
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "custom": {
+                "drawStyle": "line",
+                "lineWidth": 1,
+                "fillOpacity": 10,
+                "showPoints": "never",
+                "spanNulls": false,
+                "axisPlacement": "auto",
+                "stacking": {
+                  "mode": "none",
+                  "group": "A"
+                },
+                "gradientMode": "none",
+                "lineInterpolation": "linear",
+                "pointSize": 5
+              },
+              "color": {
+                "mode": "palette-classic"
+              },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              }
             },
-            {
-              "format": "short",
-              "logBase": 1,
-              "show": true
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Cluster left peers"
+                },
+                "properties": [
+                  {
+                    "id": "custom.transform",
+                    "value": "negative-Y"
+                  },
+                  {
+                    "id": "color",
+                    "value": {
+                      "mode": "fixed",
+                      "fixedColor": "#890f02"
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "options": {
+            "legend": {
+              "showLegend": false,
+              "displayMode": "list",
+              "placement": "bottom",
+              "calcs": []
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
             }
-          ],
-          "yaxis": {
-            "align": false
           }
         },
         {
-          "aliasColors": {},
-          "bars": false,
-          "dashLength": 10,
-          "dashes": false,
-          "datasource": {
-            "uid": "$datasource"
-          },
-          "description": "On positive axis is number of attempts to reconnect the cluster. On negative axis if number of failed attempts.",
-          "fill": 1,
+          "id": 68,
+          "title": "Cluster reconnections on $instance",
           "gridPos": {
             "h": 6,
             "w": 6,
             "x": 0,
             "y": 34
           },
-          "id": 68,
-          "legend": {
-            "avg": false,
-            "current": false,
-            "max": false,
-            "min": false,
-            "show": false,
-            "total": false,
-            "values": false
-          },
-          "lines": true,
-          "linewidth": 1,
-          "links": [],
-          "nullPointMode": "null as zero",
-          "percentage": false,
-          "pointradius": 5,
-          "points": false,
-          "renderer": "flot",
-          "repeat": "instance",
-          "repeatDirection": "h",
-          "seriesOverrides": [
-            {
-              "alias": "Failed reconnections",
-              "color": "#890f02",
-              "transform": "negative-Y"
-            }
-          ],
-          "spaceLength": 10,
-          "stack": false,
-          "steppedLine": false,
           "targets": [
             {
               "datasource": {
-                "uid": "$datasource"
+                "type": "prometheus",
+                "uid": "${datasource}"
               },
-              "expr": "increase(alertmanager_cluster_reconnections_total{instance=~\"$instance\"}[$__interval])",
+              "expr": "increase(alertmanager_cluster_reconnections_total{instance=~\"$instance\"}[$__rate_interval])",
               "format": "time_series",
               "intervalFactor": 1,
-              "legendFormat": "Sucessful reconnections",
+              "legendFormat": "{{kubernetes_namespace}} successful",
               "refId": "A"
             },
             {
               "datasource": {
-                "uid": "$datasource"
+                "type": "prometheus",
+                "uid": "${datasource}"
               },
-              "expr": "increase(alertmanager_cluster_reconnections_failed_total{instance=~\"$instance\"}[$__interval])",
+              "expr": "increase(alertmanager_cluster_reconnections_failed_total{instance=~\"$instance\"}[$__rate_interval])",
               "format": "time_series",
               "intervalFactor": 1,
-              "legendFormat": "Failed reconnections",
+              "legendFormat": "{{kubernetes_namespace}} failed",
               "refId": "B"
             }
           ],
-          "thresholds": [],
-          "timeRegions": [],
-          "title": "Cluster reconnections on $instance",
-          "tooltip": {
-            "shared": true,
-            "sort": 0,
-            "value_type": "individual"
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
           },
-          "type": "graph",
-          "xaxis": {
-            "mode": "time",
-            "show": true,
-            "values": []
-          },
-          "yaxes": [
-            {
-              "format": "short",
-              "logBase": 1,
-              "show": true
+          "description": "Gossip reconnection attempts and failures per interval.",
+          "type": "timeseries",
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "custom": {
+                "drawStyle": "line",
+                "lineWidth": 1,
+                "fillOpacity": 10,
+                "showPoints": "never",
+                "spanNulls": false,
+                "axisPlacement": "auto",
+                "stacking": {
+                  "mode": "none",
+                  "group": "A"
+                },
+                "gradientMode": "none",
+                "lineInterpolation": "linear",
+                "pointSize": 5
+              },
+              "color": {
+                "mode": "palette-classic"
+              },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              }
             },
-            {
-              "format": "short",
-              "logBase": 1,
-              "show": true
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Failed reconnections"
+                },
+                "properties": [
+                  {
+                    "id": "custom.transform",
+                    "value": "negative-Y"
+                  },
+                  {
+                    "id": "color",
+                    "value": {
+                      "mode": "fixed",
+                      "fixedColor": "#890f02"
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "options": {
+            "legend": {
+              "showLegend": false,
+              "displayMode": "list",
+              "placement": "bottom",
+              "calcs": []
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
             }
-          ],
-          "yaxis": {
-            "align": false
           }
         },
         {
-          "aliasColors": {},
-          "bars": false,
-          "dashLength": 10,
-          "dashes": false,
-          "datasource": {
-            "uid": "$datasource"
-          },
-          "description": "On positive axis is number of sent cluster messages by type `update`  or `full_state` and on negative axis the same for received messages.",
-          "fill": 1,
+          "id": 48,
+          "title": "Cluster messages count on $instance",
           "gridPos": {
             "h": 6,
             "w": 6,
             "x": 0,
             "y": 40
           },
-          "id": 48,
-          "legend": {
-            "avg": false,
-            "current": false,
-            "max": false,
-            "min": false,
-            "show": false,
-            "total": false,
-            "values": false
-          },
-          "lines": true,
-          "linewidth": 1,
-          "links": [],
-          "nullPointMode": "null as zero",
-          "percentage": false,
-          "pointradius": 5,
-          "points": false,
-          "renderer": "flot",
-          "repeat": "instance",
-          "repeatDirection": "h",
-          "seriesOverrides": [
-            {
-              "alias": "/received.*/",
-              "transform": "negative-Y"
-            },
-            {
-              "alias": "/.*full_state.*/",
-              "color": "#629e51"
-            },
-            {
-              "alias": "/.*update.*/",
-              "color": "#f4d598"
-            }
-          ],
-          "spaceLength": 10,
-          "stack": false,
-          "steppedLine": false,
           "targets": [
             {
               "datasource": {
-                "uid": "$datasource"
+                "type": "prometheus",
+                "uid": "${datasource}"
               },
-              "expr": "sum(increase(alertmanager_cluster_messages_sent_total{instance=~\"$instance\"}[$__interval])) by (msg_type)",
+              "expr": "sum(increase(alertmanager_cluster_messages_sent_total{instance=~\"$instance\"}[$__rate_interval])) by (msg_type)",
               "format": "time_series",
               "intervalFactor": 1,
               "legendFormat": "sent {{msg_type}}",
@@ -1577,104 +1568,127 @@
             },
             {
               "datasource": {
-                "uid": "$datasource"
+                "type": "prometheus",
+                "uid": "${datasource}"
               },
-              "expr": "sum(increase(alertmanager_cluster_messages_received_total{instance=~\"$instance\"}[$__interval])) by (msg_type)",
+              "expr": "sum(increase(alertmanager_cluster_messages_received_total{instance=~\"$instance\"}[$__rate_interval])) by (msg_type)",
               "format": "time_series",
               "intervalFactor": 1,
               "legendFormat": "received {{msg_type}}",
               "refId": "B"
             }
           ],
-          "thresholds": [],
-          "timeRegions": [],
-          "title": "Cluster messages count on $instance",
-          "tooltip": {
-            "shared": true,
-            "sort": 0,
-            "value_type": "individual"
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
           },
-          "type": "graph",
-          "xaxis": {
-            "mode": "time",
-            "show": true,
-            "values": []
-          },
-          "yaxes": [
-            {
-              "format": "short",
-              "logBase": 1,
-              "show": true
+          "description": "Gossip messages sent and received per interval, by message type.",
+          "type": "timeseries",
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "custom": {
+                "drawStyle": "line",
+                "lineWidth": 1,
+                "fillOpacity": 10,
+                "showPoints": "never",
+                "spanNulls": false,
+                "axisPlacement": "auto",
+                "stacking": {
+                  "mode": "none",
+                  "group": "A"
+                },
+                "gradientMode": "none",
+                "lineInterpolation": "linear",
+                "pointSize": 5
+              },
+              "color": {
+                "mode": "palette-classic"
+              },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              }
             },
-            {
-              "format": "short",
-              "logBase": 1,
-              "show": true
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byRegexp",
+                  "options": "received.*"
+                },
+                "properties": [
+                  {
+                    "id": "custom.transform",
+                    "value": "negative-Y"
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byRegexp",
+                  "options": ".*full_state.*"
+                },
+                "properties": [
+                  {
+                    "id": "color",
+                    "value": {
+                      "mode": "fixed",
+                      "fixedColor": "#629e51"
+                    }
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byRegexp",
+                  "options": ".*update.*"
+                },
+                "properties": [
+                  {
+                    "id": "color",
+                    "value": {
+                      "mode": "fixed",
+                      "fixedColor": "#f4d598"
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "options": {
+            "legend": {
+              "showLegend": false,
+              "displayMode": "list",
+              "placement": "bottom",
+              "calcs": []
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
             }
-          ],
-          "yaxis": {
-            "align": false
           }
         },
         {
-          "aliasColors": {},
-          "bars": false,
-          "dashLength": 10,
-          "dashes": false,
-          "datasource": {
-            "uid": "$datasource"
-          },
-          "description": "On positive axis is size of sent cluster messages by type `update`  or `full_state` and on negative axis the same for received messages.",
-          "fill": 1,
+          "id": 53,
+          "title": "Cluster messages size on $instance",
           "gridPos": {
             "h": 6,
             "w": 6,
             "x": 0,
             "y": 46
           },
-          "id": 53,
-          "legend": {
-            "avg": false,
-            "current": false,
-            "max": false,
-            "min": false,
-            "show": false,
-            "total": false,
-            "values": false
-          },
-          "lines": true,
-          "linewidth": 1,
-          "links": [],
-          "nullPointMode": "null as zero",
-          "percentage": false,
-          "pointradius": 5,
-          "points": false,
-          "renderer": "flot",
-          "repeat": "instance",
-          "repeatDirection": "h",
-          "seriesOverrides": [
-            {
-              "alias": "/received.*/",
-              "transform": "negative-Y"
-            },
-            {
-              "alias": "/.*full_state.*/",
-              "color": "#629e51"
-            },
-            {
-              "alias": "/.*update.*/",
-              "color": "#f4d598"
-            }
-          ],
-          "spaceLength": 10,
-          "stack": false,
-          "steppedLine": false,
           "targets": [
             {
               "datasource": {
-                "uid": "$datasource"
+                "type": "prometheus",
+                "uid": "${datasource}"
               },
-              "expr": "sum(increase(alertmanager_cluster_messages_sent_size_total{instance=~\"$instance\"}[$__interval])) by (msg_type)",
+              "expr": "sum(increase(alertmanager_cluster_messages_sent_size_total{instance=~\"$instance\"}[$__rate_interval])) by (msg_type)",
               "format": "time_series",
               "intervalFactor": 1,
               "legendFormat": "sent {{msg_type}}",
@@ -1682,140 +1696,207 @@
             },
             {
               "datasource": {
-                "uid": "$datasource"
+                "type": "prometheus",
+                "uid": "${datasource}"
               },
-              "expr": "sum(increase(alertmanager_cluster_messages_received_size_total{instance=~\"$instance\"}[$__interval])) by (msg_type)",
+              "expr": "sum(increase(alertmanager_cluster_messages_received_size_total{instance=~\"$instance\"}[$__rate_interval])) by (msg_type)",
               "format": "time_series",
               "intervalFactor": 1,
               "legendFormat": "received {{msg_type}}",
               "refId": "B"
             }
           ],
-          "thresholds": [],
-          "timeRegions": [],
-          "title": "Cluster messages size on $instance",
-          "tooltip": {
-            "shared": true,
-            "sort": 0,
-            "value_type": "individual"
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
           },
-          "type": "graph",
-          "xaxis": {
-            "mode": "time",
-            "show": true,
-            "values": []
-          },
-          "yaxes": [
-            {
-              "format": "bytes",
-              "logBase": 1,
-              "show": true
+          "description": "Bytes of gossip messages sent and received per interval, by message type.",
+          "type": "timeseries",
+          "fieldConfig": {
+            "defaults": {
+              "unit": "bytes",
+              "custom": {
+                "drawStyle": "line",
+                "lineWidth": 1,
+                "fillOpacity": 10,
+                "showPoints": "never",
+                "spanNulls": false,
+                "axisPlacement": "auto",
+                "stacking": {
+                  "mode": "none",
+                  "group": "A"
+                },
+                "gradientMode": "none",
+                "lineInterpolation": "linear",
+                "pointSize": 5
+              },
+              "color": {
+                "mode": "palette-classic"
+              },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              }
             },
-            {
-              "format": "short",
-              "logBase": 1,
-              "show": true
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byRegexp",
+                  "options": "received.*"
+                },
+                "properties": [
+                  {
+                    "id": "custom.transform",
+                    "value": "negative-Y"
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byRegexp",
+                  "options": ".*full_state.*"
+                },
+                "properties": [
+                  {
+                    "id": "color",
+                    "value": {
+                      "mode": "fixed",
+                      "fixedColor": "#629e51"
+                    }
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byRegexp",
+                  "options": ".*update.*"
+                },
+                "properties": [
+                  {
+                    "id": "color",
+                    "value": {
+                      "mode": "fixed",
+                      "fixedColor": "#f4d598"
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "options": {
+            "legend": {
+              "showLegend": false,
+              "displayMode": "list",
+              "placement": "bottom",
+              "calcs": []
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
             }
-          ],
-          "yaxis": {
-            "align": false
           }
         },
         {
-          "aliasColors": {},
-          "bars": false,
-          "dashLength": 10,
-          "dashes": false,
-          "datasource": {
-            "uid": "$datasource"
-          },
-          "description": "On positive axis is number of queued cluster messages and on negative axis number of pruned messages.",
-          "fill": 1,
+          "id": 62,
+          "title": "Cluster messages queue on $instance",
           "gridPos": {
             "h": 6,
             "w": 6,
             "x": 0,
             "y": 52
           },
-          "id": 62,
-          "legend": {
-            "avg": false,
-            "current": false,
-            "max": false,
-            "min": false,
-            "show": false,
-            "total": false,
-            "values": false
-          },
-          "lines": true,
-          "linewidth": 1,
-          "links": [],
-          "nullPointMode": "null as zero",
-          "percentage": false,
-          "pointradius": 5,
-          "points": false,
-          "renderer": "flot",
-          "repeat": "instance",
-          "repeatDirection": "h",
-          "seriesOverrides": [
-            {
-              "alias": "Pruned messaged",
-              "transform": "negative-Y"
-            }
-          ],
-          "spaceLength": 10,
-          "stack": false,
-          "steppedLine": false,
           "targets": [
             {
               "datasource": {
-                "uid": "$datasource"
+                "type": "prometheus",
+                "uid": "${datasource}"
               },
-              "expr": "alertmanager_cluster_messages_pruned_total{instance=~\"$instance\"}",
+              "expr": "increase(alertmanager_cluster_messages_pruned_total{instance=~\"$instance\"}[$__rate_interval])",
               "format": "time_series",
               "intervalFactor": 1,
-              "legendFormat": "Pruned messaged",
+              "legendFormat": "{{kubernetes_namespace}} pruned",
               "refId": "A"
             },
             {
               "datasource": {
-                "uid": "$datasource"
+                "type": "prometheus",
+                "uid": "${datasource}"
               },
               "expr": "alertmanager_cluster_messages_queued{instance=~\"$instance\"}",
               "format": "time_series",
               "intervalFactor": 1,
-              "legendFormat": "Queued messages",
+              "legendFormat": "{{kubernetes_namespace}} queued",
               "refId": "B"
             }
           ],
-          "thresholds": [],
-          "timeRegions": [],
-          "title": "Cluster messages queue on $instance",
-          "tooltip": {
-            "shared": true,
-            "sort": 0,
-            "value_type": "individual"
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
           },
-          "type": "graph",
-          "xaxis": {
-            "mode": "time",
-            "show": true,
-            "values": []
-          },
-          "yaxes": [
-            {
-              "format": "short",
-              "logBase": 1,
-              "show": true
+          "description": "Gossip messages pruned per interval and messages currently queued.",
+          "type": "timeseries",
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "custom": {
+                "drawStyle": "line",
+                "lineWidth": 1,
+                "fillOpacity": 10,
+                "showPoints": "never",
+                "spanNulls": false,
+                "axisPlacement": "auto",
+                "stacking": {
+                  "mode": "none",
+                  "group": "A"
+                },
+                "gradientMode": "none",
+                "lineInterpolation": "linear",
+                "pointSize": 5
+              },
+              "color": {
+                "mode": "palette-classic"
+              },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              }
             },
-            {
-              "format": "short",
-              "logBase": 1,
-              "show": true
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Pruned messaged"
+                },
+                "properties": [
+                  {
+                    "id": "custom.transform",
+                    "value": "negative-Y"
+                  }
+                ]
+              }
+            ]
+          },
+          "options": {
+            "legend": {
+              "showLegend": false,
+              "displayMode": "list",
+              "placement": "bottom",
+              "calcs": []
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
             }
-          ],
-          "yaxis": {
-            "align": false
           }
         }
       ],
@@ -1846,302 +1927,340 @@
       "id": 284,
       "panels": [
         {
-          "aliasColors": {},
-          "bars": false,
-          "dashLength": 10,
-          "dashes": false,
-          "datasource": {
-            "uid": "$datasource"
-          },
-          "fill": 1,
+          "id": 314,
+          "title": "Count of oversized gossip messages on $instance",
           "gridPos": {
             "h": 6,
             "w": 6,
             "x": 0,
             "y": 10
           },
-          "id": 314,
-          "legend": {
-            "avg": false,
-            "current": false,
-            "max": false,
-            "min": false,
-            "show": false,
-            "total": false,
-            "values": false
-          },
-          "lines": true,
-          "linewidth": 1,
-          "links": [],
-          "nullPointMode": "null as zero",
-          "percentage": false,
-          "pointradius": 5,
-          "points": false,
-          "renderer": "flot",
-          "repeat": "instance",
-          "repeatDirection": "h",
-          "seriesOverrides": [
-            {
-              "alias": "/dropped/",
-              "color": "#cca300",
-              "transform": "negative-Y"
-            },
-            {
-              "alias": "/failed/",
-              "color": "#bf1b00",
-              "transform": "negative-Y"
-            }
-          ],
-          "spaceLength": 10,
-          "stack": false,
-          "steppedLine": false,
           "targets": [
             {
               "datasource": {
-                "uid": "$datasource"
+                "type": "prometheus",
+                "uid": "${datasource}"
               },
-              "expr": "increase(alertmanager_oversized_gossip_message_sent_total{instance=~\"$instance\"}[$__interval])",
+              "expr": "increase(alertmanager_oversized_gossip_message_sent_total{instance=~\"$instance\"}[$__rate_interval])",
               "format": "time_series",
               "hide": false,
               "intervalFactor": 1,
-              "legendFormat": "{{key}}",
+              "legendFormat": "{{kubernetes_namespace}} sent {{key}}",
               "refId": "A"
             },
             {
               "datasource": {
-                "uid": "$datasource"
+                "type": "prometheus",
+                "uid": "${datasource}"
               },
-              "expr": "increase(alertmanager_oversized_gossip_message_dropped_total{instance=~\"$instance\"}[$__interval])",
+              "expr": "increase(alertmanager_oversized_gossip_message_dropped_total{instance=~\"$instance\"}[$__rate_interval])",
               "format": "time_series",
               "intervalFactor": 1,
-              "legendFormat": "dropped {{key}}",
+              "legendFormat": "{{kubernetes_namespace}} dropped {{key}}",
               "refId": "B"
             },
             {
               "datasource": {
-                "uid": "$datasource"
+                "type": "prometheus",
+                "uid": "${datasource}"
               },
-              "expr": "increase(alertmanager_oversized_gossip_message_failure_total{instance=~\"$instance\"}[$__interval])",
+              "expr": "increase(alertmanager_oversized_gossip_message_failure_total{instance=~\"$instance\"}[$__rate_interval])",
               "format": "time_series",
               "intervalFactor": 1,
-              "legendFormat": "failed {{key}}",
+              "legendFormat": "{{kubernetes_namespace}} failed {{key}}",
               "refId": "C"
             }
           ],
-          "thresholds": [],
-          "timeRegions": [],
-          "title": "Count of oversized gossip messages on $instance",
-          "tooltip": {
-            "shared": true,
-            "sort": 0,
-            "value_type": "individual"
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
           },
-          "type": "graph",
-          "xaxis": {
-            "mode": "time",
-            "show": true,
-            "values": []
-          },
-          "yaxes": [
-            {
-              "format": "s",
-              "logBase": 1,
-              "show": true
+          "description": "Oversized gossip messages sent, dropped and their totals per interval.",
+          "type": "timeseries",
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "custom": {
+                "drawStyle": "line",
+                "lineWidth": 1,
+                "fillOpacity": 10,
+                "showPoints": "never",
+                "spanNulls": false,
+                "axisPlacement": "auto",
+                "stacking": {
+                  "mode": "none",
+                  "group": "A"
+                },
+                "gradientMode": "none",
+                "lineInterpolation": "linear",
+                "pointSize": 5
+              },
+              "color": {
+                "mode": "palette-classic"
+              },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              }
             },
-            {
-              "format": "short",
-              "logBase": 1,
-              "show": true
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byRegexp",
+                  "options": "dropped"
+                },
+                "properties": [
+                  {
+                    "id": "custom.transform",
+                    "value": "negative-Y"
+                  },
+                  {
+                    "id": "color",
+                    "value": {
+                      "mode": "fixed",
+                      "fixedColor": "#cca300"
+                    }
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byRegexp",
+                  "options": "failed"
+                },
+                "properties": [
+                  {
+                    "id": "custom.transform",
+                    "value": "negative-Y"
+                  },
+                  {
+                    "id": "color",
+                    "value": {
+                      "mode": "fixed",
+                      "fixedColor": "#bf1b00"
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "options": {
+            "legend": {
+              "showLegend": false,
+              "displayMode": "list",
+              "placement": "bottom",
+              "calcs": []
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
             }
-          ],
-          "yaxis": {
-            "align": false
           }
         },
         {
-          "aliasColors": {},
-          "bars": false,
-          "dashLength": 10,
-          "dashes": false,
-          "datasource": {
-            "uid": "$datasource"
-          },
-          "fill": 1,
+          "id": 307,
+          "title": "Duration of oversized gossip messages on $instance",
           "gridPos": {
             "h": 6,
             "w": 6,
             "x": 0,
             "y": 16
           },
-          "id": 307,
-          "legend": {
-            "avg": false,
-            "current": false,
-            "max": false,
-            "min": false,
-            "show": false,
-            "total": false,
-            "values": false
-          },
-          "lines": true,
-          "linewidth": 1,
-          "links": [],
-          "nullPointMode": "null as zero",
-          "percentage": false,
-          "pointradius": 5,
-          "points": false,
-          "renderer": "flot",
-          "repeat": "instance",
-          "repeatDirection": "h",
-          "seriesOverrides": [
-            {
-              "alias": "Nf log query errors",
-              "color": "#890f02",
-              "transform": "negative-Y"
-            }
-          ],
-          "spaceLength": 10,
-          "stack": false,
-          "steppedLine": false,
           "targets": [
             {
               "datasource": {
-                "uid": "$datasource"
+                "type": "prometheus",
+                "uid": "${datasource}"
               },
-              "expr": "histogram_quantile(1,rate(alertmanager_oversize_gossip_message_duration_seconds_bucket{instance=~\"$instance\"}[$__interval]))",
+              "expr": "histogram_quantile(1,rate(alertmanager_oversize_gossip_message_duration_seconds_bucket{instance=~\"$instance\"}[$__rate_interval]))",
               "format": "time_series",
               "hide": false,
               "intervalFactor": 1,
-              "legendFormat": "{{key}}",
+              "legendFormat": "{{kubernetes_namespace}} {{key}}",
               "refId": "A"
             }
           ],
-          "thresholds": [],
-          "timeRegions": [],
-          "title": "Duration of oversized gossip messages on $instance",
-          "tooltip": {
-            "shared": true,
-            "sort": 0,
-            "value_type": "individual"
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
           },
-          "type": "graph",
-          "xaxis": {
-            "mode": "time",
-            "show": true,
-            "values": []
-          },
-          "yaxes": [
-            {
-              "format": "s",
-              "logBase": 1,
-              "show": true
+          "description": "Maximum time to send an oversized gossip message; empty when no oversized messages were sent (normal).",
+          "type": "timeseries",
+          "fieldConfig": {
+            "defaults": {
+              "unit": "s",
+              "custom": {
+                "drawStyle": "line",
+                "lineWidth": 1,
+                "fillOpacity": 10,
+                "showPoints": "never",
+                "spanNulls": false,
+                "axisPlacement": "auto",
+                "stacking": {
+                  "mode": "none",
+                  "group": "A"
+                },
+                "gradientMode": "none",
+                "lineInterpolation": "linear",
+                "pointSize": 5
+              },
+              "color": {
+                "mode": "palette-classic"
+              },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              }
             },
-            {
-              "format": "short",
-              "logBase": 1,
-              "show": true
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Nf log query errors"
+                },
+                "properties": [
+                  {
+                    "id": "custom.transform",
+                    "value": "negative-Y"
+                  },
+                  {
+                    "id": "color",
+                    "value": {
+                      "mode": "fixed",
+                      "fixedColor": "#890f02"
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "options": {
+            "legend": {
+              "showLegend": false,
+              "displayMode": "list",
+              "placement": "bottom",
+              "calcs": []
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
             }
-          ],
-          "yaxis": {
-            "align": false
           }
         },
         {
-          "aliasColors": {},
-          "bars": false,
-          "dashLength": 10,
-          "dashes": false,
-          "datasource": {
-            "uid": "$datasource"
-          },
-          "fill": 1,
+          "id": 303,
+          "title": "Number of  propagated gossip messages on $instance",
           "gridPos": {
             "h": 6,
             "w": 6,
             "x": 0,
             "y": 22
           },
-          "id": 303,
-          "legend": {
-            "avg": false,
-            "current": false,
-            "max": false,
-            "min": false,
-            "show": false,
-            "total": false,
-            "values": false
-          },
-          "lines": true,
-          "linewidth": 1,
-          "links": [],
-          "nullPointMode": "null as zero",
-          "percentage": false,
-          "pointradius": 5,
-          "points": false,
-          "renderer": "flot",
-          "repeat": "instance",
-          "repeatDirection": "h",
-          "seriesOverrides": [
-            {
-              "alias": "Nf log query errors",
-              "color": "#890f02",
-              "transform": "negative-Y"
-            }
-          ],
-          "spaceLength": 10,
-          "stack": false,
-          "steppedLine": false,
           "targets": [
             {
               "datasource": {
-                "uid": "$datasource"
+                "type": "prometheus",
+                "uid": "${datasource}"
               },
-              "expr": "increase(alertmanager_silences_gossip_messages_propagated_total{instance=~\"$instance\"}[$__interval])",
+              "expr": "increase(alertmanager_silences_gossip_messages_propagated_total{instance=~\"$instance\"}[$__rate_interval])",
               "format": "time_series",
               "hide": false,
               "intervalFactor": 1,
-              "legendFormat": "silences",
+              "legendFormat": "{{kubernetes_namespace}} silences",
               "refId": "A"
             },
             {
               "datasource": {
-                "uid": "$datasource"
+                "type": "prometheus",
+                "uid": "${datasource}"
               },
-              "expr": "increase(alertmanager_nflog_gossip_messages_propagated_total{instance=~\"$instance\"}[$__interval])",
+              "expr": "increase(alertmanager_nflog_gossip_messages_propagated_total{instance=~\"$instance\"}[$__rate_interval])",
               "format": "time_series",
               "intervalFactor": 1,
-              "legendFormat": "nf_log",
+              "legendFormat": "{{kubernetes_namespace}} nflog",
               "refId": "B"
             }
           ],
-          "thresholds": [],
-          "timeRegions": [],
-          "title": "Number of  propagated gossip messages on $instance",
-          "tooltip": {
-            "shared": true,
-            "sort": 0,
-            "value_type": "individual"
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
           },
-          "type": "graph",
-          "xaxis": {
-            "mode": "time",
-            "show": true,
-            "values": []
-          },
-          "yaxes": [
-            {
-              "format": "short",
-              "logBase": 1,
-              "show": true
+          "description": "Silence and notification-log gossip messages propagated per interval.",
+          "type": "timeseries",
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "custom": {
+                "drawStyle": "line",
+                "lineWidth": 1,
+                "fillOpacity": 10,
+                "showPoints": "never",
+                "spanNulls": false,
+                "axisPlacement": "auto",
+                "stacking": {
+                  "mode": "none",
+                  "group": "A"
+                },
+                "gradientMode": "none",
+                "lineInterpolation": "linear",
+                "pointSize": 5
+              },
+              "color": {
+                "mode": "palette-classic"
+              },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              }
             },
-            {
-              "format": "short",
-              "logBase": 1,
-              "show": true
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Nf log query errors"
+                },
+                "properties": [
+                  {
+                    "id": "custom.transform",
+                    "value": "negative-Y"
+                  },
+                  {
+                    "id": "color",
+                    "value": {
+                      "mode": "fixed",
+                      "fixedColor": "#890f02"
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "options": {
+            "legend": {
+              "showLegend": false,
+              "displayMode": "list",
+              "placement": "bottom",
+              "calcs": []
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
             }
-          ],
-          "yaxis": {
-            "align": false
           }
         }
       ],
@@ -2172,449 +2291,485 @@
       "id": 84,
       "panels": [
         {
-          "aliasColors": {},
-          "bars": false,
-          "dashLength": 10,
-          "dashes": false,
-          "datasource": {
-            "uid": "$datasource"
-          },
-          "fill": 1,
+          "id": 94,
+          "title": "Nf log queries count for $instance",
           "gridPos": {
             "h": 6,
             "w": 6,
             "x": 0,
             "y": 11
           },
-          "id": 94,
-          "legend": {
-            "avg": false,
-            "current": false,
-            "max": false,
-            "min": false,
-            "show": false,
-            "total": false,
-            "values": false
-          },
-          "lines": true,
-          "linewidth": 1,
-          "links": [],
-          "nullPointMode": "null as zero",
-          "percentage": false,
-          "pointradius": 5,
-          "points": false,
-          "renderer": "flot",
-          "repeat": "instance",
-          "repeatDirection": "h",
-          "seriesOverrides": [
-            {
-              "alias": "Nf log query errors",
-              "color": "#890f02",
-              "transform": "negative-Y"
-            }
-          ],
-          "spaceLength": 10,
-          "stack": false,
-          "steppedLine": false,
           "targets": [
             {
               "datasource": {
-                "uid": "$datasource"
+                "type": "prometheus",
+                "uid": "${datasource}"
               },
-              "expr": "increase(alertmanager_nflog_queries_total{instance=~\"$instance\"}[$__interval])",
+              "expr": "increase(alertmanager_nflog_queries_total{instance=~\"$instance\"}[$__rate_interval])",
               "format": "time_series",
               "intervalFactor": 1,
-              "legendFormat": "Nf log query count",
+              "legendFormat": "{{kubernetes_namespace}} queries",
               "refId": "A"
             },
             {
               "datasource": {
-                "uid": "$datasource"
+                "type": "prometheus",
+                "uid": "${datasource}"
               },
-              "expr": "increase(alertmanager_nflog_query_errors_total{instance=~\"$instance\"}[$__interval])",
+              "expr": "increase(alertmanager_nflog_query_errors_total{instance=~\"$instance\"}[$__rate_interval])",
               "format": "time_series",
               "intervalFactor": 1,
-              "legendFormat": "Nf log query errors",
+              "legendFormat": "{{kubernetes_namespace}} query errors",
               "refId": "B"
             }
           ],
-          "thresholds": [],
-          "timeRegions": [],
-          "title": "Nf log queries count for $instance",
-          "tooltip": {
-            "shared": true,
-            "sort": 0,
-            "value_type": "individual"
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
           },
-          "type": "graph",
-          "xaxis": {
-            "mode": "time",
-            "show": true,
-            "values": []
-          },
-          "yaxes": [
-            {
-              "format": "short",
-              "logBase": 1,
-              "show": true
+          "description": "Notification-log queries and query errors per interval.",
+          "type": "timeseries",
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "custom": {
+                "drawStyle": "line",
+                "lineWidth": 1,
+                "fillOpacity": 10,
+                "showPoints": "never",
+                "spanNulls": false,
+                "axisPlacement": "auto",
+                "stacking": {
+                  "mode": "none",
+                  "group": "A"
+                },
+                "gradientMode": "none",
+                "lineInterpolation": "linear",
+                "pointSize": 5
+              },
+              "color": {
+                "mode": "palette-classic"
+              },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              }
             },
-            {
-              "format": "short",
-              "logBase": 1,
-              "show": true
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Nf log query errors"
+                },
+                "properties": [
+                  {
+                    "id": "custom.transform",
+                    "value": "negative-Y"
+                  },
+                  {
+                    "id": "color",
+                    "value": {
+                      "mode": "fixed",
+                      "fixedColor": "#890f02"
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "options": {
+            "legend": {
+              "showLegend": false,
+              "displayMode": "list",
+              "placement": "bottom",
+              "calcs": []
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
             }
-          ],
-          "yaxis": {
-            "align": false
           }
         },
         {
-          "aliasColors": {},
-          "bars": false,
-          "dashLength": 10,
-          "dashes": false,
-          "datasource": {
-            "uid": "$datasource"
-          },
-          "fill": 1,
+          "id": 106,
+          "title": "Nf log query duration for $instance",
           "gridPos": {
             "h": 6,
             "w": 6,
             "x": 0,
             "y": 17
           },
-          "id": 106,
-          "legend": {
-            "avg": false,
-            "current": false,
-            "max": false,
-            "min": false,
-            "show": false,
-            "total": false,
-            "values": false
-          },
-          "lines": true,
-          "linewidth": 1,
-          "links": [],
-          "nullPointMode": "null as zero",
-          "percentage": false,
-          "pointradius": 5,
-          "points": false,
-          "renderer": "flot",
-          "repeat": "instance",
-          "repeatDirection": "h",
-          "seriesOverrides": [
-            {
-              "alias": "Nf log query errors",
-              "color": "#890f02",
-              "transform": "negative-Y"
-            }
-          ],
-          "spaceLength": 10,
-          "stack": false,
-          "steppedLine": false,
           "targets": [
             {
               "datasource": {
-                "uid": "$datasource"
+                "type": "prometheus",
+                "uid": "${datasource}"
               },
-              "expr": "histogram_quantile(1,rate(alertmanager_nflog_query_duration_seconds_bucket{instance=~\"$instance\"}[$__interval]))",
+              "expr": "histogram_quantile(1,rate(alertmanager_nflog_query_duration_seconds_bucket{instance=~\"$instance\"}[$__rate_interval]))",
               "format": "time_series",
               "intervalFactor": 1,
-              "legendFormat": "Nf log query duration",
+              "legendFormat": "{{kubernetes_namespace}} max query duration",
               "refId": "A"
             }
           ],
-          "thresholds": [],
-          "timeRegions": [],
-          "title": "Nf log query duration for $instance",
-          "tooltip": {
-            "shared": true,
-            "sort": 0,
-            "value_type": "individual"
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
           },
-          "type": "graph",
-          "xaxis": {
-            "mode": "time",
-            "show": true,
-            "values": []
-          },
-          "yaxes": [
-            {
-              "format": "s",
-              "logBase": 1,
-              "show": true
+          "description": "Maximum notification-log query duration.",
+          "type": "timeseries",
+          "fieldConfig": {
+            "defaults": {
+              "unit": "s",
+              "custom": {
+                "drawStyle": "line",
+                "lineWidth": 1,
+                "fillOpacity": 10,
+                "showPoints": "never",
+                "spanNulls": false,
+                "axisPlacement": "auto",
+                "stacking": {
+                  "mode": "none",
+                  "group": "A"
+                },
+                "gradientMode": "none",
+                "lineInterpolation": "linear",
+                "pointSize": 5
+              },
+              "color": {
+                "mode": "palette-classic"
+              },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              }
             },
-            {
-              "format": "short",
-              "logBase": 1,
-              "show": true
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Nf log query errors"
+                },
+                "properties": [
+                  {
+                    "id": "custom.transform",
+                    "value": "negative-Y"
+                  },
+                  {
+                    "id": "color",
+                    "value": {
+                      "mode": "fixed",
+                      "fixedColor": "#890f02"
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "options": {
+            "legend": {
+              "showLegend": false,
+              "displayMode": "list",
+              "placement": "bottom",
+              "calcs": []
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
             }
-          ],
-          "yaxis": {
-            "align": false
           }
         },
         {
-          "aliasColors": {},
-          "bars": false,
-          "dashLength": 10,
-          "dashes": false,
-          "datasource": {
-            "uid": "$datasource"
-          },
-          "fill": 1,
+          "id": 97,
+          "title": "Nf log snapshot size for $instance",
           "gridPos": {
             "h": 6,
             "w": 6,
             "x": 0,
             "y": 23
           },
-          "id": 97,
-          "legend": {
-            "avg": false,
-            "current": false,
-            "max": false,
-            "min": false,
-            "show": false,
-            "total": false,
-            "values": false
-          },
-          "lines": true,
-          "linewidth": 1,
-          "links": [],
-          "nullPointMode": "null as zero",
-          "percentage": false,
-          "pointradius": 5,
-          "points": false,
-          "renderer": "flot",
-          "repeat": "instance",
-          "repeatDirection": "h",
-          "seriesOverrides": [
-            {
-              "alias": "Nf log query errors",
-              "color": "#890f02",
-              "transform": "negative-Y"
-            }
-          ],
-          "spaceLength": 10,
-          "stack": false,
-          "steppedLine": false,
           "targets": [
             {
               "datasource": {
-                "uid": "$datasource"
+                "type": "prometheus",
+                "uid": "${datasource}"
               },
               "expr": "alertmanager_nflog_snapshot_size_bytes{instance=~\"$instance\"}",
               "format": "time_series",
               "intervalFactor": 1,
-              "legendFormat": "Nf log snapshot size",
+              "legendFormat": "{{kubernetes_namespace}} snapshot size",
               "refId": "A"
             }
           ],
-          "thresholds": [],
-          "timeRegions": [],
-          "title": "Nf log snapshot size for $instance",
-          "tooltip": {
-            "shared": true,
-            "sort": 0,
-            "value_type": "individual"
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
           },
-          "type": "graph",
-          "xaxis": {
-            "mode": "time",
-            "show": true,
-            "values": []
-          },
-          "yaxes": [
-            {
-              "format": "bytes",
-              "logBase": 1,
-              "show": true
+          "description": "Size of the notification-log snapshot on disk.",
+          "type": "timeseries",
+          "fieldConfig": {
+            "defaults": {
+              "unit": "bytes",
+              "custom": {
+                "drawStyle": "line",
+                "lineWidth": 1,
+                "fillOpacity": 10,
+                "showPoints": "never",
+                "spanNulls": false,
+                "axisPlacement": "auto",
+                "stacking": {
+                  "mode": "none",
+                  "group": "A"
+                },
+                "gradientMode": "none",
+                "lineInterpolation": "linear",
+                "pointSize": 5
+              },
+              "color": {
+                "mode": "palette-classic"
+              },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              }
             },
-            {
-              "format": "short",
-              "logBase": 1,
-              "show": true
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Nf log query errors"
+                },
+                "properties": [
+                  {
+                    "id": "custom.transform",
+                    "value": "negative-Y"
+                  },
+                  {
+                    "id": "color",
+                    "value": {
+                      "mode": "fixed",
+                      "fixedColor": "#890f02"
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "options": {
+            "legend": {
+              "showLegend": false,
+              "displayMode": "list",
+              "placement": "bottom",
+              "calcs": []
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
             }
-          ],
-          "yaxis": {
-            "align": false
           }
         },
         {
-          "aliasColors": {},
-          "bars": false,
-          "dashLength": 10,
-          "dashes": false,
-          "datasource": {
-            "uid": "$datasource"
-          },
-          "fill": 1,
+          "id": 101,
+          "title": "Nf log snapshot duration for $instance",
           "gridPos": {
             "h": 6,
             "w": 6,
             "x": 0,
             "y": 29
           },
-          "id": 101,
-          "legend": {
-            "avg": false,
-            "current": false,
-            "max": false,
-            "min": false,
-            "show": false,
-            "total": false,
-            "values": false
-          },
-          "lines": true,
-          "linewidth": 1,
-          "links": [],
-          "nullPointMode": "null as zero",
-          "percentage": false,
-          "pointradius": 5,
-          "points": false,
-          "renderer": "flot",
-          "repeat": "instance",
-          "repeatDirection": "h",
-          "seriesOverrides": [
-            {
-              "alias": "Nf log query errors",
-              "color": "#890f02",
-              "transform": "negative-Y"
-            }
-          ],
-          "spaceLength": 10,
-          "stack": false,
-          "steppedLine": false,
           "targets": [
             {
               "datasource": {
-                "uid": "$datasource"
+                "type": "prometheus",
+                "uid": "${datasource}"
               },
-              "expr": "rate(alertmanager_nflog_snapshot_duration_seconds_sum{instance=~\"$instance\"}[$__interval]) / rate(alertmanager_nflog_snapshot_duration_seconds_sum{instance=~\"$instance\"}[$__interval])",
+              "expr": "rate(alertmanager_nflog_snapshot_duration_seconds_sum{instance=~\"$instance\"}[30m]) / rate(alertmanager_nflog_snapshot_duration_seconds_count{instance=~\"$instance\"}[30m])",
               "format": "time_series",
               "hide": false,
               "intervalFactor": 1,
-              "legendFormat": "Nf log snapshot size",
+              "legendFormat": "{{kubernetes_namespace}} snapshot duration",
               "refId": "A"
             }
           ],
-          "thresholds": [],
-          "timeRegions": [],
-          "title": "Nf log snapshot duration for $instance",
-          "tooltip": {
-            "shared": true,
-            "sort": 0,
-            "value_type": "individual"
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
           },
-          "type": "graph",
-          "xaxis": {
-            "mode": "time",
-            "show": true,
-            "values": []
-          },
-          "yaxes": [
-            {
-              "format": "s",
-              "logBase": 1,
-              "show": true
+          "description": "Average duration of a notification-log snapshot (30m window).",
+          "type": "timeseries",
+          "fieldConfig": {
+            "defaults": {
+              "unit": "s",
+              "custom": {
+                "drawStyle": "line",
+                "lineWidth": 1,
+                "fillOpacity": 10,
+                "showPoints": "never",
+                "spanNulls": false,
+                "axisPlacement": "auto",
+                "stacking": {
+                  "mode": "none",
+                  "group": "A"
+                },
+                "gradientMode": "none",
+                "lineInterpolation": "linear",
+                "pointSize": 5
+              },
+              "color": {
+                "mode": "palette-classic"
+              },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              }
             },
-            {
-              "format": "short",
-              "logBase": 1,
-              "show": true
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Nf log query errors"
+                },
+                "properties": [
+                  {
+                    "id": "custom.transform",
+                    "value": "negative-Y"
+                  },
+                  {
+                    "id": "color",
+                    "value": {
+                      "mode": "fixed",
+                      "fixedColor": "#890f02"
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "options": {
+            "legend": {
+              "showLegend": false,
+              "displayMode": "list",
+              "placement": "bottom",
+              "calcs": []
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
             }
-          ],
-          "yaxis": {
-            "align": false
           }
         },
         {
-          "aliasColors": {},
-          "bars": false,
-          "dashLength": 10,
-          "dashes": false,
-          "datasource": {
-            "uid": "$datasource"
-          },
-          "fill": 1,
+          "id": 92,
+          "title": "Nf log GC duration for $instance",
           "gridPos": {
             "h": 6,
             "w": 6,
             "x": 0,
             "y": 35
           },
-          "id": 92,
-          "legend": {
-            "avg": false,
-            "current": false,
-            "max": false,
-            "min": false,
-            "show": false,
-            "total": false,
-            "values": false
-          },
-          "lines": true,
-          "linewidth": 1,
-          "links": [],
-          "nullPointMode": "null as zero",
-          "percentage": false,
-          "pointradius": 5,
-          "points": false,
-          "renderer": "flot",
-          "repeat": "instance",
-          "repeatDirection": "h",
-          "seriesOverrides": [
-            {
-              "alias": "Cluster left peers",
-              "color": "#890f02",
-              "transform": "negative-Y"
-            }
-          ],
-          "spaceLength": 10,
-          "stack": false,
-          "steppedLine": false,
           "targets": [
             {
               "datasource": {
-                "uid": "$datasource"
+                "type": "prometheus",
+                "uid": "${datasource}"
               },
-              "expr": "alertmanager_nflog_gc_duration_seconds{instance=~\"$instance\"}",
+              "expr": "rate(alertmanager_nflog_gc_duration_seconds_sum{instance=~\"$instance\"}[30m]) / rate(alertmanager_nflog_gc_duration_seconds_count{instance=~\"$instance\"}[30m])",
               "format": "time_series",
               "intervalFactor": 1,
-              "legendFormat": "Cluster joined peers",
+              "legendFormat": "{{kubernetes_namespace}} GC duration",
               "refId": "A"
             }
           ],
-          "thresholds": [],
-          "timeRegions": [],
-          "title": "Nf log Go GC time for $instance",
-          "tooltip": {
-            "shared": true,
-            "sort": 0,
-            "value_type": "individual"
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
           },
-          "type": "graph",
-          "xaxis": {
-            "mode": "time",
-            "show": true,
-            "values": []
-          },
-          "yaxes": [
-            {
-              "format": "s",
-              "logBase": 1,
-              "show": true
+          "description": "Average duration of notification-log garbage collection (30m window).",
+          "type": "timeseries",
+          "fieldConfig": {
+            "defaults": {
+              "unit": "s",
+              "custom": {
+                "drawStyle": "line",
+                "lineWidth": 1,
+                "fillOpacity": 10,
+                "showPoints": "never",
+                "spanNulls": false,
+                "axisPlacement": "auto",
+                "stacking": {
+                  "mode": "none",
+                  "group": "A"
+                },
+                "gradientMode": "none",
+                "lineInterpolation": "linear",
+                "pointSize": 5
+              },
+              "color": {
+                "mode": "palette-classic"
+              },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              }
             },
-            {
-              "format": "short",
-              "logBase": 1,
-              "show": true
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Cluster left peers"
+                },
+                "properties": [
+                  {
+                    "id": "custom.transform",
+                    "value": "negative-Y"
+                  },
+                  {
+                    "id": "color",
+                    "value": {
+                      "mode": "fixed",
+                      "fixedColor": "#890f02"
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "options": {
+            "legend": {
+              "showLegend": false,
+              "displayMode": "list",
+              "placement": "bottom",
+              "calcs": []
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
             }
-          ],
-          "yaxis": {
-            "align": false
           }
         }
       ],
@@ -2645,541 +2800,584 @@
       "id": 123,
       "panels": [
         {
-          "aliasColors": {},
-          "bars": false,
-          "dashLength": 10,
-          "dashes": false,
-          "datasource": {
-            "uid": "$datasource"
-          },
-          "fill": 1,
+          "id": 129,
+          "title": "Silences count by state on $instance",
           "gridPos": {
             "h": 6,
             "w": 6,
             "x": 0,
             "y": 12
           },
-          "id": 129,
-          "legend": {
-            "avg": false,
-            "current": false,
-            "max": false,
-            "min": false,
-            "show": false,
-            "total": false,
-            "values": false
-          },
-          "lines": true,
-          "linewidth": 1,
-          "links": [],
-          "nullPointMode": "null as zero",
-          "percentage": false,
-          "pointradius": 5,
-          "points": false,
-          "renderer": "flot",
-          "repeat": "instance",
-          "repeatDirection": "h",
-          "seriesOverrides": [
-            {
-              "alias": "Nf log query errors",
-              "color": "#890f02",
-              "transform": "negative-Y"
-            }
-          ],
-          "spaceLength": 10,
-          "stack": false,
-          "steppedLine": false,
           "targets": [
             {
               "datasource": {
-                "uid": "$datasource"
+                "type": "prometheus",
+                "uid": "${datasource}"
               },
               "expr": "alertmanager_silences{instance=~\"$instance\"}",
               "format": "time_series",
               "hide": false,
               "intervalFactor": 1,
-              "legendFormat": "{{state}}",
+              "legendFormat": "{{kubernetes_namespace}} {{state}}",
               "refId": "A"
             }
           ],
-          "thresholds": [],
-          "timeRegions": [],
-          "title": "Silences count by state on $instance",
-          "tooltip": {
-            "shared": true,
-            "sort": 0,
-            "value_type": "individual"
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
           },
-          "type": "graph",
-          "xaxis": {
-            "mode": "time",
-            "show": true,
-            "values": []
-          },
-          "yaxes": [
-            {
-              "format": "short",
-              "logBase": 1,
-              "show": true
+          "description": "Silences by state (active / pending / expired).",
+          "type": "timeseries",
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "custom": {
+                "drawStyle": "line",
+                "lineWidth": 1,
+                "fillOpacity": 10,
+                "showPoints": "never",
+                "spanNulls": false,
+                "axisPlacement": "auto",
+                "stacking": {
+                  "mode": "none",
+                  "group": "A"
+                },
+                "gradientMode": "none",
+                "lineInterpolation": "linear",
+                "pointSize": 5
+              },
+              "color": {
+                "mode": "palette-classic"
+              },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              }
             },
-            {
-              "format": "short",
-              "logBase": 1,
-              "show": true
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Nf log query errors"
+                },
+                "properties": [
+                  {
+                    "id": "custom.transform",
+                    "value": "negative-Y"
+                  },
+                  {
+                    "id": "color",
+                    "value": {
+                      "mode": "fixed",
+                      "fixedColor": "#890f02"
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "options": {
+            "legend": {
+              "showLegend": false,
+              "displayMode": "list",
+              "placement": "bottom",
+              "calcs": []
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
             }
-          ],
-          "yaxis": {
-            "align": false
           }
         },
         {
-          "aliasColors": {},
-          "bars": false,
-          "dashLength": 10,
-          "dashes": false,
-          "datasource": {
-            "uid": "$datasource"
-          },
-          "fill": 1,
+          "id": 134,
+          "title": "Silences query count on $instance",
           "gridPos": {
             "h": 6,
             "w": 6,
             "x": 0,
             "y": 18
           },
-          "id": 134,
-          "legend": {
-            "avg": false,
-            "current": false,
-            "max": false,
-            "min": false,
-            "show": false,
-            "total": false,
-            "values": false
-          },
-          "lines": true,
-          "linewidth": 1,
-          "links": [],
-          "nullPointMode": "null as zero",
-          "percentage": false,
-          "pointradius": 5,
-          "points": false,
-          "renderer": "flot",
-          "repeat": "instance",
-          "repeatDirection": "h",
-          "seriesOverrides": [
-            {
-              "alias": "Silecnces query fails",
-              "color": "#890f02",
-              "transform": "negative-Y"
-            }
-          ],
-          "spaceLength": 10,
-          "stack": false,
-          "steppedLine": false,
           "targets": [
             {
               "datasource": {
-                "uid": "$datasource"
+                "type": "prometheus",
+                "uid": "${datasource}"
               },
-              "expr": "increase(alertmanager_silences_queries_total{instance=~\"$instance\"}[$__interval])",
+              "expr": "increase(alertmanager_silences_queries_total{instance=~\"$instance\"}[$__rate_interval])",
               "format": "time_series",
               "hide": false,
               "intervalFactor": 1,
-              "legendFormat": "Silecnces query count",
+              "legendFormat": "{{kubernetes_namespace}} queries",
               "refId": "A"
             },
             {
               "datasource": {
-                "uid": "$datasource"
+                "type": "prometheus",
+                "uid": "${datasource}"
               },
-              "expr": "increase(alertmanager_silences_query_errors_total{instance=~\"$instance\"}[$__interval])",
+              "expr": "increase(alertmanager_silences_query_errors_total{instance=~\"$instance\"}[$__rate_interval])",
               "format": "time_series",
               "intervalFactor": 1,
-              "legendFormat": "Silecnces query fails",
+              "legendFormat": "{{kubernetes_namespace}} query errors",
               "refId": "B"
             }
           ],
-          "thresholds": [],
-          "timeRegions": [],
-          "title": "Silences query count on $instance",
-          "tooltip": {
-            "shared": true,
-            "sort": 0,
-            "value_type": "individual"
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
           },
-          "type": "graph",
-          "xaxis": {
-            "mode": "time",
-            "show": true,
-            "values": []
-          },
-          "yaxes": [
-            {
-              "format": "short",
-              "logBase": 1,
-              "show": true
+          "description": "Silence queries and query errors per interval.",
+          "type": "timeseries",
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "custom": {
+                "drawStyle": "line",
+                "lineWidth": 1,
+                "fillOpacity": 10,
+                "showPoints": "never",
+                "spanNulls": false,
+                "axisPlacement": "auto",
+                "stacking": {
+                  "mode": "none",
+                  "group": "A"
+                },
+                "gradientMode": "none",
+                "lineInterpolation": "linear",
+                "pointSize": 5
+              },
+              "color": {
+                "mode": "palette-classic"
+              },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              }
             },
-            {
-              "format": "short",
-              "logBase": 1,
-              "show": true
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Silecnces query fails"
+                },
+                "properties": [
+                  {
+                    "id": "custom.transform",
+                    "value": "negative-Y"
+                  },
+                  {
+                    "id": "color",
+                    "value": {
+                      "mode": "fixed",
+                      "fixedColor": "#890f02"
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "options": {
+            "legend": {
+              "showLegend": false,
+              "displayMode": "list",
+              "placement": "bottom",
+              "calcs": []
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
             }
-          ],
-          "yaxis": {
-            "align": false
           }
         },
         {
-          "aliasColors": {},
-          "bars": false,
-          "dashLength": 10,
-          "dashes": false,
-          "datasource": {
-            "uid": "$datasource"
-          },
-          "fill": 1,
+          "id": 138,
+          "title": "Silences query duration on $instance",
           "gridPos": {
             "h": 6,
             "w": 6,
             "x": 0,
             "y": 24
           },
-          "id": 138,
-          "legend": {
-            "avg": false,
-            "current": false,
-            "max": false,
-            "min": false,
-            "show": false,
-            "total": false,
-            "values": false
-          },
-          "lines": true,
-          "linewidth": 1,
-          "links": [],
-          "nullPointMode": "null as zero",
-          "percentage": false,
-          "pointradius": 5,
-          "points": false,
-          "renderer": "flot",
-          "repeat": "instance",
-          "repeatDirection": "h",
-          "seriesOverrides": [
-            {
-              "alias": "Nf log query errors",
-              "color": "#890f02",
-              "transform": "negative-Y"
-            }
-          ],
-          "spaceLength": 10,
-          "stack": false,
-          "steppedLine": false,
           "targets": [
             {
               "datasource": {
-                "uid": "$datasource"
+                "type": "prometheus",
+                "uid": "${datasource}"
               },
-              "expr": "histogram_quantile(1,rate(alertmanager_silences_query_duration_seconds_bucket{instance=~\"$instance\"}[$__interval]))",
+              "expr": "histogram_quantile(1,rate(alertmanager_silences_query_duration_seconds_bucket{instance=~\"$instance\"}[$__rate_interval]))",
               "format": "time_series",
               "hide": false,
               "intervalFactor": 1,
-              "legendFormat": "Silecnces query duration",
+              "legendFormat": "{{kubernetes_namespace}} max query duration",
               "refId": "A"
             }
           ],
-          "thresholds": [],
-          "timeRegions": [],
-          "title": "Silences query duration on $instance",
-          "tooltip": {
-            "shared": true,
-            "sort": 0,
-            "value_type": "individual"
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
           },
-          "type": "graph",
-          "xaxis": {
-            "mode": "time",
-            "show": true,
-            "values": []
-          },
-          "yaxes": [
-            {
-              "format": "s",
-              "logBase": 1,
-              "show": true
+          "description": "Maximum silence query duration.",
+          "type": "timeseries",
+          "fieldConfig": {
+            "defaults": {
+              "unit": "s",
+              "custom": {
+                "drawStyle": "line",
+                "lineWidth": 1,
+                "fillOpacity": 10,
+                "showPoints": "never",
+                "spanNulls": false,
+                "axisPlacement": "auto",
+                "stacking": {
+                  "mode": "none",
+                  "group": "A"
+                },
+                "gradientMode": "none",
+                "lineInterpolation": "linear",
+                "pointSize": 5
+              },
+              "color": {
+                "mode": "palette-classic"
+              },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              }
             },
-            {
-              "format": "short",
-              "logBase": 1,
-              "show": true
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Nf log query errors"
+                },
+                "properties": [
+                  {
+                    "id": "custom.transform",
+                    "value": "negative-Y"
+                  },
+                  {
+                    "id": "color",
+                    "value": {
+                      "mode": "fixed",
+                      "fixedColor": "#890f02"
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "options": {
+            "legend": {
+              "showLegend": false,
+              "displayMode": "list",
+              "placement": "bottom",
+              "calcs": []
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
             }
-          ],
-          "yaxis": {
-            "align": false
           }
         },
         {
-          "aliasColors": {},
-          "bars": false,
-          "dashLength": 10,
-          "dashes": false,
-          "datasource": {
-            "uid": "$datasource"
-          },
-          "fill": 1,
+          "id": 149,
+          "title": "Silences snapshot size on $instance",
           "gridPos": {
             "h": 6,
             "w": 6,
             "x": 0,
             "y": 30
           },
-          "id": 149,
-          "legend": {
-            "avg": false,
-            "current": false,
-            "max": false,
-            "min": false,
-            "show": false,
-            "total": false,
-            "values": false
-          },
-          "lines": true,
-          "linewidth": 1,
-          "links": [],
-          "nullPointMode": "null as zero",
-          "percentage": false,
-          "pointradius": 5,
-          "points": false,
-          "renderer": "flot",
-          "repeat": "instance",
-          "repeatDirection": "h",
-          "seriesOverrides": [
-            {
-              "alias": "Nf log query errors",
-              "color": "#890f02",
-              "transform": "negative-Y"
-            }
-          ],
-          "spaceLength": 10,
-          "stack": false,
-          "steppedLine": false,
           "targets": [
             {
               "datasource": {
-                "uid": "$datasource"
+                "type": "prometheus",
+                "uid": "${datasource}"
               },
               "expr": "alertmanager_silences_snapshot_size_bytes{instance=~\"$instance\"}",
               "format": "time_series",
               "hide": false,
               "intervalFactor": 1,
-              "legendFormat": "Silecnces snapshot size",
+              "legendFormat": "{{kubernetes_namespace}} snapshot size",
               "refId": "A"
             }
           ],
-          "thresholds": [],
-          "timeRegions": [],
-          "title": "Silences snapshot size on $instance",
-          "tooltip": {
-            "shared": true,
-            "sort": 0,
-            "value_type": "individual"
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
           },
-          "type": "graph",
-          "xaxis": {
-            "mode": "time",
-            "show": true,
-            "values": []
-          },
-          "yaxes": [
-            {
-              "format": "bytes",
-              "logBase": 1,
-              "show": true
+          "description": "Size of the silences snapshot on disk.",
+          "type": "timeseries",
+          "fieldConfig": {
+            "defaults": {
+              "unit": "bytes",
+              "custom": {
+                "drawStyle": "line",
+                "lineWidth": 1,
+                "fillOpacity": 10,
+                "showPoints": "never",
+                "spanNulls": false,
+                "axisPlacement": "auto",
+                "stacking": {
+                  "mode": "none",
+                  "group": "A"
+                },
+                "gradientMode": "none",
+                "lineInterpolation": "linear",
+                "pointSize": 5
+              },
+              "color": {
+                "mode": "palette-classic"
+              },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              }
             },
-            {
-              "format": "short",
-              "logBase": 1,
-              "show": true
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Nf log query errors"
+                },
+                "properties": [
+                  {
+                    "id": "custom.transform",
+                    "value": "negative-Y"
+                  },
+                  {
+                    "id": "color",
+                    "value": {
+                      "mode": "fixed",
+                      "fixedColor": "#890f02"
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "options": {
+            "legend": {
+              "showLegend": false,
+              "displayMode": "list",
+              "placement": "bottom",
+              "calcs": []
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
             }
-          ],
-          "yaxis": {
-            "align": false
           }
         },
         {
-          "aliasColors": {},
-          "bars": false,
-          "dashLength": 10,
-          "dashes": false,
-          "datasource": {
-            "uid": "$datasource"
-          },
-          "fill": 1,
+          "id": 143,
+          "title": "Silences snapshot duration on $instance",
           "gridPos": {
             "h": 6,
             "w": 6,
             "x": 0,
             "y": 36
           },
-          "id": 143,
-          "legend": {
-            "avg": false,
-            "current": false,
-            "max": false,
-            "min": false,
-            "show": false,
-            "total": false,
-            "values": false
-          },
-          "lines": true,
-          "linewidth": 1,
-          "links": [],
-          "nullPointMode": "null as zero",
-          "percentage": false,
-          "pointradius": 5,
-          "points": false,
-          "renderer": "flot",
-          "repeat": "instance",
-          "repeatDirection": "h",
-          "seriesOverrides": [
-            {
-              "alias": "Nf log query errors",
-              "color": "#890f02",
-              "transform": "negative-Y"
-            }
-          ],
-          "spaceLength": 10,
-          "stack": false,
-          "steppedLine": false,
           "targets": [
             {
               "datasource": {
-                "uid": "$datasource"
+                "type": "prometheus",
+                "uid": "${datasource}"
               },
-              "expr": "alertmanager_silences_snapshot_duration_seconds{instance=~\"$instance\", quantile=\"0.99\"}",
+              "expr": "rate(alertmanager_silences_snapshot_duration_seconds_sum{instance=~\"$instance\"}[30m]) / rate(alertmanager_silences_snapshot_duration_seconds_count{instance=~\"$instance\"}[30m])",
               "format": "time_series",
               "hide": false,
               "intervalFactor": 1,
-              "legendFormat": "Silecnces snapshot duration",
+              "legendFormat": "{{kubernetes_namespace}} snapshot duration",
               "refId": "A"
             }
           ],
-          "thresholds": [],
-          "timeRegions": [],
-          "title": "Silences snapshot duration on $instance",
-          "tooltip": {
-            "shared": true,
-            "sort": 0,
-            "value_type": "individual"
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
           },
-          "type": "graph",
-          "xaxis": {
-            "mode": "time",
-            "show": true,
-            "values": []
-          },
-          "yaxes": [
-            {
-              "format": "s",
-              "logBase": 1,
-              "show": true
+          "description": "Average duration of a silences snapshot (30m window).",
+          "type": "timeseries",
+          "fieldConfig": {
+            "defaults": {
+              "unit": "s",
+              "custom": {
+                "drawStyle": "line",
+                "lineWidth": 1,
+                "fillOpacity": 10,
+                "showPoints": "never",
+                "spanNulls": false,
+                "axisPlacement": "auto",
+                "stacking": {
+                  "mode": "none",
+                  "group": "A"
+                },
+                "gradientMode": "none",
+                "lineInterpolation": "linear",
+                "pointSize": 5
+              },
+              "color": {
+                "mode": "palette-classic"
+              },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              }
             },
-            {
-              "format": "short",
-              "logBase": 1,
-              "show": true
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Nf log query errors"
+                },
+                "properties": [
+                  {
+                    "id": "custom.transform",
+                    "value": "negative-Y"
+                  },
+                  {
+                    "id": "color",
+                    "value": {
+                      "mode": "fixed",
+                      "fixedColor": "#890f02"
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "options": {
+            "legend": {
+              "showLegend": false,
+              "displayMode": "list",
+              "placement": "bottom",
+              "calcs": []
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
             }
-          ],
-          "yaxis": {
-            "align": false
           }
         },
         {
-          "aliasColors": {},
-          "bars": false,
-          "dashLength": 10,
-          "dashes": false,
-          "datasource": {
-            "uid": "$datasource"
-          },
-          "fill": 1,
+          "id": 131,
+          "title": "Silences GC duraton on $instance",
           "gridPos": {
             "h": 6,
             "w": 6,
             "x": 0,
             "y": 42
           },
-          "id": 131,
-          "legend": {
-            "avg": false,
-            "current": false,
-            "max": false,
-            "min": false,
-            "show": false,
-            "total": false,
-            "values": false
-          },
-          "lines": true,
-          "linewidth": 1,
-          "links": [],
-          "nullPointMode": "null as zero",
-          "percentage": false,
-          "pointradius": 5,
-          "points": false,
-          "renderer": "flot",
-          "repeat": "instance",
-          "repeatDirection": "h",
-          "seriesOverrides": [
-            {
-              "alias": "Nf log query errors",
-              "color": "#890f02",
-              "transform": "negative-Y"
-            }
-          ],
-          "spaceLength": 10,
-          "stack": false,
-          "steppedLine": false,
           "targets": [
             {
               "datasource": {
-                "uid": "$datasource"
+                "type": "prometheus",
+                "uid": "${datasource}"
               },
-              "expr": "alertmanager_silences_gc_duration_seconds{instance=~\"$instance\"}",
+              "expr": "rate(alertmanager_silences_gc_duration_seconds_sum{instance=~\"$instance\"}[30m]) / rate(alertmanager_silences_gc_duration_seconds_count{instance=~\"$instance\"}[30m])",
               "format": "time_series",
               "hide": false,
               "intervalFactor": 1,
-              "legendFormat": "Silecnces GC  duration",
+              "legendFormat": "{{kubernetes_namespace}} GC duration",
               "refId": "A"
             }
           ],
-          "thresholds": [],
-          "timeRegions": [],
-          "title": "Silences GC duraton on $instance",
-          "tooltip": {
-            "shared": true,
-            "sort": 0,
-            "value_type": "individual"
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
           },
-          "type": "graph",
-          "xaxis": {
-            "mode": "time",
-            "show": true,
-            "values": []
-          },
-          "yaxes": [
-            {
-              "format": "s",
-              "logBase": 1,
-              "show": true
+          "description": "Average duration of silences garbage collection (30m window).",
+          "type": "timeseries",
+          "fieldConfig": {
+            "defaults": {
+              "unit": "s",
+              "custom": {
+                "drawStyle": "line",
+                "lineWidth": 1,
+                "fillOpacity": 10,
+                "showPoints": "never",
+                "spanNulls": false,
+                "axisPlacement": "auto",
+                "stacking": {
+                  "mode": "none",
+                  "group": "A"
+                },
+                "gradientMode": "none",
+                "lineInterpolation": "linear",
+                "pointSize": 5
+              },
+              "color": {
+                "mode": "palette-classic"
+              },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              }
             },
-            {
-              "format": "short",
-              "logBase": 1,
-              "show": true
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Nf log query errors"
+                },
+                "properties": [
+                  {
+                    "id": "custom.transform",
+                    "value": "negative-Y"
+                  },
+                  {
+                    "id": "color",
+                    "value": {
+                      "mode": "fixed",
+                      "fixedColor": "#890f02"
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "options": {
+            "legend": {
+              "showLegend": false,
+              "displayMode": "list",
+              "placement": "bottom",
+              "calcs": []
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
             }
-          ],
-          "yaxis": {
-            "align": false
           }
         }
       ],
@@ -3210,58 +3408,21 @@
       "id": 173,
       "panels": [
         {
-          "aliasColors": {},
-          "bars": false,
-          "dashLength": 10,
-          "dashes": false,
-          "datasource": {
-            "uid": "$datasource"
-          },
-          "decimals": 2,
-          "fill": 1,
+          "id": 175,
+          "title": "CPU usage/s for $instance",
           "gridPos": {
             "h": 7,
             "w": 6,
             "x": 0,
             "y": 13
           },
-          "id": 175,
-          "legend": {
-            "avg": false,
-            "current": false,
-            "max": false,
-            "min": false,
-            "show": false,
-            "total": false,
-            "values": false
-          },
-          "lines": true,
-          "linewidth": 1,
-          "links": [],
-          "nullPointMode": "connected",
-          "percentage": false,
-          "pointradius": 5,
-          "points": false,
-          "renderer": "flot",
-          "repeat": "instance",
-          "repeatDirection": "h",
-          "seriesOverrides": [
-            {
-              "alias": "/Limit .*/",
-              "color": "#C15C17",
-              "dashes": true,
-              "fill": 0
-            }
-          ],
-          "spaceLength": 10,
-          "stack": false,
-          "steppedLine": false,
           "targets": [
             {
               "datasource": {
-                "uid": "$datasource"
+                "type": "prometheus",
+                "uid": "${datasource}"
               },
-              "expr": "rate(process_cpu_seconds_total{instance=~\"$instance\"}[$__interval])",
+              "expr": "rate(process_cpu_seconds_total{instance=~\"$instance\"}[$__rate_interval])",
               "format": "time_series",
               "groupBy": [
                 {
@@ -3279,7 +3440,7 @@
               ],
               "interval": "",
               "intervalFactor": 1,
-              "legendFormat": "{{instance}}",
+              "legendFormat": "{{kubernetes_namespace}} {{instance}}",
               "orderByTime": "ASC",
               "policy": "default",
               "refId": "A",
@@ -3302,143 +3463,205 @@
             },
             {
               "datasource": {
-                "uid": "$datasource"
+                "type": "prometheus",
+                "uid": "${datasource}"
               },
-              "expr": "max(kube_pod_container_resource_limits_cpu_cores{pod=~\"$instance\"}) by (pod)",
+              "expr": "max by (namespace, pod) (kube_pod_container_resource_limits{resource=\"cpu\", container=\"alertmanager\"}) * on (namespace, pod) group_left () max by (namespace, pod) (label_replace(label_replace(alertmanager_build_info{instance=~\"$instance\"}, \"namespace\", \"$1\", \"kubernetes_namespace\", \"(.*)\"), \"pod\", \"$1\", \"kubernetes_pod_name\", \"(.*)\"))",
               "format": "time_series",
               "intervalFactor": 1,
-              "legendFormat": "Limit {{pod}}",
+              "legendFormat": "limit {{namespace}}",
               "refId": "B"
             }
           ],
-          "thresholds": [],
-          "timeRegions": [],
-          "title": "CPU usage/s for $instance",
-          "tooltip": {
-            "shared": true,
-            "sort": 2,
-            "value_type": "individual"
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
           },
-          "type": "graph",
-          "xaxis": {
-            "mode": "time",
-            "show": true,
-            "values": []
-          },
-          "yaxes": [
-            {
-              "format": "short",
-              "logBase": 1,
-              "show": true
+          "description": "CPU cores used by the Alertmanager process, with the alertmanager container's CPU limit when one is set (none are set today, so no limit line).",
+          "type": "timeseries",
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "custom": {
+                "drawStyle": "line",
+                "lineWidth": 1,
+                "fillOpacity": 10,
+                "showPoints": "never",
+                "spanNulls": false,
+                "axisPlacement": "auto",
+                "stacking": {
+                  "mode": "none",
+                  "group": "A"
+                },
+                "gradientMode": "none",
+                "lineInterpolation": "linear",
+                "pointSize": 5
+              },
+              "color": {
+                "mode": "palette-classic"
+              },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              }
             },
-            {
-              "format": "short",
-              "logBase": 1,
-              "show": true
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byRegexp",
+                  "options": "Limit .*"
+                },
+                "properties": [
+                  {
+                    "id": "color",
+                    "value": {
+                      "mode": "fixed",
+                      "fixedColor": "#C15C17"
+                    }
+                  },
+                  {
+                    "id": "custom.lineStyle",
+                    "value": {
+                      "fill": "dash",
+                      "dash": [
+                        10,
+                        10
+                      ]
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "options": {
+            "legend": {
+              "showLegend": false,
+              "displayMode": "list",
+              "placement": "bottom",
+              "calcs": []
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
             }
-          ],
-          "yaxis": {
-            "align": false
           }
         },
         {
-          "aliasColors": {},
-          "bars": false,
-          "dashLength": 10,
-          "dashes": false,
-          "datasource": {
-            "uid": "$datasource"
-          },
-          "fill": 1,
+          "id": 177,
+          "title": "Memory usage for $instance",
           "gridPos": {
             "h": 7,
             "w": 6,
             "x": 0,
             "y": 20
           },
-          "id": 177,
-          "legend": {
-            "avg": false,
-            "current": false,
-            "max": false,
-            "min": false,
-            "show": false,
-            "total": false,
-            "values": false
-          },
-          "lines": true,
-          "linewidth": 1,
-          "links": [],
-          "nullPointMode": "connected",
-          "percentage": false,
-          "pointradius": 5,
-          "points": false,
-          "renderer": "flot",
-          "repeat": "instance",
-          "repeatDirection": "h",
-          "seriesOverrides": [
-            {
-              "alias": "/Limit .*/",
-              "color": "#C15C17",
-              "dashes": true,
-              "fill": 0
-            }
-          ],
-          "spaceLength": 10,
-          "stack": false,
-          "steppedLine": false,
           "targets": [
             {
               "datasource": {
-                "uid": "$datasource"
+                "type": "prometheus",
+                "uid": "${datasource}"
               },
               "expr": "process_resident_memory_bytes{instance=~\"$instance\"}",
               "format": "time_series",
               "hide": false,
               "interval": "",
               "intervalFactor": 1,
-              "legendFormat": "{{ instance }}",
+              "legendFormat": "{{kubernetes_namespace}} {{instance}}",
               "refId": "E"
             },
             {
               "datasource": {
-                "uid": "$datasource"
+                "type": "prometheus",
+                "uid": "${datasource}"
               },
-              "expr": "max(kube_pod_container_resource_limits_memory_bytes{pod=~\"$instance\"}) by (pod)",
+              "expr": "max by (namespace, pod) (kube_pod_container_resource_limits{resource=\"memory\", container=\"alertmanager\"}) * on (namespace, pod) group_left () max by (namespace, pod) (label_replace(label_replace(alertmanager_build_info{instance=~\"$instance\"}, \"namespace\", \"$1\", \"kubernetes_namespace\", \"(.*)\"), \"pod\", \"$1\", \"kubernetes_pod_name\", \"(.*)\"))",
               "format": "time_series",
               "intervalFactor": 1,
-              "legendFormat": "Limit {{ pod }}",
+              "legendFormat": "limit {{namespace}}",
               "refId": "A"
             }
           ],
-          "thresholds": [],
-          "timeRegions": [],
-          "title": "Memory usage for $instance",
-          "tooltip": {
-            "shared": true,
-            "sort": 2,
-            "value_type": "individual"
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
           },
-          "type": "graph",
-          "xaxis": {
-            "mode": "time",
-            "show": true,
-            "values": []
-          },
-          "yaxes": [
-            {
-              "format": "bytes",
-              "logBase": 1,
-              "show": true
+          "description": "Resident memory of the Alertmanager process, with the alertmanager container's memory limit when one is set (none are set today, so no limit line).",
+          "type": "timeseries",
+          "fieldConfig": {
+            "defaults": {
+              "unit": "bytes",
+              "custom": {
+                "drawStyle": "line",
+                "lineWidth": 1,
+                "fillOpacity": 10,
+                "showPoints": "never",
+                "spanNulls": false,
+                "axisPlacement": "auto",
+                "stacking": {
+                  "mode": "none",
+                  "group": "A"
+                },
+                "gradientMode": "none",
+                "lineInterpolation": "linear",
+                "pointSize": 5
+              },
+              "color": {
+                "mode": "palette-classic"
+              },
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              }
             },
-            {
-              "format": "short",
-              "logBase": 1,
-              "show": true
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byRegexp",
+                  "options": "Limit .*"
+                },
+                "properties": [
+                  {
+                    "id": "color",
+                    "value": {
+                      "mode": "fixed",
+                      "fixedColor": "#C15C17"
+                    }
+                  },
+                  {
+                    "id": "custom.lineStyle",
+                    "value": {
+                      "fill": "dash",
+                      "dash": [
+                        10,
+                        10
+                      ]
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "options": {
+            "legend": {
+              "showLegend": false,
+              "displayMode": "list",
+              "placement": "bottom",
+              "calcs": []
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
             }
-          ],
-          "yaxis": {
-            "align": false
           }
         }
       ],
@@ -3456,21 +3679,18 @@
     }
   ],
   "refresh": "5m",
-  "schemaVersion": 37,
+  "schemaVersion": 41,
   "style": "dark",
   "tags": [
+    "alerting",
     "alertmanager",
-    "prometheus",
-    "alerting"
+    "ccx",
+    "prometheus"
   ],
   "templating": {
     "list": [
       {
-        "current": {
-          "selected": false,
-          "text": "default",
-          "value": "default"
-        },
+        "current": {},
         "hide": 0,
         "includeAll": false,
         "label": "Prometheus datasource",
@@ -3484,17 +3704,21 @@
         "type": "datasource"
       },
       {
-        "allValue": "",
+        "allValue": ".*",
         "current": {
-          "selected": false,
-          "text": "All",
-          "value": "$__all"
+          "selected": true,
+          "text": [
+            "All"
+          ],
+          "value": [
+            "$__all"
+          ]
         },
         "datasource": {
           "type": "prometheus",
           "uid": "$datasource"
         },
-        "definition": "query_result(alertmanager_build_info)",
+        "definition": "label_values(alertmanager_build_info, instance)",
         "hide": 0,
         "includeAll": true,
         "label": "Instance",
@@ -3502,15 +3726,17 @@
         "name": "instance",
         "options": [],
         "query": {
-          "query": "query_result(alertmanager_build_info)",
-          "refId": "Metrics-instance-Variable-Query"
+          "qryType": 1,
+          "query": "label_values(alertmanager_build_info, instance)",
+          "refId": "PrometheusVariableQueryEditor-VariableQuery"
         },
         "refresh": 2,
-        "regex": "/.*instance=\"([^\"]+)\".*/",
+        "regex": "",
         "skipUrlSync": false,
         "sort": 1,
         "type": "query",
-        "useTags": false
+        "useTags": false,
+        "description": "Alertmanager instance(s) (pod IP:port) to show."
       }
     ]
   },

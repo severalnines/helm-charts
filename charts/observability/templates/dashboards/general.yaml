@@ -1,0 +1,32 @@
+{{- /*
+VictoriaMetrics/alerting, node and Kubernetes view dashboards. One ConfigMap per
+dashboard keeps each well under the 1 MiB ConfigMap limit (node_exporter alone is ~460 KiB).
+*/}}
+{{- if .Values.grafana.enabled }}
+{{- $dashboards := list
+  "General/victoria.json"
+  "General/vmagent.json"
+  "General/vmalert.json"
+  "General/alertmanager.json"
+  "General/anomalies.json"
+  "General/node_exporter.json"
+  "K8s/k8s-views-global.json"
+  "K8s/k8s-views-nodes.json"
+  "K8s/k8s-views-namespaces.json"
+  "K8s/k8s-views-pods.json"
+  "K8s/k8s-views-deployment-sets.json" }}
+{{- range $path := $dashboards }}
+{{- $file := base $path }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ccx-dashboard-{{ $file | trimSuffix ".json" | replace "_" "-" }}
+  labels:
+    {{- include "monitoring.labels" $ | indent 4 }}
+    grafana_dashboard: "1"
+data:
+  {{ $file }}: |
+{{ $.Files.Get (printf "dashboards/%s" $path) | indent 4 }}
+{{- end }}
+{{- end }}

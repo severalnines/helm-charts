@@ -1,0 +1,34 @@
+{{- if .Values.grafana.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ccx-app-dashboards
+  annotations:
+    grafana_folder: "CCX"
+    meta.helm.sh/release-name: {{ .Release.Name }}
+    meta.helm.sh/release-namespace: {{ .Release.Namespace }}
+  labels:
+    grafana_dashboard: "1"
+    app.kubernetes.io/managed-by: "Helm"
+data:
+  ccx-overview.json: |
+{{ (.Files.Get "dashboards/CCX/ccx-overview.json") | indent 4 }}
+  ccx-api.json: |
+{{ (.Files.Get "dashboards/CCX/ccx-api.json") | indent 4 }}
+  ccx-workers.json: |
+{{ (.Files.Get "dashboards/CCX/ccx-workers.json") | indent 4 }}
+  ccx-datastore-fleet.json: |
+{{ (.Files.Get "dashboards/CCX/ccx-datastore-fleet.json") | indent 4 }}
+  ccx-cmon.json: |
+{{ (.Files.Get "dashboards/CCX/ccx-cmon.json") | indent 4 }}
+  ccx-business.json: |
+{{ (.Files.Get "dashboards/CCX/ccx-business.json") | indent 4 }}
+  ccx-internal-jobs.json: |
+{{ (.Files.Get "dashboards/CCX/ccx-internal-jobs.json") | indent 4 }}
+  ccx-reconciler.json: |
+{{ (.Files.Get "dashboards/CCX/ccx-reconciler.json") | indent 4 }}
+  ccx-logs.json: |
+{{ (.Files.Get "dashboards/CCX/ccx-logs.json") | indent 4 }}
+  ccx-cmon-healt.json: |
+{{ (.Files.Get "dashboards/CCX/ccx-cmon-healt.json") | indent 4 }}
+{{- end }}

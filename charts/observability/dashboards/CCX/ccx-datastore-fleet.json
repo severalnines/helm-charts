@@ -1,0 +1,3260 @@
+{
+  "uid": "ccx-datastore-fleet",
+  "title": "CCX / Datastore Fleet",
+  "description": "Fleet-wide view of all CCX datastores managed by cmon: state, lifecycle, backups, alarms, network checks and host resources.",
+  "tags": [
+    "ccx",
+    "datastores",
+    "cmon"
+  ],
+  "editable": true,
+  "schemaVersion": 41,
+  "version": 1,
+  "timezone": "browser",
+  "graphTooltip": 1,
+  "time": {
+    "from": "now-24h",
+    "to": "now"
+  },
+  "refresh": "1m",
+  "fiscalYearStartMonth": 0,
+  "liveNow": false,
+  "weekStart": "",
+  "timepicker": {},
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "links": [
+    {
+      "type": "dashboards",
+      "tags": [
+        "ccx"
+      ],
+      "asDropdown": true,
+      "title": "CCX dashboards",
+      "includeVars": true,
+      "keepTime": true,
+      "targetBlank": false,
+      "icon": "external link",
+      "tooltip": "",
+      "url": ""
+    }
+  ],
+  "templating": {
+    "list": [
+      {
+        "name": "datasource",
+        "label": "Data source",
+        "type": "datasource",
+        "query": "prometheus",
+        "current": {},
+        "hide": 0,
+        "refresh": 1,
+        "regex": "",
+        "options": []
+      },
+      {
+        "name": "environment",
+        "label": "Namespace",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+        },
+        "query": {
+          "query": "label_values({__name__=~\"cmon_up|requests_total\"}, kubernetes_namespace)",
+          "refId": "PrometheusVariableQueryEditor-VariableQuery",
+          "qryType": 1
+        },
+        "definition": "label_values({__name__=~\"cmon_up|requests_total\"}, kubernetes_namespace)",
+        "refresh": 2,
+        "regex": "",
+        "sort": 1,
+        "multi": true,
+        "includeAll": true,
+        "allValue": ".*",
+        "description": "CCX environment (namespace of the cmon controller).",
+        "current": {
+          "selected": true,
+          "text": [
+            "All"
+          ],
+          "value": [
+            "$__all"
+          ]
+        },
+        "options": [],
+        "hide": 0
+      },
+      {
+        "name": "ClusterType",
+        "label": "Cluster type",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+        },
+        "query": {
+          "query": "label_values(up{job=~\"cmon-sd.*\", environment=~\"$environment\"}, ClusterType)",
+          "refId": "PrometheusVariableQueryEditor-VariableQuery",
+          "qryType": 1
+        },
+        "definition": "label_values(up{job=~\"cmon-sd.*\", environment=~\"$environment\"}, ClusterType)",
+        "refresh": 2,
+        "regex": "",
+        "sort": 1,
+        "multi": true,
+        "includeAll": true,
+        "allValue": ".*",
+        "description": "Datastore engine/topology from cmon service discovery.",
+        "current": {
+          "selected": true,
+          "text": [
+            "All"
+          ],
+          "value": [
+            "$__all"
+          ]
+        },
+        "options": [],
+        "hide": 0
+      }
+    ]
+  },
+  "panels": [
+    {
+      "type": "row",
+      "title": "Summary",
+      "collapsed": false,
+      "panels": [],
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 1
+      },
+      "id": 1
+    },
+    {
+      "type": "stat",
+      "title": "Datastores",
+      "description": "Number of datastores managed by cmon in the selected environments (cmon_cluster_up series). The ClusterType filter does not apply (cmon state has no engine label).",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "count(max by (kubernetes_namespace, ClusterName) (cmon_cluster_up{kubernetes_namespace=~\"$environment\"})) or (count(cmon_up{kubernetes_namespace=~\"$environment\"}) * 0)",
+          "refId": "A",
+          "legendFormat": "",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          },
+          "noValue": "0"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "wideLayout": true,
+        "showPercentChange": false
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 1,
+        "w": 4,
+        "h": 4
+      },
+      "id": 2
+    },
+    {
+      "type": "stat",
+      "title": "Up",
+      "description": "Datastores cmon reports as up (cmon_cluster_up == 1). The ClusterType filter does not apply (cmon state has no engine label).",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "count(max by (kubernetes_namespace, ClusterName) (cmon_cluster_up{kubernetes_namespace=~\"$environment\"}) == 1) or (count(cmon_up{kubernetes_namespace=~\"$environment\"}) * 0)",
+          "refId": "A",
+          "legendFormat": "",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "noValue": "0"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "wideLayout": true,
+        "showPercentChange": false
+      },
+      "gridPos": {
+        "x": 4,
+        "y": 1,
+        "w": 4,
+        "h": 4
+      },
+      "id": 3
+    },
+    {
+      "type": "stat",
+      "title": "Down",
+      "description": "Datastores cmon reports as not up (cmon_cluster_up == 0). The ClusterType filter does not apply (cmon state has no engine label).",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "count(max by (kubernetes_namespace, ClusterName) (cmon_cluster_up{kubernetes_namespace=~\"$environment\"}) == 0) or (count(cmon_up{kubernetes_namespace=~\"$environment\"}) * 0)",
+          "refId": "A",
+          "legendFormat": "",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          },
+          "noValue": "0"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "auto",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "wideLayout": true,
+        "showPercentChange": false
+      },
+      "gridPos": {
+        "x": 8,
+        "y": 1,
+        "w": 4,
+        "h": 4
+      },
+      "id": 4
+    },
+    {
+      "type": "stat",
+      "title": "Degraded / failed",
+      "description": "Datastores cmon currently flags as degraded, failed or failed during init (per-datastore gauges). The ClusterType filter does not apply (cmon state has no engine label).",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(max by (kubernetes_namespace, ClusterName) (cmon_cluster_degraded{kubernetes_namespace=~\"$environment\"})) or (count(cmon_up{kubernetes_namespace=~\"$environment\"}) * 0)",
+          "refId": "A",
+          "legendFormat": "degraded",
+          "instant": true,
+          "range": false
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(max by (kubernetes_namespace, ClusterName) (cmon_cluster_failure{kubernetes_namespace=~\"$environment\"})) or (count(cmon_up{kubernetes_namespace=~\"$environment\"}) * 0)",
+          "refId": "B",
+          "legendFormat": "failed",
+          "instant": true,
+          "range": false
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(max by (kubernetes_namespace, ClusterName) (cmon_cluster_failed_init{kubernetes_namespace=~\"$environment\"})) or (count(cmon_up{kubernetes_namespace=~\"$environment\"}) * 0)",
+          "refId": "C",
+          "legendFormat": "failed init",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              }
+            ]
+          },
+          "noValue": "0"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "wideLayout": true,
+        "showPercentChange": false
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 1,
+        "w": 4,
+        "h": 4
+      },
+      "id": 5
+    },
+    {
+      "type": "stat",
+      "title": "Exporter targets down",
+      "description": "cmon-sd scrape targets (node/db exporters on datastore hosts) that are not reachable (up == 0).",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "count(up{job=~\"cmon-sd.*\", environment=~\"$environment\", ClusterType=~\"$ClusterType\"} == 0) or (count(up{job=~\"cmon-sd.*\", environment=~\"$environment\", ClusterType=~\"$ClusterType\"}) * 0)",
+          "refId": "A",
+          "legendFormat": "",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          },
+          "noValue": "0"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "auto",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "wideLayout": true,
+        "showPercentChange": false
+      },
+      "gridPos": {
+        "x": 16,
+        "y": 1,
+        "w": 4,
+        "h": 4
+      },
+      "id": 6
+    },
+    {
+      "type": "stat",
+      "title": "Last backup failed",
+      "description": "Datastores whose last backup failed, according to cmon (cmon_cluster_backup_failed). The ClusterType filter does not apply (cmon state has no engine label).",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(max by (kubernetes_namespace, ClusterName) (cmon_cluster_backup_failed{kubernetes_namespace=~\"$environment\"})) or (count(cmon_up{kubernetes_namespace=~\"$environment\"}) * 0)",
+          "refId": "A",
+          "legendFormat": "",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              }
+            ]
+          },
+          "noValue": "0"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "auto",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "wideLayout": true,
+        "showPercentChange": false
+      },
+      "gridPos": {
+        "x": 20,
+        "y": 1,
+        "w": 4,
+        "h": 4
+      },
+      "id": 7
+    },
+    {
+      "type": "bargauge",
+      "title": "Datastores by engine",
+      "description": "Distinct datastores per ClusterType, taken from cmon-sd exporter target labels (datastores without exporter targets are not counted).",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "count by (ClusterType) (group by (ClusterName, DatastoreName, ClusterType) (up{job=~\"cmon-sd.*\", environment=~\"$environment\", ClusterType=~\"$ClusterType\"}))",
+          "refId": "A",
+          "legendFormat": "{{ClusterType}}",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "min": 0,
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "basic",
+        "showUnfilled": true,
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "valueMode": "color",
+        "namePlacement": "left",
+        "sizing": "auto"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 5,
+        "w": 12,
+        "h": 7
+      },
+      "id": 8
+    },
+    {
+      "type": "bargauge",
+      "title": "Datastores by environment",
+      "description": "Datastores managed by cmon per CCX environment (Kubernetes namespace of the cmon controller).",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "count by (kubernetes_namespace) (max by (kubernetes_namespace, ClusterName) (cmon_cluster_up{kubernetes_namespace=~\"$environment\"}))",
+          "refId": "A",
+          "legendFormat": "{{kubernetes_namespace}}",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "min": 0,
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "basic",
+        "showUnfilled": true,
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "valueMode": "color",
+        "namePlacement": "left",
+        "sizing": "auto"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 5,
+        "w": 12,
+        "h": 7
+      },
+      "id": 9
+    },
+    {
+      "type": "row",
+      "title": "Fleet",
+      "collapsed": false,
+      "panels": [],
+      "gridPos": {
+        "x": 0,
+        "y": 12,
+        "w": 24,
+        "h": 1
+      },
+      "id": 10
+    },
+    {
+      "type": "table",
+      "title": "Datastore fleet",
+      "description": "One row per datastore: cmon state, node and exporter health, backup and DNS status; click the name to open the engine dashboard.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "label_replace(label_replace(label_replace(label_replace(label_replace((cmon_cluster_up{kubernetes_namespace=~\"$environment\"} * on (ClusterName) group_left (DatastoreName, ClusterType) group by (ClusterName, DatastoreName, ClusterType) (up{job=~\"cmon-sd.*\", environment=~\"$environment\", ClusterType=~\"$ClusterType\"})) or (label_replace(label_replace(cmon_cluster_up{kubernetes_namespace=~\"$environment\"} unless on (ClusterName) up{job=~\"cmon-sd.*\"}, \"ClusterType\", \"none\", \"\", \"\"), \"DatastoreName\", \"(no exporter targets)\", \"\", \"\") and on () (count(up{job=~\"cmon-sd.*\", ClusterType=~\"$ClusterType\"}) == count(up{job=~\"cmon-sd.*\"}))), \"environment\", \"$1\", \"kubernetes_namespace\", \"(.*)\"), \"dash\", \"ccx-mysql\", \"ClusterType\", \"replication|galera|mysql.*|group_replication\"), \"dash\", \"ccx-postgresql\", \"ClusterType\", \"postgres.*\"), \"dash\", \"ccx-redis\", \"ClusterType\", \"redis.*|valkey.*\"), \"dash\", \"ccx-mssql\", \"ClusterType\", \"mssql.*\")",
+          "refId": "A",
+          "legendFormat": "",
+          "instant": true,
+          "range": false,
+          "format": "table"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "count by (ClusterName) (min by (ClusterName, ip) (up{job=~\"cmon-sd.*\", environment=~\"$environment\"}) == 1) or (count by (ClusterName) (count by (ClusterName, ip) (up{job=~\"cmon-sd.*\", environment=~\"$environment\"})) * 0)",
+          "refId": "B",
+          "legendFormat": "",
+          "instant": true,
+          "range": false,
+          "format": "table"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "count by (ClusterName) (count by (ClusterName, ip) (up{job=~\"cmon-sd.*\", environment=~\"$environment\"}))",
+          "refId": "C",
+          "legendFormat": "",
+          "instant": true,
+          "range": false,
+          "format": "table"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "count by (ClusterName) (up{job=~\"cmon-sd.*\", environment=~\"$environment\"} == 0) or (count by (ClusterName) (up{job=~\"cmon-sd.*\", environment=~\"$environment\"}) * 0)",
+          "refId": "D",
+          "legendFormat": "",
+          "instant": true,
+          "range": false,
+          "format": "table"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "max by (ClusterName) (cmon_cluster_backup_failed{kubernetes_namespace=~\"$environment\"})",
+          "refId": "E",
+          "legendFormat": "",
+          "instant": true,
+          "range": false,
+          "format": "table"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "min by (ClusterName) (probe_success{job=~\"datastore-dns-check-.*\", environment=~\"$environment\"})",
+          "refId": "F",
+          "legendFormat": "",
+          "instant": true,
+          "range": false,
+          "format": "table"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "joinByField",
+          "options": {
+            "byField": "ClusterName",
+            "mode": "outer"
+          }
+        },
+        {
+          "id": "filterFieldsByName",
+          "options": {
+            "include": {
+              "names": [
+                "DatastoreName",
+                "ClusterName",
+                "ClusterType",
+                "environment",
+                "ControllerId",
+                "ClusterID",
+                "Value #A",
+                "Value #B",
+                "Value #C",
+                "Value #D",
+                "Value #E",
+                "Value #F",
+                "dash"
+              ]
+            }
+          }
+        },
+        {
+          "id": "filterByValue",
+          "options": {
+            "filters": [
+              {
+                "fieldName": "Value #A",
+                "config": {
+                  "id": "isNotNull",
+                  "options": {}
+                }
+              }
+            ],
+            "type": "include",
+            "match": "any"
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "indexByName": {
+              "DatastoreName": 0,
+              "ClusterName": 1,
+              "ClusterType": 2,
+              "environment": 3,
+              "Value #A": 4,
+              "Value #B": 5,
+              "Value #C": 6,
+              "Value #D": 7,
+              "Value #E": 8,
+              "Value #F": 9,
+              "ControllerId": 10,
+              "ClusterID": 11,
+              "dash": 12
+            },
+            "renameByName": {
+              "Value #A": "State",
+              "Value #B": "Nodes up",
+              "Value #C": "Nodes",
+              "Value #D": "Exporters down",
+              "Value #E": "Last backup",
+              "Value #F": "DNS probe",
+              "DatastoreName": "Datastore"
+            }
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "filterable": true
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "State"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "0": {
+                        "text": "DOWN",
+                        "color": "red",
+                        "index": 0
+                      },
+                      "1": {
+                        "text": "UP",
+                        "color": "green",
+                        "index": 1
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background",
+                  "mode": "basic"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Last backup"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "0": {
+                        "text": "OK",
+                        "color": "green",
+                        "index": 0
+                      },
+                      "1": {
+                        "text": "FAILED",
+                        "color": "red",
+                        "index": 1
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "DNS probe"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "0": {
+                        "text": "FAIL",
+                        "color": "red",
+                        "index": 0
+                      },
+                      "1": {
+                        "text": "OK",
+                        "color": "green",
+                        "index": 1
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Exporters down"
+            },
+            "properties": [
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": null
+                    },
+                    {
+                      "color": "red",
+                      "value": 1
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "dash"
+            },
+            "properties": [
+              {
+                "id": "custom.hidden",
+                "value": true
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Datastore"
+            },
+            "properties": [
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Open engine dashboard",
+                    "targetBlank": false,
+                    "url": "/d/${__data.fields.dash}?var-environment=${__data.fields.environment}&var-datastore=${__data.fields.ClusterName}&${__url_time_range}"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "ClusterName"
+            },
+            "properties": [
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Open engine dashboard",
+                    "targetBlank": false,
+                    "url": "/d/${__data.fields.dash}?var-environment=${__data.fields.environment}&var-datastore=${__data.fields.ClusterName}&${__url_time_range}"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false,
+          "reducer": [
+            "sum"
+          ],
+          "fields": ""
+        },
+        "sortBy": [
+          {
+            "displayName": "State",
+            "desc": false
+          }
+        ]
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 13,
+        "w": 24,
+        "h": 12
+      },
+      "id": 11
+    },
+    {
+      "type": "state-timeline",
+      "title": "Datastore up/down history",
+      "description": "cmon_cluster_up per datastore over time; red bands show when cmon considered the datastore down. Shows the 15 datastores with the most downtime in the selected range; the fleet table above lists all of them.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "bottomk_avg(15, (cmon_cluster_up{kubernetes_namespace=~\"$environment\"} * on (ClusterName) group_left (DatastoreName, ClusterType) group by (ClusterName, DatastoreName, ClusterType) (up{job=~\"cmon-sd.*\", environment=~\"$environment\", ClusterType=~\"$ClusterType\"})) or (label_replace(label_replace(cmon_cluster_up{kubernetes_namespace=~\"$environment\"} unless on (ClusterName) up{job=~\"cmon-sd.*\"}, \"ClusterType\", \"none\", \"\", \"\"), \"DatastoreName\", \"(no exporter targets)\", \"\", \"\") and on () (count(up{job=~\"cmon-sd.*\", ClusterType=~\"$ClusterType\"}) == count(up{job=~\"cmon-sd.*\"}))))",
+          "refId": "A",
+          "legendFormat": "{{kubernetes_namespace}} / {{DatastoreName}} {{ClusterName}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": {
+                  "text": "DOWN",
+                  "color": "red",
+                  "index": 0
+                },
+                "1": {
+                  "text": "UP",
+                  "color": "green",
+                  "index": 1
+                }
+              }
+            }
+          ],
+          "custom": {
+            "fillOpacity": 80,
+            "lineWidth": 0
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 1
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "showValue": "never",
+        "mergeValues": true,
+        "alignValue": "left",
+        "rowHeight": 0.8,
+        "legend": {
+          "showLegend": false,
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 25,
+        "w": 24,
+        "h": 10
+      },
+      "id": 12
+    },
+    {
+      "type": "row",
+      "title": "Lifecycle",
+      "collapsed": false,
+      "panels": [],
+      "gridPos": {
+        "x": 0,
+        "y": 35,
+        "w": 24,
+        "h": 1
+      },
+      "id": 13
+    },
+    {
+      "type": "timeseries",
+      "title": "Datastores by cmon state",
+      "description": "Datastores per cmon state; the cmon_cluster_*_total series are current counts (gauges), not cumulative counters, so they are plotted as-is.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(max by (kubernetes_namespace) (cmon_cluster_started_total{kubernetes_namespace=~\"$environment\"}))",
+          "refId": "A",
+          "legendFormat": "started"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(max by (kubernetes_namespace) (cmon_cluster_stopped_total{kubernetes_namespace=~\"$environment\"}))",
+          "refId": "B",
+          "legendFormat": "stopped"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(max by (kubernetes_namespace) (cmon_cluster_degraded_total{kubernetes_namespace=~\"$environment\"}))",
+          "refId": "C",
+          "legendFormat": "degraded"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(max by (kubernetes_namespace) (cmon_cluster_failed_total{kubernetes_namespace=~\"$environment\"}))",
+          "refId": "D",
+          "legendFormat": "failed"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(max by (kubernetes_namespace) (cmon_cluster_failed_init_total{kubernetes_namespace=~\"$environment\"}))",
+          "refId": "E",
+          "legendFormat": "failed init"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(max by (kubernetes_namespace) (cmon_cluster_unknown_total{kubernetes_namespace=~\"$environment\"}))",
+          "refId": "F",
+          "legendFormat": "unknown"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 40,
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            }
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "min": 0
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "failed"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "red"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "degraded"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "orange"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "started"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "green"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ],
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 36,
+        "w": 12,
+        "h": 8
+      },
+      "id": 14
+    },
+    {
+      "type": "timeseries",
+      "title": "State changes",
+      "description": "Number of state-count changes per state in each interval (changes() over the cmon state gauges); spikes show datastores starting, stopping or failing.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(max by (kubernetes_namespace) (changes(cmon_cluster_started_total{kubernetes_namespace=~\"$environment\"}[$__rate_interval])))",
+          "refId": "A",
+          "legendFormat": "started"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(max by (kubernetes_namespace) (changes(cmon_cluster_stopped_total{kubernetes_namespace=~\"$environment\"}[$__rate_interval])))",
+          "refId": "B",
+          "legendFormat": "stopped"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(max by (kubernetes_namespace) (changes(cmon_cluster_degraded_total{kubernetes_namespace=~\"$environment\"}[$__rate_interval])))",
+          "refId": "C",
+          "legendFormat": "degraded"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(max by (kubernetes_namespace) (changes(cmon_cluster_failed_total{kubernetes_namespace=~\"$environment\"}[$__rate_interval])))",
+          "refId": "D",
+          "legendFormat": "failed"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(max by (kubernetes_namespace) (changes(cmon_cluster_failed_init_total{kubernetes_namespace=~\"$environment\"}[$__rate_interval])))",
+          "refId": "E",
+          "legendFormat": "failed init"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "bars",
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            }
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ],
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 36,
+        "w": 12,
+        "h": 8
+      },
+      "id": 15
+    },
+    {
+      "type": "timeseries",
+      "title": "Degraded / failed datastores (per-datastore flags)",
+      "description": "Sum of the per-datastore gauges cmon_cluster_degraded, cmon_cluster_failure and cmon_cluster_failed_init.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(max by (kubernetes_namespace, ClusterName) (cmon_cluster_degraded{kubernetes_namespace=~\"$environment\"}))",
+          "refId": "A",
+          "legendFormat": "degraded"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(max by (kubernetes_namespace, ClusterName) (cmon_cluster_failure{kubernetes_namespace=~\"$environment\"}))",
+          "refId": "B",
+          "legendFormat": "failed"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(max by (kubernetes_namespace, ClusterName) (cmon_cluster_failed_init{kubernetes_namespace=~\"$environment\"}))",
+          "refId": "C",
+          "legendFormat": "failed init"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "count(max by (kubernetes_namespace, ClusterName) (cmon_cluster_up{kubernetes_namespace=~\"$environment\"}) == 0) or (count(cmon_up{kubernetes_namespace=~\"$environment\"}) * 0)",
+          "refId": "D",
+          "legendFormat": "down (cmon_cluster_up=0)"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            }
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ],
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 44,
+        "w": 12,
+        "h": 7
+      },
+      "id": 16
+    },
+    {
+      "type": "table",
+      "title": "Datastores currently not healthy",
+      "description": "Datastores that are down, degraded, failed or failed during init right now.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "label_replace(label_replace(label_replace(label_replace(label_replace((max by (ClusterName, ClusterID, kubernetes_namespace) ((cmon_cluster_up{kubernetes_namespace=~\"$environment\"} == 0) or (cmon_cluster_degraded{kubernetes_namespace=~\"$environment\"} == 1) or (cmon_cluster_failure{kubernetes_namespace=~\"$environment\"} == 1) or (cmon_cluster_failed_init{kubernetes_namespace=~\"$environment\"} == 1)) * on (ClusterName) group_left (DatastoreName, ClusterType) group by (ClusterName, DatastoreName, ClusterType) (up{job=~\"cmon-sd.*\", environment=~\"$environment\", ClusterType=~\"$ClusterType\"})) or (label_replace(label_replace(max by (ClusterName, ClusterID, kubernetes_namespace) ((cmon_cluster_up{kubernetes_namespace=~\"$environment\"} == 0) or (cmon_cluster_degraded{kubernetes_namespace=~\"$environment\"} == 1) or (cmon_cluster_failure{kubernetes_namespace=~\"$environment\"} == 1) or (cmon_cluster_failed_init{kubernetes_namespace=~\"$environment\"} == 1)) unless on (ClusterName) up{job=~\"cmon-sd.*\"}, \"ClusterType\", \"none\", \"\", \"\"), \"DatastoreName\", \"(no exporter targets)\", \"\", \"\") and on () (count(up{job=~\"cmon-sd.*\", ClusterType=~\"$ClusterType\"}) == count(up{job=~\"cmon-sd.*\"}))), \"environment\", \"$1\", \"kubernetes_namespace\", \"(.*)\"), \"dash\", \"ccx-mysql\", \"ClusterType\", \"replication|galera|mysql.*|group_replication\"), \"dash\", \"ccx-postgresql\", \"ClusterType\", \"postgres.*\"), \"dash\", \"ccx-redis\", \"ClusterType\", \"redis.*|valkey.*\"), \"dash\", \"ccx-mssql\", \"ClusterType\", \"mssql.*\")",
+          "refId": "A",
+          "legendFormat": "",
+          "instant": true,
+          "range": false,
+          "format": "table"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true,
+              "Value": true,
+              "__name__": true,
+              "app": true,
+              "cluster": true,
+              "exported_cluster": true,
+              "monitor": true,
+              "use_cmon_sd": true,
+              "job": true,
+              "run": true,
+              "instance": true,
+              "kubernetes_pod_name": true,
+              "apps_kubernetes_io_pod_index": true,
+              "controller_revision_hash": true,
+              "statefulset_kubernetes_io_pod_name": true,
+              "kubernetes_namespace": true,
+              "dash": false
+            },
+            "renameByName": {}
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "filterable": true
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "noValue": "All datastores healthy"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "dash"
+            },
+            "properties": [
+              {
+                "id": "custom.hidden",
+                "value": true
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false,
+          "reducer": [
+            "sum"
+          ],
+          "fields": ""
+        },
+        "sortBy": []
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 44,
+        "w": 12,
+        "h": 7
+      },
+      "id": 17
+    },
+    {
+      "type": "row",
+      "title": "Backups",
+      "collapsed": false,
+      "panels": [],
+      "gridPos": {
+        "x": 0,
+        "y": 51,
+        "w": 24,
+        "h": 1
+      },
+      "id": 18
+    },
+    {
+      "type": "stat",
+      "title": "Last backup failed",
+      "description": "Datastores whose most recent backup failed (cmon_cluster_backup_failed). The ClusterType filter does not apply (cmon state has no engine label).",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(max by (kubernetes_namespace, ClusterName) (cmon_cluster_backup_failed{kubernetes_namespace=~\"$environment\"})) or (count(cmon_up{kubernetes_namespace=~\"$environment\"}) * 0)",
+          "refId": "A",
+          "legendFormat": "",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              }
+            ]
+          },
+          "noValue": "0"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "auto",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "wideLayout": true,
+        "showPercentChange": false
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 52,
+        "w": 6,
+        "h": 4
+      },
+      "id": 19
+    },
+    {
+      "type": "stat",
+      "title": "Backup upload failed",
+      "description": "Datastores whose last backup upload to object storage failed (cmon_cluster_backup_upload_failed). The ClusterType filter does not apply (cmon state has no engine label).",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(max by (kubernetes_namespace, ClusterName) (cmon_cluster_backup_upload_failed{kubernetes_namespace=~\"$environment\"})) or (count(cmon_up{kubernetes_namespace=~\"$environment\"}) * 0)",
+          "refId": "A",
+          "legendFormat": "",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              }
+            ]
+          },
+          "noValue": "0"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "auto",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "wideLayout": true,
+        "showPercentChange": false
+      },
+      "gridPos": {
+        "x": 6,
+        "y": 52,
+        "w": 6,
+        "h": 4
+      },
+      "id": 20
+    },
+    {
+      "type": "stat",
+      "title": "Backup-failed alarms",
+      "description": "Open backup-failed alarms in cmon (cmon_alarms_backup_failed_total, a current count per controller).",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(max by (kubernetes_namespace) (cmon_alarms_backup_failed_total{kubernetes_namespace=~\"$environment\"})) or (count(cmon_up{kubernetes_namespace=~\"$environment\"}) * 0)",
+          "refId": "A",
+          "legendFormat": "",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              }
+            ]
+          },
+          "noValue": "0"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "auto",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "wideLayout": true,
+        "showPercentChange": false
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 52,
+        "w": 6,
+        "h": 4
+      },
+      "id": 21
+    },
+    {
+      "type": "stat",
+      "title": "Critical alarms",
+      "description": "Open critical alarms in cmon across the selected environments (cmon_alarms_critical_total).",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(max by (kubernetes_namespace) (cmon_alarms_critical_total{kubernetes_namespace=~\"$environment\"})) or (count(cmon_up{kubernetes_namespace=~\"$environment\"}) * 0)",
+          "refId": "A",
+          "legendFormat": "",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          },
+          "noValue": "0"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "auto",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "wideLayout": true,
+        "showPercentChange": false
+      },
+      "gridPos": {
+        "x": 18,
+        "y": 52,
+        "w": 6,
+        "h": 4
+      },
+      "id": 22
+    },
+    {
+      "type": "timeseries",
+      "title": "Backup failures over time",
+      "description": "Datastores with a failed backup / failed upload and open backup alarms per environment over time. Shows the 10 series with the highest peak in the selected time range.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "topk_max(10, sum by (kubernetes_namespace) (max by (kubernetes_namespace, ClusterName) (cmon_cluster_backup_failed{kubernetes_namespace=~\"$environment\"})))",
+          "refId": "A",
+          "legendFormat": "{{kubernetes_namespace}} backup failed"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "topk_max(10, sum by (kubernetes_namespace) (max by (kubernetes_namespace, ClusterName) (cmon_cluster_backup_upload_failed{kubernetes_namespace=~\"$environment\"})))",
+          "refId": "B",
+          "legendFormat": "{{kubernetes_namespace}} upload failed"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "topk_max(10, max by (kubernetes_namespace) (cmon_alarms_backup_failed_total{kubernetes_namespace=~\"$environment\"}))",
+          "refId": "C",
+          "legendFormat": "{{kubernetes_namespace}} alarms"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            }
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ],
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 56,
+        "w": 12,
+        "h": 8
+      },
+      "id": 23
+    },
+    {
+      "type": "table",
+      "title": "Datastores with failed backups",
+      "description": "Datastores whose last backup or backup upload failed.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "label_replace(label_replace(label_replace(label_replace(label_replace((max by (ClusterName, kubernetes_namespace) ((cmon_cluster_backup_failed{kubernetes_namespace=~\"$environment\"} == 1) or (cmon_cluster_backup_upload_failed{kubernetes_namespace=~\"$environment\"} == 1)) * on (ClusterName) group_left (DatastoreName, ClusterType) group by (ClusterName, DatastoreName, ClusterType) (up{job=~\"cmon-sd.*\", environment=~\"$environment\", ClusterType=~\"$ClusterType\"})) or (label_replace(label_replace(max by (ClusterName, kubernetes_namespace) ((cmon_cluster_backup_failed{kubernetes_namespace=~\"$environment\"} == 1) or (cmon_cluster_backup_upload_failed{kubernetes_namespace=~\"$environment\"} == 1)) unless on (ClusterName) up{job=~\"cmon-sd.*\"}, \"ClusterType\", \"none\", \"\", \"\"), \"DatastoreName\", \"(no exporter targets)\", \"\", \"\") and on () (count(up{job=~\"cmon-sd.*\", ClusterType=~\"$ClusterType\"}) == count(up{job=~\"cmon-sd.*\"}))), \"environment\", \"$1\", \"kubernetes_namespace\", \"(.*)\"), \"dash\", \"ccx-mysql\", \"ClusterType\", \"replication|galera|mysql.*|group_replication\"), \"dash\", \"ccx-postgresql\", \"ClusterType\", \"postgres.*\"), \"dash\", \"ccx-redis\", \"ClusterType\", \"redis.*|valkey.*\"), \"dash\", \"ccx-mssql\", \"ClusterType\", \"mssql.*\")",
+          "refId": "A",
+          "legendFormat": "",
+          "instant": true,
+          "range": false,
+          "format": "table"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true,
+              "Value": true,
+              "kubernetes_namespace": true
+            },
+            "renameByName": {
+              "DatastoreName": "Datastore"
+            }
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "filterable": true
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "noValue": "No failed backups"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "dash"
+            },
+            "properties": [
+              {
+                "id": "custom.hidden",
+                "value": true
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Datastore"
+            },
+            "properties": [
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Open engine dashboard",
+                    "url": "/d/${__data.fields.dash}?var-environment=${__data.fields.environment}&var-datastore=${__data.fields.ClusterName}&${__url_time_range}"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false,
+          "reducer": [
+            "sum"
+          ],
+          "fields": ""
+        },
+        "sortBy": []
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 56,
+        "w": 12,
+        "h": 8
+      },
+      "id": 24
+    },
+    {
+      "type": "row",
+      "title": "Crashes and alarms",
+      "collapsed": false,
+      "panels": [],
+      "gridPos": {
+        "x": 0,
+        "y": 64,
+        "w": 24,
+        "h": 1
+      },
+      "id": 25
+    },
+    {
+      "type": "timeseries",
+      "title": "Critical alarms",
+      "description": "Open critical alarms per environment (cmon_alarms_critical_total is a current count, not a counter). Shows the 10 series with the highest peak in the selected time range.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "topk_max(10, max by (kubernetes_namespace) (cmon_alarms_critical_total{kubernetes_namespace=~\"$environment\"}))",
+          "refId": "A",
+          "legendFormat": "{{kubernetes_namespace}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            }
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ],
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 65,
+        "w": 12,
+        "h": 7
+      },
+      "id": 26
+    },
+    {
+      "type": "timeseries",
+      "title": "Coredumps detected",
+      "description": "Coredumps cmon detected on datastore hosts per environment (cmon_coredump_detected_total). Shows the 10 series with the highest peak in the selected time range.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "topk_max(10, max by (kubernetes_namespace) (cmon_coredump_detected_total{kubernetes_namespace=~\"$environment\"}))",
+          "refId": "A",
+          "legendFormat": "{{kubernetes_namespace}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            }
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ],
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 65,
+        "w": 12,
+        "h": 7
+      },
+      "id": 27
+    },
+    {
+      "type": "row",
+      "title": "Repairs",
+      "collapsed": true,
+      "panels": [
+        {
+          "type": "text",
+          "title": "About repairs",
+          "description": "Explains why the repair panels may be empty.",
+          "options": {
+            "mode": "markdown",
+            "content": "The repair metrics `datastores_repairs_total` and `datastores_repairs_failed` are exported by newer CCX backends only. If the panels below are empty, the CCX services in this environment do not expose them yet."
+          },
+          "gridPos": {
+            "x": 0,
+            "y": 73,
+            "w": 6,
+            "h": 6
+          },
+          "id": 29
+        },
+        {
+          "type": "timeseries",
+          "title": "Datastore repairs",
+          "description": "Automatic datastore repairs started and failed per interval (needs datastores_repairs_* metrics from a newer CCX backend).",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "expr": "sum(increase(datastores_repairs_total{kubernetes_namespace=~\"$environment\"}[$__rate_interval]))",
+              "refId": "A",
+              "legendFormat": "repairs"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "expr": "sum(increase(datastores_repairs_failed{kubernetes_namespace=~\"$environment\"}[$__rate_interval]))",
+              "refId": "B",
+              "legendFormat": "failed"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "short",
+              "custom": {
+                "drawStyle": "bars",
+                "lineWidth": 1,
+                "fillOpacity": 10,
+                "showPoints": "never",
+                "spanNulls": false,
+                "stacking": {
+                  "mode": "none",
+                  "group": "A"
+                }
+              },
+              "color": {
+                "mode": "palette-classic"
+              },
+              "min": 0
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "displayMode": "table",
+              "placement": "bottom",
+              "calcs": [
+                "lastNotNull",
+                "max"
+              ],
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "gridPos": {
+            "x": 6,
+            "y": 73,
+            "w": 18,
+            "h": 6
+          },
+          "id": 30
+        }
+      ],
+      "description": "Needs a CCX version exporting datastores_repairs_total / datastores_repairs_failed; not present on this install.",
+      "gridPos": {
+        "x": 0,
+        "y": 72,
+        "w": 24,
+        "h": 1
+      },
+      "id": 28
+    },
+    {
+      "type": "row",
+      "title": "Network checks",
+      "collapsed": false,
+      "panels": [],
+      "gridPos": {
+        "x": 0,
+        "y": 79,
+        "w": 24,
+        "h": 1
+      },
+      "id": 31
+    },
+    {
+      "type": "stat",
+      "title": "DNS probes failing",
+      "description": "Datastore DNS endpoints whose blackbox probe currently fails (probe_success == 0).",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "count(probe_success{job=~\"datastore-dns-check-.*\", environment=~\"$environment\", ClusterType=~\"$ClusterType\"} == 0) or vector(0)",
+          "refId": "A",
+          "legendFormat": "",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          },
+          "noValue": "0"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "auto",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "wideLayout": true,
+        "showPercentChange": false
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 80,
+        "w": 4,
+        "h": 5
+      },
+      "id": 32
+    },
+    {
+      "type": "stat",
+      "title": "DNS probes",
+      "description": "Datastore DNS endpoints probed (only environments with a datastore-dns-check job, e.g. staging).",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "count(probe_success{job=~\"datastore-dns-check-.*\", environment=~\"$environment\", ClusterType=~\"$ClusterType\"}) or vector(0)",
+          "refId": "A",
+          "legendFormat": "",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          },
+          "noValue": "0"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "wideLayout": true,
+        "showPercentChange": false
+      },
+      "gridPos": {
+        "x": 4,
+        "y": 80,
+        "w": 4,
+        "h": 5
+      },
+      "id": 33
+    },
+    {
+      "type": "timeseries",
+      "title": "DNS probe duration",
+      "description": "Time to resolve and connect to each datastore's DNS endpoint. Shows the 10 series with the highest peak in the selected time range.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "topk_max(10, probe_duration_seconds{job=~\"datastore-dns-check-.*\", environment=~\"$environment\", ClusterType=~\"$ClusterType\"})",
+          "refId": "A",
+          "legendFormat": "{{DatastoreName}} ({{ClusterType}})"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            }
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ],
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "gridPos": {
+        "x": 8,
+        "y": 80,
+        "w": 16,
+        "h": 10
+      },
+      "id": 34
+    },
+    {
+      "type": "table",
+      "title": "Datastore DNS probes",
+      "description": "Current DNS probe result and duration per datastore endpoint.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "max by (environment, DatastoreName, ClusterType, ClusterName, instance) (probe_success{job=~\"datastore-dns-check-.*\", environment=~\"$environment\", ClusterType=~\"$ClusterType\"})",
+          "refId": "A",
+          "legendFormat": "",
+          "instant": true,
+          "range": false,
+          "format": "table"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "max by (environment, DatastoreName, ClusterType, ClusterName, instance) (probe_duration_seconds{job=~\"datastore-dns-check-.*\", environment=~\"$environment\", ClusterType=~\"$ClusterType\"})",
+          "refId": "B",
+          "legendFormat": "",
+          "instant": true,
+          "range": false,
+          "format": "table"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "merge",
+          "options": {}
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            },
+            "renameByName": {
+              "Value #A": "Probe",
+              "Value #B": "Duration",
+              "instance": "Endpoint",
+              "DatastoreName": "Datastore"
+            }
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "filterable": true
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Probe"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "0": {
+                        "text": "FAIL",
+                        "color": "red",
+                        "index": 0
+                      },
+                      "1": {
+                        "text": "OK",
+                        "color": "green",
+                        "index": 1
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background",
+                  "mode": "basic"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Duration"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "s"
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false,
+          "reducer": [
+            "sum"
+          ],
+          "fields": ""
+        },
+        "sortBy": [
+          {
+            "displayName": "Probe",
+            "desc": false
+          }
+        ]
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 90,
+        "w": 8,
+        "h": 5
+      },
+      "id": 35
+    },
+    {
+      "type": "table",
+      "title": "Blackbox endpoints",
+      "description": "HTTP(S) endpoints probed by the blackbox exporter: probe result, latency and days until the TLS certificate expires.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "max by (url) (probe_success{job=\"blackbox-exporter\"})",
+          "refId": "A",
+          "legendFormat": "",
+          "instant": true,
+          "range": false,
+          "format": "table"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "max by (url) (probe_duration_seconds{job=\"blackbox-exporter\"})",
+          "refId": "B",
+          "legendFormat": "",
+          "instant": true,
+          "range": false,
+          "format": "table"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "min by (url) ((probe_ssl_earliest_cert_expiry{job=\"blackbox-exporter\"} - time()) / 86400)",
+          "refId": "C",
+          "legendFormat": "",
+          "instant": true,
+          "range": false,
+          "format": "table"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "merge",
+          "options": {}
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            },
+            "renameByName": {
+              "url": "URL",
+              "Value #A": "Probe",
+              "Value #B": "Duration",
+              "Value #C": "SSL expires in"
+            }
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "filterable": true
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Probe"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "0": {
+                        "text": "FAIL",
+                        "color": "red",
+                        "index": 0
+                      },
+                      "1": {
+                        "text": "OK",
+                        "color": "green",
+                        "index": 1
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background",
+                  "mode": "basic"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Duration"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "s"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "SSL expires in"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "d"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "red",
+                      "value": null
+                    },
+                    {
+                      "color": "orange",
+                      "value": 7
+                    },
+                    {
+                      "color": "green",
+                      "value": 21
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false,
+          "reducer": [
+            "sum"
+          ],
+          "fields": ""
+        },
+        "sortBy": [
+          {
+            "displayName": "SSL expires in",
+            "desc": false
+          }
+        ]
+      },
+      "gridPos": {
+        "x": 8,
+        "y": 90,
+        "w": 12,
+        "h": 9
+      },
+      "id": 36
+    },
+    {
+      "type": "timeseries",
+      "title": "Blackbox SSL expiry",
+      "description": "Days until the earliest TLS certificate of each blackbox-probed endpoint expires.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "min by (url) ((probe_ssl_earliest_cert_expiry{job=\"blackbox-exporter\"} - time()) / 86400)",
+          "refId": "A",
+          "legendFormat": "{{url}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "d",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            }
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ],
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 99,
+        "w": 12,
+        "h": 9
+      },
+      "id": 37
+    },
+    {
+      "type": "row",
+      "title": "Datastore host resources",
+      "collapsed": false,
+      "panels": [],
+      "gridPos": {
+        "x": 0,
+        "y": 108,
+        "w": 24,
+        "h": 1
+      },
+      "id": 38
+    },
+    {
+      "type": "table",
+      "title": "Datastore hosts (worst first)",
+      "description": "node_exporter on datastore hosts (via cmon-sd): CPU busy (1 - idle, so iowait counts as busy), memory used (1 - MemAvailable/MemTotal) and the fullest real filesystem (ext4/xfs, excluding tmpfs, overlay, vfat and /boot; reserved blocks count as used); sorted by disk usage.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "1 - avg by (environment, DatastoreName, ClusterName, ClusterType, instance) (rate(node_cpu_seconds_total{job=~\"cmon-sd.*\", environment=~\"$environment\", ClusterType=~\"$ClusterType\", mode=\"idle\"}[$__rate_interval]))",
+          "refId": "A",
+          "legendFormat": "",
+          "instant": true,
+          "range": false,
+          "format": "table"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "1 - max by (environment, DatastoreName, ClusterName, ClusterType, instance) (node_memory_MemAvailable_bytes{job=~\"cmon-sd.*\", environment=~\"$environment\", ClusterType=~\"$ClusterType\"}) / clamp_min(max by (environment, DatastoreName, ClusterName, ClusterType, instance) (node_memory_MemTotal_bytes{job=~\"cmon-sd.*\", environment=~\"$environment\", ClusterType=~\"$ClusterType\"}), 1)",
+          "refId": "B",
+          "legendFormat": "",
+          "instant": true,
+          "range": false,
+          "format": "table"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "max by (environment, DatastoreName, ClusterName, ClusterType, instance) (1 - node_filesystem_avail_bytes{job=~\"cmon-sd.*\", environment=~\"$environment\", ClusterType=~\"$ClusterType\", fstype!~\"tmpfs|vfat|overlay|squashfs|ramfs|devtmpfs|nfs.*\", mountpoint!~\"/boot.*\"} / clamp_min(node_filesystem_size_bytes{job=~\"cmon-sd.*\", environment=~\"$environment\", ClusterType=~\"$ClusterType\", fstype!~\"tmpfs|vfat|overlay|squashfs|ramfs|devtmpfs|nfs.*\", mountpoint!~\"/boot.*\"}, 1))",
+          "refId": "C",
+          "legendFormat": "",
+          "instant": true,
+          "range": false,
+          "format": "table"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "label_replace(label_replace(label_replace(label_replace(max by (environment, DatastoreName, ClusterName, ClusterType, instance) (node_load1{job=~\"cmon-sd.*\", environment=~\"$environment\", ClusterType=~\"$ClusterType\"}), \"dash\", \"ccx-mysql\", \"ClusterType\", \"replication|galera|mysql.*|group_replication\"), \"dash\", \"ccx-postgresql\", \"ClusterType\", \"postgres.*\"), \"dash\", \"ccx-redis\", \"ClusterType\", \"redis.*|valkey.*\"), \"dash\", \"ccx-mssql\", \"ClusterType\", \"mssql.*\")",
+          "refId": "D",
+          "legendFormat": "",
+          "instant": true,
+          "range": false,
+          "format": "table"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "merge",
+          "options": {}
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            },
+            "indexByName": {
+              "DatastoreName": 0,
+              "instance": 1,
+              "ClusterType": 2,
+              "environment": 3,
+              "Value #A": 4,
+              "Value #B": 5,
+              "Value #C": 6,
+              "Value #D": 7,
+              "ClusterName": 8,
+              "dash": 9
+            },
+            "renameByName": {
+              "DatastoreName": "Datastore",
+              "Value #A": "CPU",
+              "Value #B": "Memory",
+              "Value #C": "Disk (fullest)",
+              "Value #D": "Load 1m"
+            }
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "filterable": true
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "CPU"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percentunit"
+              },
+              {
+                "id": "min",
+                "value": 0
+              },
+              {
+                "id": "max",
+                "value": 1
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "gauge",
+                  "mode": "basic"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": null
+                    },
+                    {
+                      "color": "orange",
+                      "value": 0.8
+                    },
+                    {
+                      "color": "red",
+                      "value": 0.9
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Memory"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percentunit"
+              },
+              {
+                "id": "min",
+                "value": 0
+              },
+              {
+                "id": "max",
+                "value": 1
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "gauge",
+                  "mode": "basic"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": null
+                    },
+                    {
+                      "color": "orange",
+                      "value": 0.8
+                    },
+                    {
+                      "color": "red",
+                      "value": 0.9
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Disk (fullest)"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percentunit"
+              },
+              {
+                "id": "min",
+                "value": 0
+              },
+              {
+                "id": "max",
+                "value": 1
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "gauge",
+                  "mode": "basic"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": null
+                    },
+                    {
+                      "color": "orange",
+                      "value": 0.8
+                    },
+                    {
+                      "color": "red",
+                      "value": 0.9
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "dash"
+            },
+            "properties": [
+              {
+                "id": "custom.hidden",
+                "value": true
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Datastore"
+            },
+            "properties": [
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Open engine dashboard for this node",
+                    "url": "/d/${__data.fields.dash}?var-environment=${__data.fields.environment}&var-datastore=${__data.fields.ClusterName}&var-instance=${__data.fields.instance}&${__url_time_range}"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false,
+          "reducer": [
+            "sum"
+          ],
+          "fields": ""
+        },
+        "sortBy": [
+          {
+            "displayName": "Disk (fullest)",
+            "desc": true
+          }
+        ]
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 109,
+        "w": 24,
+        "h": 12
+      },
+      "id": 39
+    }
+  ]
+}

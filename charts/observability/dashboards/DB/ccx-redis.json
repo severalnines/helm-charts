@@ -1,0 +1,3110 @@
+{
+  "uid": "ccx-redis",
+  "title": "CCX / Redis & Valkey",
+  "description": "CCX Redis/Valkey datastores (redis_exporter via cmon service discovery): health, replication, memory, keyspace, commands, network and persistence. Sentinel metrics are not exported on CCX, so there is no Sentinel row.",
+  "tags": [
+    "ccx",
+    "datastore",
+    "redis",
+    "valkey"
+  ],
+  "editable": true,
+  "schemaVersion": 41,
+  "version": 1,
+  "graphTooltip": 1,
+  "timezone": "browser",
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "refresh": "1m",
+  "fiscalYearStartMonth": 0,
+  "liveNow": false,
+  "weekStart": "",
+  "timepicker": {},
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "links": [
+    {
+      "type": "dashboards",
+      "tags": [
+        "ccx"
+      ],
+      "asDropdown": true,
+      "title": "CCX dashboards",
+      "includeVars": true,
+      "keepTime": true
+    },
+    {
+      "type": "link",
+      "title": "Node Exporter",
+      "url": "/d/rYdddlPWk/node-exporter-full",
+      "icon": "dashboard",
+      "keepTime": true,
+      "includeVars": false,
+      "asDropdown": false,
+      "tags": [],
+      "targetBlank": false,
+      "tooltip": "Host metrics (pick job + node)"
+    }
+  ],
+  "templating": {
+    "list": [
+      {
+        "name": "datasource",
+        "label": "Data source",
+        "type": "datasource",
+        "query": "prometheus",
+        "current": {},
+        "hide": 0,
+        "refresh": 1,
+        "regex": "",
+        "options": [],
+        "includeAll": false,
+        "multi": false
+      },
+      {
+        "name": "environment",
+        "label": "Namespace",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+        },
+        "definition": "query_result(count by (ns) (label_replace({__name__=~\"cmon_up|requests_total\"}, \"ns\", \"$1\", \"kubernetes_namespace\", \"(.+)\")) or count by (ns) (label_replace(redis_up{job=~\"cmon-sd.*\"}, \"ns\", \"$1\", \"environment\", \"(.+)\")))",
+        "query": {
+          "query": "query_result(count by (ns) (label_replace({__name__=~\"cmon_up|requests_total\"}, \"ns\", \"$1\", \"kubernetes_namespace\", \"(.+)\")) or count by (ns) (label_replace(redis_up{job=~\"cmon-sd.*\"}, \"ns\", \"$1\", \"environment\", \"(.+)\")))",
+          "qryType": 1,
+          "refId": "PrometheusVariableQueryEditor-VariableQuery"
+        },
+        "current": {},
+        "hide": 0,
+        "refresh": 2,
+        "regex": "/ns=\"([^\"]+)\"/",
+        "options": [],
+        "sort": 1,
+        "includeAll": false,
+        "multi": false
+      },
+      {
+        "name": "datastore",
+        "label": "Datastore",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+        },
+        "definition": "query_result(max by (ClusterName, DatastoreName) (redis_up{job=~\"cmon-sd.*\",environment=~\"$environment\"}))",
+        "query": {
+          "query": "query_result(max by (ClusterName, DatastoreName) (redis_up{job=~\"cmon-sd.*\",environment=~\"$environment\"}))",
+          "qryType": 3,
+          "refId": "PrometheusVariableQueryEditor-VariableQuery"
+        },
+        "current": {},
+        "hide": 0,
+        "refresh": 2,
+        "regex": "/ClusterName=\"(?<value>[^\"]+)\".*DatastoreName=\"(?<text>[^\"]*)\"/",
+        "options": [],
+        "sort": 1,
+        "includeAll": false,
+        "multi": false
+      },
+      {
+        "name": "instance",
+        "label": "Instance",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+        },
+        "definition": "label_values(redis_up{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\"}, instance)",
+        "query": {
+          "query": "label_values(redis_up{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\"}, instance)",
+          "qryType": 1,
+          "refId": "PrometheusVariableQueryEditor-VariableQuery"
+        },
+        "current": {},
+        "hide": 0,
+        "refresh": 2,
+        "regex": "",
+        "options": [],
+        "sort": 1,
+        "includeAll": true,
+        "allValue": ".*",
+        "multi": true
+      }
+    ]
+  },
+  "panels": [
+    {
+      "type": "row",
+      "title": "Overview",
+      "collapsed": false,
+      "id": 1,
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "type": "stat",
+      "title": "Node status",
+      "description": "redis_up per Redis/Valkey node: UP when the exporter can reach the server; click a node for host metrics.",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "A",
+          "expr": "redis_up{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\"}",
+          "legendFormat": "{{DatastoreName}} {{ip}}",
+          "range": false,
+          "instant": true,
+          "format": "time_series"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": {
+                  "text": "DOWN",
+                  "color": "red",
+                  "index": 0
+                },
+                "1": {
+                  "text": "UP",
+                  "color": "green",
+                  "index": 1
+                }
+              }
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 1
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          },
+          "links": [
+            {
+              "title": "Node metrics for ${__field.labels.ip}",
+              "url": "/d/rYdddlPWk/node-exporter-full?var-datasource=${datasource}&var-job=${__field.labels.job}&var-node=${__field.labels.ip}:9100&${__url_time_range}",
+              "targetBlank": false
+            }
+          ]
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "auto",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "wideLayout": true,
+        "showPercentChange": false
+      },
+      "id": 2,
+      "gridPos": {
+        "x": 0,
+        "y": 1,
+        "w": 8,
+        "h": 5
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Uptime",
+      "description": "Seconds since the Redis/Valkey server process started (redis_uptime_in_seconds).",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "A",
+          "expr": "redis_uptime_in_seconds{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\"}",
+          "legendFormat": "{{ip}}",
+          "range": false,
+          "instant": true,
+          "format": "time_series"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "orange",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 3600
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          },
+          "links": [
+            {
+              "title": "Node metrics for ${__field.labels.ip}",
+              "url": "/d/rYdddlPWk/node-exporter-full?var-datasource=${datasource}&var-job=${__field.labels.job}&var-node=${__field.labels.ip}:9100&${__url_time_range}",
+              "targetBlank": false
+            }
+          ]
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "auto",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "wideLayout": true,
+        "showPercentChange": false
+      },
+      "id": 3,
+      "gridPos": {
+        "x": 8,
+        "y": 1,
+        "w": 8,
+        "h": 5
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Ops/s",
+      "description": "Commands processed per second per node (rate of redis_commands_processed_total).",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "A",
+          "expr": "sum by (DatastoreName, ip, instance, job) (rate(redis_commands_processed_total{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\"}[$__rate_interval]))",
+          "legendFormat": "{{ip}}",
+          "range": true,
+          "instant": false,
+          "format": "time_series"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops",
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          },
+          "links": [
+            {
+              "title": "Node metrics for ${__field.labels.ip}",
+              "url": "/d/rYdddlPWk/node-exporter-full?var-datasource=${datasource}&var-job=${__field.labels.job}&var-node=${__field.labels.ip}:9100&${__url_time_range}",
+              "targetBlank": false
+            }
+          ]
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "wideLayout": true,
+        "showPercentChange": false
+      },
+      "id": 4,
+      "gridPos": {
+        "x": 16,
+        "y": 1,
+        "w": 8,
+        "h": 5
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      }
+    },
+    {
+      "type": "table",
+      "title": "Nodes",
+      "description": "One row per node: datastore, IP, role, Valkey/Redis version and eviction policy (redis_instance_info).",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "A",
+          "expr": "max by (ClusterType, DatastoreName, ip, instance, job, role, redis_version, valkey_version, maxmemory_policy) (redis_instance_info{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\"})",
+          "legendFormat": "__auto",
+          "range": false,
+          "instant": true,
+          "format": "table"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            }
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Value"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "auto"
+                }
+              },
+              {
+                "id": "mappings",
+                "value": []
+              },
+              {
+                "id": "unit",
+                "value": "short"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "ip"
+            },
+            "properties": [
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Node metrics for ${__data.fields.ip}",
+                    "url": "/d/rYdddlPWk/node-exporter-full?var-datasource=${datasource}&var-job=${__data.fields.job}&var-node=${__data.fields.ip}:9100&${__url_time_range}",
+                    "targetBlank": false
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        }
+      },
+      "transformations": [
+        {
+          "id": "filterFieldsByName",
+          "options": {
+            "include": {
+              "names": [
+                "DatastoreName",
+                "ClusterType",
+                "ip",
+                "instance",
+                "role",
+                "valkey_version",
+                "redis_version",
+                "maxmemory_policy",
+                "Value"
+              ]
+            }
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            },
+            "indexByName": {
+              "DatastoreName": 0,
+              "ClusterType": 1,
+              "ip": 2,
+              "instance": 3,
+              "role": 4,
+              "valkey_version": 5,
+              "redis_version": 6,
+              "maxmemory_policy": 7,
+              "Value": 8
+            },
+            "renameByName": {
+              "DatastoreName": "Datastore",
+              "ClusterType": "Type",
+              "role": "Role",
+              "valkey_version": "Valkey",
+              "redis_version": "Redis compat",
+              "maxmemory_policy": "Eviction policy",
+              "Value": "Info"
+            }
+          }
+        }
+      ],
+      "id": 5,
+      "gridPos": {
+        "x": 0,
+        "y": 6,
+        "w": 12,
+        "h": 7
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Clients",
+      "description": "Connected and blocked clients per node (redis_connected_clients, redis_blocked_clients).",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "A",
+          "expr": "max by (DatastoreName, ip, instance, job) (redis_connected_clients{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\"})",
+          "legendFormat": "{{ip}} connected",
+          "range": true,
+          "instant": false,
+          "format": "time_series"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "B",
+          "expr": "max by (DatastoreName, ip, instance, job) (redis_blocked_clients{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\"})",
+          "legendFormat": "{{ip}} blocked",
+          "range": true,
+          "instant": false,
+          "format": "time_series"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            }
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "links": [
+            {
+              "title": "Node metrics for ${__field.labels.ip}",
+              "url": "/d/rYdddlPWk/node-exporter-full?var-datasource=${datasource}&var-job=${__field.labels.job}&var-node=${__field.labels.ip}:9100&${__url_time_range}",
+              "targetBlank": false
+            }
+          ],
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "id": 6,
+      "gridPos": {
+        "x": 12,
+        "y": 6,
+        "w": 12,
+        "h": 7
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      }
+    },
+    {
+      "type": "row",
+      "title": "Replication",
+      "collapsed": false,
+      "id": 7,
+      "gridPos": {
+        "x": 0,
+        "y": 13,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "type": "stat",
+      "title": "Replica link to master",
+      "description": "redis_master_link_up on replicas: UP when the replica is connected to its master (primaries show nothing).",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "A",
+          "expr": "redis_master_link_up{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\"}",
+          "legendFormat": "{{DatastoreName}} {{ip}}",
+          "range": false,
+          "instant": true,
+          "format": "time_series"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": {
+                  "text": "DOWN",
+                  "color": "red",
+                  "index": 0
+                },
+                "1": {
+                  "text": "UP",
+                  "color": "green",
+                  "index": 1
+                }
+              }
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 1
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          },
+          "links": [
+            {
+              "title": "Node metrics for ${__field.labels.ip}",
+              "url": "/d/rYdddlPWk/node-exporter-full?var-datasource=${datasource}&var-job=${__field.labels.job}&var-node=${__field.labels.ip}:9100&${__url_time_range}",
+              "targetBlank": false
+            }
+          ]
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "auto",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "wideLayout": true,
+        "showPercentChange": false
+      },
+      "id": 8,
+      "gridPos": {
+        "x": 0,
+        "y": 14,
+        "w": 8,
+        "h": 5
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Connected replicas",
+      "description": "Replicas attached to each primary (redis_connected_slaves).",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "A",
+          "expr": "redis_connected_slaves{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\"} and on (instance) redis_instance_info{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\",role=\"master\"}",
+          "legendFormat": "{{DatastoreName}} {{ip}}",
+          "range": false,
+          "instant": true,
+          "format": "time_series"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "orange",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 1
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          },
+          "links": [
+            {
+              "title": "Node metrics for ${__field.labels.ip}",
+              "url": "/d/rYdddlPWk/node-exporter-full?var-datasource=${datasource}&var-job=${__field.labels.job}&var-node=${__field.labels.ip}:9100&${__url_time_range}",
+              "targetBlank": false
+            }
+          ]
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "auto",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "wideLayout": true,
+        "showPercentChange": false
+      },
+      "id": 9,
+      "gridPos": {
+        "x": 8,
+        "y": 14,
+        "w": 8,
+        "h": 5
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Seconds since last master I/O",
+      "description": "redis_master_last_io_seconds_ago on replicas: time since the last interaction with the master.",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "A",
+          "expr": "redis_master_last_io_seconds_ago{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\"}",
+          "legendFormat": "{{ip}}",
+          "range": false,
+          "instant": true,
+          "format": "time_series"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 10
+              },
+              {
+                "color": "red",
+                "value": 60
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          },
+          "links": [
+            {
+              "title": "Node metrics for ${__field.labels.ip}",
+              "url": "/d/rYdddlPWk/node-exporter-full?var-datasource=${datasource}&var-job=${__field.labels.job}&var-node=${__field.labels.ip}:9100&${__url_time_range}",
+              "targetBlank": false
+            }
+          ]
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "auto",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "wideLayout": true,
+        "showPercentChange": false
+      },
+      "id": 10,
+      "gridPos": {
+        "x": 16,
+        "y": 14,
+        "w": 8,
+        "h": 5
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Replica lag (seconds)",
+      "description": "Lag reported by the primary for each replica (redis_connected_slave_lag_seconds).",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "A",
+          "expr": "redis_connected_slave_lag_seconds{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\"}",
+          "legendFormat": "{{ip}} → {{slave_ip}} ({{slave_state}})",
+          "range": true,
+          "instant": false,
+          "format": "time_series"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            }
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "links": [],
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "id": 11,
+      "gridPos": {
+        "x": 0,
+        "y": 19,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Replica offset behind master (bytes)",
+      "description": "Bytes each replica is behind, computed on the primary from one INFO snapshot: master_repl_offset minus the replica's acknowledged offset (redis_connected_slave_offset_bytes). Replicas acknowledge about once per second, so a few hundred bytes are normal; the primary must be among the selected instances.",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "A",
+          "expr": "clamp_min(max by (ClusterName, DatastoreName, ip, instance, job) (redis_master_repl_offset{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\"} and on (instance) redis_instance_info{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\",role=\"master\"}) - on (instance) group_right () max by (ClusterName, DatastoreName, ip, instance, job, slave_ip, slave_port, slave_state) (redis_connected_slave_offset_bytes{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\"}), 0)",
+          "legendFormat": "{{ip}} → {{slave_ip}} ({{slave_state}})",
+          "range": true,
+          "instant": false,
+          "format": "time_series"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            }
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "links": [
+            {
+              "title": "Node metrics for ${__field.labels.ip}",
+              "url": "/d/rYdddlPWk/node-exporter-full?var-datasource=${datasource}&var-job=${__field.labels.job}&var-node=${__field.labels.ip}:9100&${__url_time_range}",
+              "targetBlank": false
+            }
+          ],
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "id": 12,
+      "gridPos": {
+        "x": 12,
+        "y": 19,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      }
+    },
+    {
+      "type": "row",
+      "title": "Memory",
+      "collapsed": false,
+      "id": 13,
+      "gridPos": {
+        "x": 0,
+        "y": 27,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "type": "timeseries",
+      "title": "Memory used / RSS / peak",
+      "description": "Memory allocated by Redis (used), resident set size from the OS (RSS) and peak used memory, per node.",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "A",
+          "expr": "max by (DatastoreName, ip, instance, job) (redis_memory_used_bytes{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\"})",
+          "legendFormat": "{{ip}} used",
+          "range": true,
+          "instant": false,
+          "format": "time_series"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "B",
+          "expr": "max by (DatastoreName, ip, instance, job) (redis_memory_used_rss_bytes{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\"})",
+          "legendFormat": "{{ip}} RSS",
+          "range": true,
+          "instant": false,
+          "format": "time_series"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "C",
+          "expr": "max by (DatastoreName, ip, instance, job) (redis_memory_used_peak_bytes{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\"})",
+          "legendFormat": "{{ip}} peak",
+          "range": true,
+          "instant": false,
+          "format": "time_series"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            }
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "links": [
+            {
+              "title": "Node metrics for ${__field.labels.ip}",
+              "url": "/d/rYdddlPWk/node-exporter-full?var-datasource=${datasource}&var-job=${__field.labels.job}&var-node=${__field.labels.ip}:9100&${__url_time_range}",
+              "targetBlank": false
+            }
+          ],
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "id": 14,
+      "gridPos": {
+        "x": 0,
+        "y": 28,
+        "w": 8,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      }
+    },
+    {
+      "type": "gauge",
+      "title": "Memory used of maxmemory",
+      "description": "Used memory as a share of maxmemory; only nodes with a maxmemory limit (> 0) are shown, nodes without a limit appear in the maxmemory panel as \"no limit\".",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "A",
+          "expr": "max by (DatastoreName, ip, instance, job) (redis_memory_used_bytes{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\"}) / on (instance) group_left () (max by (instance) (redis_memory_max_bytes{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\"}) > 0)",
+          "legendFormat": "{{ip}}",
+          "range": false,
+          "instant": true,
+          "format": "time_series"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "min": 0,
+          "max": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 0.8
+              },
+              {
+                "color": "red",
+                "value": 0.95
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          },
+          "links": [
+            {
+              "title": "Node metrics for ${__field.labels.ip}",
+              "url": "/d/rYdddlPWk/node-exporter-full?var-datasource=${datasource}&var-job=${__field.labels.job}&var-node=${__field.labels.ip}:9100&${__url_time_range}",
+              "targetBlank": false
+            }
+          ]
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true
+      },
+      "id": 15,
+      "gridPos": {
+        "x": 8,
+        "y": 28,
+        "w": 8,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      }
+    },
+    {
+      "type": "stat",
+      "title": "maxmemory",
+      "description": "Configured maxmemory per node (redis_memory_max_bytes); 0 means no limit.",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "A",
+          "expr": "redis_memory_max_bytes{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\"}",
+          "legendFormat": "{{ip}}",
+          "range": false,
+          "instant": true,
+          "format": "time_series"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": {
+                  "text": "no limit",
+                  "color": "orange",
+                  "index": 0
+                }
+              }
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          },
+          "links": [
+            {
+              "title": "Node metrics for ${__field.labels.ip}",
+              "url": "/d/rYdddlPWk/node-exporter-full?var-datasource=${datasource}&var-job=${__field.labels.job}&var-node=${__field.labels.ip}:9100&${__url_time_range}",
+              "targetBlank": false
+            }
+          ]
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "wideLayout": true,
+        "showPercentChange": false
+      },
+      "id": 16,
+      "gridPos": {
+        "x": 16,
+        "y": 28,
+        "w": 8,
+        "h": 4
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Fragmentation ratio",
+      "description": "RSS / used memory (redis_mem_fragmentation_ratio); above ~1.5 indicates fragmentation, below 1 indicates swapping.",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "A",
+          "expr": "redis_mem_fragmentation_ratio{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\"}",
+          "legendFormat": "{{ip}}",
+          "range": false,
+          "instant": true,
+          "format": "time_series"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 1
+              },
+              {
+                "color": "orange",
+                "value": 1.5
+              },
+              {
+                "color": "red",
+                "value": 3
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          },
+          "links": [
+            {
+              "title": "Node metrics for ${__field.labels.ip}",
+              "url": "/d/rYdddlPWk/node-exporter-full?var-datasource=${datasource}&var-job=${__field.labels.job}&var-node=${__field.labels.ip}:9100&${__url_time_range}",
+              "targetBlank": false
+            }
+          ],
+          "decimals": 2
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "auto",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "wideLayout": true,
+        "showPercentChange": false
+      },
+      "id": 17,
+      "gridPos": {
+        "x": 0,
+        "y": 36,
+        "w": 8,
+        "h": 4
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Fragmentation ratio over time",
+      "description": "redis_mem_fragmentation_ratio per node over time.",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "A",
+          "expr": "redis_mem_fragmentation_ratio{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\"}",
+          "legendFormat": "{{ip}}",
+          "range": true,
+          "instant": false,
+          "format": "time_series"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            }
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "links": [
+            {
+              "title": "Node metrics for ${__field.labels.ip}",
+              "url": "/d/rYdddlPWk/node-exporter-full?var-datasource=${datasource}&var-job=${__field.labels.job}&var-node=${__field.labels.ip}:9100&${__url_time_range}",
+              "targetBlank": false
+            }
+          ]
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "id": 18,
+      "gridPos": {
+        "x": 8,
+        "y": 36,
+        "w": 12,
+        "h": 7
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Memory breakdown",
+      "description": "Dataset vs overhead memory and replication backlog per node.",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "A",
+          "expr": "max by (DatastoreName, ip, instance, job) (redis_memory_used_dataset_bytes{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\"})",
+          "legendFormat": "{{ip}} dataset",
+          "range": true,
+          "instant": false,
+          "format": "time_series"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "B",
+          "expr": "max by (DatastoreName, ip, instance, job) (redis_memory_used_overhead_bytes{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\"})",
+          "legendFormat": "{{ip}} overhead",
+          "range": true,
+          "instant": false,
+          "format": "time_series"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "C",
+          "expr": "max by (DatastoreName, ip, instance, job) (redis_mem_replication_backlog_bytes{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\"})",
+          "legendFormat": "{{ip}} repl backlog",
+          "range": true,
+          "instant": false,
+          "format": "time_series"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            }
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "links": [
+            {
+              "title": "Node metrics for ${__field.labels.ip}",
+              "url": "/d/rYdddlPWk/node-exporter-full?var-datasource=${datasource}&var-job=${__field.labels.job}&var-node=${__field.labels.ip}:9100&${__url_time_range}",
+              "targetBlank": false
+            }
+          ],
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "id": 19,
+      "gridPos": {
+        "x": 0,
+        "y": 43,
+        "w": 12,
+        "h": 7
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      }
+    },
+    {
+      "type": "row",
+      "title": "Keyspace",
+      "collapsed": false,
+      "id": 20,
+      "gridPos": {
+        "x": 0,
+        "y": 50,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "type": "timeseries",
+      "title": "Keys per DB",
+      "description": "Total and expiring keys per logical database (redis_db_keys, redis_db_keys_expiring).",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "A",
+          "expr": "sum by (ip, db) (redis_db_keys{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\"})",
+          "legendFormat": "{{ip}} {{db}} keys",
+          "range": true,
+          "instant": false,
+          "format": "time_series"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "B",
+          "expr": "sum by (ip, db) (redis_db_keys_expiring{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\"})",
+          "legendFormat": "{{ip}} {{db}} expiring",
+          "range": true,
+          "instant": false,
+          "format": "time_series"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            }
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "links": [],
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "id": 21,
+      "gridPos": {
+        "x": 0,
+        "y": 51,
+        "w": 8,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Keyspace hit ratio",
+      "description": "Share of key lookups that found a key: rate(hits) / (rate(hits) + rate(misses)); gaps mean no lookups in the interval.",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "A",
+          "expr": "sum by (DatastoreName, ip, instance, job) (rate(redis_keyspace_hits_total{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\"}[$__rate_interval])) / (sum by (DatastoreName, ip, instance, job) (rate(redis_keyspace_hits_total{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\"}[$__rate_interval])) + sum by (DatastoreName, ip, instance, job) (rate(redis_keyspace_misses_total{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\"}[$__rate_interval])) > 0)",
+          "legendFormat": "{{ip}}",
+          "range": true,
+          "instant": false,
+          "format": "time_series"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            }
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "links": [
+            {
+              "title": "Node metrics for ${__field.labels.ip}",
+              "url": "/d/rYdddlPWk/node-exporter-full?var-datasource=${datasource}&var-job=${__field.labels.job}&var-node=${__field.labels.ip}:9100&${__url_time_range}",
+              "targetBlank": false
+            }
+          ],
+          "min": 0,
+          "max": 1
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "id": 22,
+      "gridPos": {
+        "x": 8,
+        "y": 51,
+        "w": 8,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Hits / misses per second",
+      "description": "Key lookups per second that hit or missed (rate of redis_keyspace_hits_total / misses_total).",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "A",
+          "expr": "sum by (DatastoreName, ip, instance, job) (rate(redis_keyspace_hits_total{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\"}[$__rate_interval]))",
+          "legendFormat": "{{ip}} hits",
+          "range": true,
+          "instant": false,
+          "format": "time_series"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "B",
+          "expr": "sum by (DatastoreName, ip, instance, job) (rate(redis_keyspace_misses_total{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\"}[$__rate_interval]))",
+          "legendFormat": "{{ip}} misses",
+          "range": true,
+          "instant": false,
+          "format": "time_series"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            }
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "links": [
+            {
+              "title": "Node metrics for ${__field.labels.ip}",
+              "url": "/d/rYdddlPWk/node-exporter-full?var-datasource=${datasource}&var-job=${__field.labels.job}&var-node=${__field.labels.ip}:9100&${__url_time_range}",
+              "targetBlank": false
+            }
+          ],
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "id": 23,
+      "gridPos": {
+        "x": 16,
+        "y": 51,
+        "w": 8,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Expired / evicted keys",
+      "description": "Keys removed per second by TTL expiry and by maxmemory eviction (rate of redis_expired_keys_total / redis_evicted_keys_total).",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "A",
+          "expr": "sum by (DatastoreName, ip, instance, job) (rate(redis_expired_keys_total{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\"}[$__rate_interval]))",
+          "legendFormat": "{{ip}} expired",
+          "range": true,
+          "instant": false,
+          "format": "time_series"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "B",
+          "expr": "sum by (DatastoreName, ip, instance, job) (rate(redis_evicted_keys_total{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\"}[$__rate_interval]))",
+          "legendFormat": "{{ip}} evicted",
+          "range": true,
+          "instant": false,
+          "format": "time_series"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            }
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "links": [
+            {
+              "title": "Node metrics for ${__field.labels.ip}",
+              "url": "/d/rYdddlPWk/node-exporter-full?var-datasource=${datasource}&var-job=${__field.labels.job}&var-node=${__field.labels.ip}:9100&${__url_time_range}",
+              "targetBlank": false
+            }
+          ],
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "id": 24,
+      "gridPos": {
+        "x": 0,
+        "y": 59,
+        "w": 24,
+        "h": 7
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      }
+    },
+    {
+      "type": "row",
+      "title": "Commands",
+      "collapsed": false,
+      "id": 25,
+      "gridPos": {
+        "x": 0,
+        "y": 66,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "type": "timeseries",
+      "title": "Top 10 commands by rate",
+      "description": "The ten busiest commands across the selected nodes (rate of redis_commands_total by cmd).",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "A",
+          "expr": "topk(10, sum by (cmd) (rate(redis_commands_total{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\"}[$__rate_interval])))",
+          "legendFormat": "{{cmd}}",
+          "range": true,
+          "instant": false,
+          "format": "time_series"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            }
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "links": [],
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "id": 26,
+      "gridPos": {
+        "x": 0,
+        "y": 67,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Average latency per command (top 10)",
+      "description": "Average server-side execution time per call: rate(redis_commands_duration_seconds_total) / rate(redis_commands_total), slowest ten commands.",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "A",
+          "expr": "topk(10, sum by (cmd) (rate(redis_commands_duration_seconds_total{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\"}[$__rate_interval])) / (sum by (cmd) (rate(redis_commands_total{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\"}[$__rate_interval])) > 0))",
+          "legendFormat": "{{cmd}}",
+          "range": true,
+          "instant": false,
+          "format": "time_series"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            }
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "links": [],
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "id": 27,
+      "gridPos": {
+        "x": 12,
+        "y": 67,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "p99 latency per command (top 10)",
+      "description": "Server-reported p99 latency per command (redis_latency_percentiles_usec, quantile 99), highest ten.",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "A",
+          "expr": "topk(10, max by (cmd) (redis_latency_percentiles_usec{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\",quantile=\"99\"}))",
+          "legendFormat": "{{cmd}}",
+          "range": true,
+          "instant": false,
+          "format": "time_series"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "µs",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            }
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "links": [],
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "id": 28,
+      "gridPos": {
+        "x": 0,
+        "y": 75,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Failed / rejected calls & errors",
+      "description": "Failed and rejected command calls and error replies per second.",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "A",
+          "expr": "sum by (DatastoreName, ip, instance, job) (rate(redis_commands_failed_calls_total{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\"}[$__rate_interval]))",
+          "legendFormat": "{{ip}} failed",
+          "range": true,
+          "instant": false,
+          "format": "time_series"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "B",
+          "expr": "sum by (DatastoreName, ip, instance, job) (rate(redis_commands_rejected_calls_total{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\"}[$__rate_interval]))",
+          "legendFormat": "{{ip}} rejected",
+          "range": true,
+          "instant": false,
+          "format": "time_series"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "C",
+          "expr": "sum by (DatastoreName, ip, instance, job) (rate(redis_total_error_replies{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\"}[$__rate_interval]))",
+          "legendFormat": "{{ip}} error replies",
+          "range": true,
+          "instant": false,
+          "format": "time_series"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            }
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "links": [
+            {
+              "title": "Node metrics for ${__field.labels.ip}",
+              "url": "/d/rYdddlPWk/node-exporter-full?var-datasource=${datasource}&var-job=${__field.labels.job}&var-node=${__field.labels.ip}:9100&${__url_time_range}",
+              "targetBlank": false
+            }
+          ],
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "id": 29,
+      "gridPos": {
+        "x": 12,
+        "y": 75,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      }
+    },
+    {
+      "type": "row",
+      "title": "Network",
+      "collapsed": false,
+      "id": 30,
+      "gridPos": {
+        "x": 0,
+        "y": 83,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "type": "timeseries",
+      "title": "Network traffic",
+      "description": "Bytes per second received and sent by the server, excluding and including replication traffic.",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "A",
+          "expr": "sum by (DatastoreName, ip, instance, job) (rate(redis_net_input_bytes_total{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\"}[$__rate_interval]))",
+          "legendFormat": "{{ip}} in",
+          "range": true,
+          "instant": false,
+          "format": "time_series"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "B",
+          "expr": "sum by (DatastoreName, ip, instance, job) (rate(redis_net_output_bytes_total{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\"}[$__rate_interval]))",
+          "legendFormat": "{{ip}} out",
+          "range": true,
+          "instant": false,
+          "format": "time_series"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "C",
+          "expr": "sum by (DatastoreName, ip, instance, job) (rate(redis_net_repl_input_bytes_total{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\"}[$__rate_interval]))",
+          "legendFormat": "{{ip}} repl in",
+          "range": true,
+          "instant": false,
+          "format": "time_series"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "D",
+          "expr": "sum by (DatastoreName, ip, instance, job) (rate(redis_net_repl_output_bytes_total{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\"}[$__rate_interval]))",
+          "legendFormat": "{{ip}} repl out",
+          "range": true,
+          "instant": false,
+          "format": "time_series"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "Bps",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            }
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "links": [
+            {
+              "title": "Node metrics for ${__field.labels.ip}",
+              "url": "/d/rYdddlPWk/node-exporter-full?var-datasource=${datasource}&var-job=${__field.labels.job}&var-node=${__field.labels.ip}:9100&${__url_time_range}",
+              "targetBlank": false
+            }
+          ],
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "id": 31,
+      "gridPos": {
+        "x": 0,
+        "y": 84,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Connections",
+      "description": "New connections accepted and rejected (maxclients reached) per second.",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "A",
+          "expr": "sum by (DatastoreName, ip, instance, job) (rate(redis_connections_received_total{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\"}[$__rate_interval]))",
+          "legendFormat": "{{ip}} received",
+          "range": true,
+          "instant": false,
+          "format": "time_series"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "B",
+          "expr": "sum by (DatastoreName, ip, instance, job) (rate(redis_rejected_connections_total{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\"}[$__rate_interval]))",
+          "legendFormat": "{{ip}} rejected",
+          "range": true,
+          "instant": false,
+          "format": "time_series"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            }
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "links": [
+            {
+              "title": "Node metrics for ${__field.labels.ip}",
+              "url": "/d/rYdddlPWk/node-exporter-full?var-datasource=${datasource}&var-job=${__field.labels.job}&var-node=${__field.labels.ip}:9100&${__url_time_range}",
+              "targetBlank": false
+            }
+          ],
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "id": 32,
+      "gridPos": {
+        "x": 12,
+        "y": 84,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      }
+    },
+    {
+      "type": "row",
+      "title": "Persistence",
+      "collapsed": false,
+      "id": 33,
+      "gridPos": {
+        "x": 0,
+        "y": 92,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "type": "stat",
+      "title": "Time since last RDB save",
+      "description": "Age of the last successful RDB snapshot: time() - redis_rdb_last_save_timestamp_seconds.",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "A",
+          "expr": "time() - redis_rdb_last_save_timestamp_seconds{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\"}",
+          "legendFormat": "{{ip}}",
+          "range": false,
+          "instant": true,
+          "format": "time_series"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 86400
+              },
+              {
+                "color": "red",
+                "value": 172800
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          },
+          "links": [
+            {
+              "title": "Node metrics for ${__field.labels.ip}",
+              "url": "/d/rYdddlPWk/node-exporter-full?var-datasource=${datasource}&var-job=${__field.labels.job}&var-node=${__field.labels.ip}:9100&${__url_time_range}",
+              "targetBlank": false
+            }
+          ]
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "auto",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "wideLayout": true,
+        "showPercentChange": false
+      },
+      "id": 34,
+      "gridPos": {
+        "x": 0,
+        "y": 93,
+        "w": 6,
+        "h": 5
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Last bgsave status",
+      "description": "Result of the last RDB background save (redis_rdb_last_bgsave_status).",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "A",
+          "expr": "redis_rdb_last_bgsave_status{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\"}",
+          "legendFormat": "{{ip}}",
+          "range": false,
+          "instant": true,
+          "format": "time_series"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": {
+                  "text": "FAILED",
+                  "color": "red",
+                  "index": 0
+                },
+                "1": {
+                  "text": "OK",
+                  "color": "green",
+                  "index": 1
+                }
+              }
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 1
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          },
+          "links": [
+            {
+              "title": "Node metrics for ${__field.labels.ip}",
+              "url": "/d/rYdddlPWk/node-exporter-full?var-datasource=${datasource}&var-job=${__field.labels.job}&var-node=${__field.labels.ip}:9100&${__url_time_range}",
+              "targetBlank": false
+            }
+          ]
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "auto",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "wideLayout": true,
+        "showPercentChange": false
+      },
+      "id": 35,
+      "gridPos": {
+        "x": 6,
+        "y": 93,
+        "w": 6,
+        "h": 5
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      }
+    },
+    {
+      "type": "stat",
+      "title": "AOF",
+      "description": "Whether append-only file persistence is enabled (redis_aof_enabled) on each node.",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "A",
+          "expr": "redis_aof_enabled{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\"}",
+          "legendFormat": "{{ip}}",
+          "range": false,
+          "instant": true,
+          "format": "time_series"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": {
+                  "text": "off",
+                  "color": "text",
+                  "index": 0
+                },
+                "1": {
+                  "text": "on",
+                  "color": "green",
+                  "index": 1
+                }
+              }
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          },
+          "links": [
+            {
+              "title": "Node metrics for ${__field.labels.ip}",
+              "url": "/d/rYdddlPWk/node-exporter-full?var-datasource=${datasource}&var-job=${__field.labels.job}&var-node=${__field.labels.ip}:9100&${__url_time_range}",
+              "targetBlank": false
+            }
+          ]
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "auto",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "wideLayout": true,
+        "showPercentChange": false
+      },
+      "id": 36,
+      "gridPos": {
+        "x": 12,
+        "y": 93,
+        "w": 6,
+        "h": 5
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      }
+    },
+    {
+      "type": "stat",
+      "title": "AOF last write status",
+      "description": "Result of the last AOF write (redis_aof_last_write_status).",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "A",
+          "expr": "redis_aof_last_write_status{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\"}",
+          "legendFormat": "{{ip}}",
+          "range": false,
+          "instant": true,
+          "format": "time_series"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": {
+                  "text": "FAILED",
+                  "color": "red",
+                  "index": 0
+                },
+                "1": {
+                  "text": "OK",
+                  "color": "green",
+                  "index": 1
+                }
+              }
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 1
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          },
+          "links": [
+            {
+              "title": "Node metrics for ${__field.labels.ip}",
+              "url": "/d/rYdddlPWk/node-exporter-full?var-datasource=${datasource}&var-job=${__field.labels.job}&var-node=${__field.labels.ip}:9100&${__url_time_range}",
+              "targetBlank": false
+            }
+          ]
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "auto",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "wideLayout": true,
+        "showPercentChange": false
+      },
+      "id": 37,
+      "gridPos": {
+        "x": 18,
+        "y": 93,
+        "w": 6,
+        "h": 5
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Changes since last RDB save",
+      "description": "Write operations not yet persisted to an RDB snapshot (redis_rdb_changes_since_last_save).",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "A",
+          "expr": "redis_rdb_changes_since_last_save{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\"}",
+          "legendFormat": "{{ip}}",
+          "range": true,
+          "instant": false,
+          "format": "time_series"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            }
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "links": [
+            {
+              "title": "Node metrics for ${__field.labels.ip}",
+              "url": "/d/rYdddlPWk/node-exporter-full?var-datasource=${datasource}&var-job=${__field.labels.job}&var-node=${__field.labels.ip}:9100&${__url_time_range}",
+              "targetBlank": false
+            }
+          ],
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "id": 38,
+      "gridPos": {
+        "x": 0,
+        "y": 98,
+        "w": 12,
+        "h": 7
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "AOF size",
+      "description": "Current size of the append-only file per node (redis_aof_current_size_bytes).",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "A",
+          "expr": "redis_aof_current_size_bytes{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\"}",
+          "legendFormat": "{{ip}}",
+          "range": true,
+          "instant": false,
+          "format": "time_series"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            }
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "links": [
+            {
+              "title": "Node metrics for ${__field.labels.ip}",
+              "url": "/d/rYdddlPWk/node-exporter-full?var-datasource=${datasource}&var-job=${__field.labels.job}&var-node=${__field.labels.ip}:9100&${__url_time_range}",
+              "targetBlank": false
+            }
+          ],
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "id": 39,
+      "gridPos": {
+        "x": 12,
+        "y": 98,
+        "w": 12,
+        "h": 7
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      }
+    }
+  ]
+}

@@ -1,0 +1,802 @@
+{
+  "uid": "ccx-logs",
+  "title": "CCX / Logs",
+  "description": "CCX service and cmon logs from Loki: error rates, top erroring services and a filtered log view.",
+  "tags": [
+    "ccx",
+    "logs"
+  ],
+  "editable": true,
+  "graphTooltip": 1,
+  "schemaVersion": 41,
+  "version": 1,
+  "timezone": "browser",
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
+  "refresh": "",
+  "links": [
+    {
+      "type": "dashboards",
+      "tags": [
+        "ccx"
+      ],
+      "asDropdown": true,
+      "title": "CCX dashboards",
+      "includeVars": true,
+      "keepTime": true
+    }
+  ],
+  "fiscalYearStartMonth": 0,
+  "liveNow": false,
+  "weekStart": "",
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "templating": {
+    "list": [
+      {
+        "name": "loki",
+        "label": "Loki",
+        "type": "datasource",
+        "query": "loki",
+        "current": {},
+        "hide": 0,
+        "refresh": 1,
+        "regex": "",
+        "includeAll": false,
+        "multi": false,
+        "options": []
+      },
+      {
+        "name": "environment",
+        "label": "Namespace",
+        "type": "query",
+        "datasource": {
+          "type": "loki",
+          "uid": "${loki}"
+        },
+        "definition": "",
+        "query": {
+          "type": 1,
+          "label": "namespace",
+          "stream": "",
+          "refId": "LokiVariableQueryEditor-VariableQuery"
+        },
+        "current": {
+          "selected": true,
+          "text": [
+            "All"
+          ],
+          "value": [
+            "$__all"
+          ]
+        },
+        "hide": 0,
+        "refresh": 2,
+        "regex": "",
+        "sort": 1,
+        "includeAll": true,
+        "multi": true,
+        "allValue": ".+",
+        "options": []
+      },
+      {
+        "name": "container",
+        "label": "Container",
+        "type": "query",
+        "datasource": {
+          "type": "loki",
+          "uid": "${loki}"
+        },
+        "definition": "",
+        "query": {
+          "type": 1,
+          "label": "container",
+          "stream": "{namespace=~\"$environment\"}",
+          "refId": "LokiVariableQueryEditor-VariableQuery"
+        },
+        "current": {
+          "selected": true,
+          "text": [
+            "All"
+          ],
+          "value": [
+            "$__all"
+          ]
+        },
+        "hide": 0,
+        "refresh": 2,
+        "regex": "",
+        "sort": 1,
+        "includeAll": true,
+        "multi": true,
+        "allValue": ".+",
+        "options": []
+      },
+      {
+        "name": "level",
+        "label": "Level",
+        "type": "custom",
+        "query": "error,fatal,warn,info,debug,trace,unknown",
+        "current": {
+          "selected": true,
+          "text": [
+            "All"
+          ],
+          "value": [
+            "$__all"
+          ]
+        },
+        "hide": 0,
+        "includeAll": true,
+        "multi": true,
+        "allValue": ".+",
+        "options": []
+      },
+      {
+        "name": "search",
+        "label": "Search",
+        "type": "textbox",
+        "query": "",
+        "current": {
+          "text": "",
+          "value": ""
+        },
+        "hide": 0,
+        "options": []
+      }
+    ]
+  },
+  "panels": [
+    {
+      "type": "row",
+      "id": 1,
+      "title": "Errors",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "panels": []
+    },
+    {
+      "type": "timeseries",
+      "title": "Error log lines per service",
+      "description": "Error-level log lines per minute by environment and container, averaged over each point's interval (every line is counted at any zoom). Matches zap/JSON \"severity\"/\"level\" error|fatal|critical|panic, logfmt level=error (as a key, not inside URLs or query text), cmon's (ERROR) prefix, [ERROR] prefixes (MySQL, billing Stripe errors, initconf) and klog E/F lines. Compare with the error ratio next to it: a rise here with a flat ratio is just more traffic.",
+      "targets": [
+        {
+          "expr": "sum by (namespace, container) (rate({namespace=~\"$environment\", container=~\"$container\"} |~ `\"(?i:severity|level)\":\"(?i:error|fatal|critical|panic|dpanic)\"|(^|[\\s,{])(?i:level)=(?i:error|fatal|critical)\\b|\\((\\x1b\\[[0-9;]*m)?(ERROR|CRITICAL|FATAL)(\\x1b\\[[0-9;]*m)?\\)|\\[(ERROR|FATAL|CRITICAL)\\]|^[EF]\\d{4} \\d\\d:\\d\\d:\\d\\d` [$__auto])) * 60",
+          "legendFormat": "{{namespace}} / {{container}}",
+          "queryType": "range",
+          "datasource": {
+            "type": "loki",
+            "uid": "${loki}"
+          },
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "sum",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "id": 2,
+      "gridPos": {
+        "x": 0,
+        "y": 1,
+        "w": 12,
+        "h": 9
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "${loki}"
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Error ratio per service",
+      "description": "Error lines as a share of all log lines, per service, in windows of the panel interval (at least 5 minutes, larger when zoomed out, so no lines are skipped). Unlike the raw error count, this does not grow with traffic or with chattier logging, so busy and quiet services compare fairly. Only windows where the service logged at least 100 lines are shown, so a handful of lines can't produce a 50% spike.",
+      "targets": [
+        {
+          "expr": "sum by (namespace, container) (count_over_time({namespace=~\"$environment\", container=~\"$container\"} |~ `\"(?i:severity|level)\":\"(?i:error|fatal|critical|panic|dpanic)\"|(^|[\\s,{])(?i:level)=(?i:error|fatal|critical)\\b|\\((\\x1b\\[[0-9;]*m)?(ERROR|CRITICAL|FATAL)(\\x1b\\[[0-9;]*m)?\\)|\\[(ERROR|FATAL|CRITICAL)\\]|^[EF]\\d{4} \\d\\d:\\d\\d:\\d\\d` [$__auto])) / (sum by (namespace, container) (count_over_time({namespace=~\"$environment\", container=~\"$container\"} [$__auto])) >= 100)",
+          "legendFormat": "{{namespace}} / {{container}}",
+          "queryType": "range",
+          "datasource": {
+            "type": "loki",
+            "uid": "${loki}"
+          },
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            }
+          },
+          "min": 0,
+          "decimals": 1
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "sum",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "id": 10,
+      "gridPos": {
+        "x": 12,
+        "y": 1,
+        "w": 12,
+        "h": 9
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "${loki}"
+      },
+      "interval": "5m"
+    },
+    {
+      "type": "table",
+      "title": "Top erroring services",
+      "description": "Services by error ratio over the selected range: error lines, all log lines, and the share that are errors. Services with fewer than 100 lines in the range are left out of the ratio.",
+      "targets": [
+        {
+          "queryType": "instant",
+          "datasource": {
+            "type": "loki",
+            "uid": "${loki}"
+          },
+          "refId": "A",
+          "expr": "sum by (namespace, container) (count_over_time({namespace=~\"$environment\", container=~\"$container\"} |~ `\"(?i:severity|level)\":\"(?i:error|fatal|critical|panic|dpanic)\"|(^|[\\s,{])(?i:level)=(?i:error|fatal|critical)\\b|\\((\\x1b\\[[0-9;]*m)?(ERROR|CRITICAL|FATAL)(\\x1b\\[[0-9;]*m)?\\)|\\[(ERROR|FATAL|CRITICAL)\\]|^[EF]\\d{4} \\d\\d:\\d\\d:\\d\\d` [$__range]))"
+        },
+        {
+          "queryType": "instant",
+          "datasource": {
+            "type": "loki",
+            "uid": "${loki}"
+          },
+          "refId": "B",
+          "expr": "sum by (namespace, container) (count_over_time({namespace=~\"$environment\", container=~\"$container\"} [$__range]))"
+        },
+        {
+          "queryType": "instant",
+          "datasource": {
+            "type": "loki",
+            "uid": "${loki}"
+          },
+          "refId": "C",
+          "expr": "sum by (namespace, container) (count_over_time({namespace=~\"$environment\", container=~\"$container\"} |~ `\"(?i:severity|level)\":\"(?i:error|fatal|critical|panic|dpanic)\"|(^|[\\s,{])(?i:level)=(?i:error|fatal|critical)\\b|\\((\\x1b\\[[0-9;]*m)?(ERROR|CRITICAL|FATAL)(\\x1b\\[[0-9;]*m)?\\)|\\[(ERROR|FATAL|CRITICAL)\\]|^[EF]\\d{4} \\d\\d:\\d\\d:\\d\\d` [$__range])) / (sum by (namespace, container) (count_over_time({namespace=~\"$environment\", container=~\"$container\"} [$__range])) >= 100)"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "merge",
+          "options": {}
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            },
+            "indexByName": {
+              "namespace": 0,
+              "container": 1,
+              "Value #A": 2,
+              "Value #B": 3,
+              "Value #C": 4
+            },
+            "renameByName": {
+              "namespace": "Environment",
+              "container": "Container",
+              "Value #A": "Errors",
+              "Value #B": "Log lines",
+              "Value #C": "Error %"
+            }
+          }
+        },
+        {
+          "id": "filterByValue",
+          "options": {
+            "type": "include",
+            "match": "any",
+            "filters": [
+              {
+                "fieldName": "Errors",
+                "config": {
+                  "id": "greater",
+                  "options": {
+                    "value": 0
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "align": "auto",
+            "filterable": true
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Errors"
+            },
+            "properties": [
+              {
+                "id": "decimals",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Log lines"
+            },
+            "properties": [
+              {
+                "id": "decimals",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Error %"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percentunit"
+              },
+              {
+                "id": "decimals",
+                "value": 1
+              },
+              {
+                "id": "max",
+                "value": 1
+              },
+              {
+                "id": "min",
+                "value": 0
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "gauge",
+                  "mode": "basic"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": null
+                    },
+                    {
+                      "color": "orange",
+                      "value": 0.01
+                    },
+                    {
+                      "color": "red",
+                      "value": 0.05
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "thresholds"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "sortBy": [
+          {
+            "displayName": "Error %",
+            "desc": true
+          }
+        ],
+        "footer": {
+          "show": false,
+          "reducer": [
+            "sum"
+          ],
+          "fields": ""
+        }
+      },
+      "id": 3,
+      "gridPos": {
+        "x": 0,
+        "y": 10,
+        "w": 24,
+        "h": 8
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "${loki}"
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Log volume by level",
+      "description": "Log lines per minute by level as detected by Loki (detected_level), averaged over each point's interval. detected_level is a heuristic: cmon lines mostly show as unknown because of ANSI colour codes, and for unstructured lines a word like \"Error\" anywhere can mark the line as error (e.g. ingress-nginx W-level warnings). The error panels above use a stricter level match.",
+      "targets": [
+        {
+          "expr": "sum by (detected_level) (rate({namespace=~\"$environment\", container=~\"$container\"} [$__auto])) * 60",
+          "legendFormat": "{{detected_level}}",
+          "queryType": "range",
+          "datasource": {
+            "type": "loki",
+            "uid": "${loki}"
+          },
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            }
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "error"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "red"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "warn"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "orange"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "info"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "green"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "debug"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "blue"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "calcs": []
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "id": 4,
+      "gridPos": {
+        "h": 7,
+        "w": 24,
+        "x": 0,
+        "y": 18
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "${loki}"
+      }
+    },
+    {
+      "type": "row",
+      "id": 5,
+      "title": "cmon",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 25
+      },
+      "panels": []
+    },
+    {
+      "type": "timeseries",
+      "title": "cmon errors and warnings",
+      "description": "cmon ERROR/CRITICAL/FATAL and WARNING log lines per minute by environment, averaged over each point's interval.",
+      "targets": [
+        {
+          "expr": "sum by (namespace) (rate({namespace=~\"$environment\", container=\"cmon\"} |~ `\\((\\x1b\\[[0-9;]*m)?(ERROR|CRITICAL|FATAL)` [$__auto])) * 60",
+          "legendFormat": "errors {{namespace}}",
+          "queryType": "range",
+          "datasource": {
+            "type": "loki",
+            "uid": "${loki}"
+          },
+          "refId": "A"
+        },
+        {
+          "expr": "sum by (namespace) (rate({namespace=~\"$environment\", container=\"cmon\"} |~ `\\((\\x1b\\[[0-9;]*m)?WARNING` [$__auto])) * 60",
+          "legendFormat": "warnings {{namespace}}",
+          "queryType": "range",
+          "datasource": {
+            "type": "loki",
+            "uid": "${loki}"
+          },
+          "refId": "B"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            }
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": "errors.*"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "red"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "calcs": []
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "id": 6,
+      "gridPos": {
+        "h": 7,
+        "w": 24,
+        "x": 0,
+        "y": 26
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "${loki}"
+      }
+    },
+    {
+      "type": "logs",
+      "title": "cmon logs",
+      "description": "cmon controller log (ANSI colours stripped) for the selected environments, filtered by the search text.",
+      "targets": [
+        {
+          "expr": "{namespace=~\"$environment\", container=\"cmon\"} | decolorize |~ \"(?i)$search\"",
+          "legendFormat": "",
+          "queryType": "range",
+          "datasource": {
+            "type": "loki",
+            "uid": "${loki}"
+          },
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "showTime": true,
+        "wrapLogMessage": true,
+        "sortOrder": "Descending",
+        "enableLogDetails": true,
+        "dedupStrategy": "none",
+        "prettifyLogMessage": false,
+        "showLabels": false,
+        "showCommonLabels": false
+      },
+      "id": 7,
+      "gridPos": {
+        "h": 12,
+        "w": 24,
+        "x": 0,
+        "y": 33
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "${loki}"
+      }
+    },
+    {
+      "type": "row",
+      "id": 8,
+      "title": "Logs",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 45
+      },
+      "panels": []
+    },
+    {
+      "type": "logs",
+      "title": "Logs",
+      "description": "Log lines for the selected environments, containers and levels, filtered by the case-insensitive search text.",
+      "targets": [
+        {
+          "expr": "{namespace=~\"$environment\", container=~\"$container\"} | detected_level=~\"$level\" |~ \"(?i)$search\"",
+          "legendFormat": "",
+          "queryType": "range",
+          "datasource": {
+            "type": "loki",
+            "uid": "${loki}"
+          },
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "showTime": true,
+        "wrapLogMessage": true,
+        "sortOrder": "Descending",
+        "enableLogDetails": true,
+        "dedupStrategy": "none",
+        "prettifyLogMessage": false,
+        "showLabels": false,
+        "showCommonLabels": false
+      },
+      "id": 9,
+      "gridPos": {
+        "h": 16,
+        "w": 24,
+        "x": 0,
+        "y": 46
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "${loki}"
+      }
+    }
+  ]
+}

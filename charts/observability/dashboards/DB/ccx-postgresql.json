@@ -1,0 +1,3418 @@
+{
+  "uid": "ccx-postgresql",
+  "title": "CCX / PostgreSQL",
+  "description": "CCX PostgreSQL datastores (postgres_exporter via cmon service discovery): health, replication, WAL, throughput, cache, locks, activity, vacuum and size.",
+  "tags": [
+    "ccx",
+    "datastore",
+    "postgresql"
+  ],
+  "editable": true,
+  "schemaVersion": 41,
+  "version": 1,
+  "graphTooltip": 1,
+  "timezone": "browser",
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "refresh": "1m",
+  "fiscalYearStartMonth": 0,
+  "liveNow": false,
+  "weekStart": "",
+  "timepicker": {},
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "links": [
+    {
+      "type": "dashboards",
+      "tags": [
+        "ccx"
+      ],
+      "asDropdown": true,
+      "title": "CCX dashboards",
+      "includeVars": true,
+      "keepTime": true
+    },
+    {
+      "type": "link",
+      "title": "Node Exporter",
+      "url": "/d/rYdddlPWk/node-exporter-full",
+      "icon": "dashboard",
+      "keepTime": true,
+      "includeVars": false,
+      "asDropdown": false,
+      "tags": [],
+      "targetBlank": false,
+      "tooltip": "Host metrics (pick job + node)"
+    }
+  ],
+  "templating": {
+    "list": [
+      {
+        "name": "datasource",
+        "label": "Data source",
+        "type": "datasource",
+        "query": "prometheus",
+        "current": {},
+        "hide": 0,
+        "refresh": 1,
+        "regex": "",
+        "options": [],
+        "includeAll": false,
+        "multi": false
+      },
+      {
+        "name": "environment",
+        "label": "Namespace",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+        },
+        "definition": "query_result(count by (ns) (label_replace({__name__=~\"cmon_up|requests_total\"}, \"ns\", \"$1\", \"kubernetes_namespace\", \"(.+)\")) or count by (ns) (label_replace(pg_up{job=~\"cmon-sd.*\"}, \"ns\", \"$1\", \"environment\", \"(.+)\")))",
+        "query": {
+          "query": "query_result(count by (ns) (label_replace({__name__=~\"cmon_up|requests_total\"}, \"ns\", \"$1\", \"kubernetes_namespace\", \"(.+)\")) or count by (ns) (label_replace(pg_up{job=~\"cmon-sd.*\"}, \"ns\", \"$1\", \"environment\", \"(.+)\")))",
+          "qryType": 1,
+          "refId": "PrometheusVariableQueryEditor-VariableQuery"
+        },
+        "current": {},
+        "hide": 0,
+        "refresh": 2,
+        "regex": "/ns=\"([^\"]+)\"/",
+        "options": [],
+        "sort": 1,
+        "includeAll": false,
+        "multi": false
+      },
+      {
+        "name": "datastore",
+        "label": "Datastore",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+        },
+        "definition": "query_result(max by (ClusterName, DatastoreName) (pg_up{job=~\"cmon-sd.*\",environment=~\"$environment\"}))",
+        "query": {
+          "query": "query_result(max by (ClusterName, DatastoreName) (pg_up{job=~\"cmon-sd.*\",environment=~\"$environment\"}))",
+          "qryType": 3,
+          "refId": "PrometheusVariableQueryEditor-VariableQuery"
+        },
+        "current": {},
+        "hide": 0,
+        "refresh": 2,
+        "regex": "/ClusterName=\"(?<value>[^\"]+)\".*DatastoreName=\"(?<text>[^\"]*)\"/",
+        "options": [],
+        "sort": 1,
+        "includeAll": false,
+        "multi": false
+      },
+      {
+        "name": "instance",
+        "label": "Instance",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+        },
+        "definition": "label_values(pg_up{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\"}, instance)",
+        "query": {
+          "query": "label_values(pg_up{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\"}, instance)",
+          "qryType": 1,
+          "refId": "PrometheusVariableQueryEditor-VariableQuery"
+        },
+        "current": {},
+        "hide": 0,
+        "refresh": 2,
+        "regex": "",
+        "options": [],
+        "sort": 1,
+        "includeAll": true,
+        "allValue": ".*",
+        "multi": true
+      },
+      {
+        "name": "datname",
+        "label": "Database",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+        },
+        "definition": "label_values(pg_stat_database_numbackends{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\"}, datname)",
+        "query": {
+          "query": "label_values(pg_stat_database_numbackends{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\"}, datname)",
+          "qryType": 1,
+          "refId": "PrometheusVariableQueryEditor-VariableQuery"
+        },
+        "current": {},
+        "hide": 0,
+        "refresh": 2,
+        "regex": "/^(?!template).*$/",
+        "options": [],
+        "sort": 1,
+        "includeAll": true,
+        "allValue": ".*",
+        "multi": true
+      }
+    ]
+  },
+  "panels": [
+    {
+      "type": "row",
+      "title": "Overview",
+      "collapsed": false,
+      "id": 1,
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "type": "stat",
+      "title": "Node status",
+      "description": "pg_up per PostgreSQL node: UP when the exporter can connect to the server; click a node for host metrics.",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "A",
+          "expr": "pg_up{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\"}",
+          "legendFormat": "{{DatastoreName}} {{ip}}",
+          "range": false,
+          "instant": true,
+          "format": "time_series"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": {
+                  "text": "DOWN",
+                  "color": "red",
+                  "index": 0
+                },
+                "1": {
+                  "text": "UP",
+                  "color": "green",
+                  "index": 1
+                }
+              }
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 1
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          },
+          "links": [
+            {
+              "title": "Node metrics for ${__field.labels.ip}",
+              "url": "/d/rYdddlPWk/node-exporter-full?var-datasource=${datasource}&var-job=${__field.labels.job}&var-node=${__field.labels.ip}:9100&${__url_time_range}",
+              "targetBlank": false
+            }
+          ]
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "auto",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "wideLayout": true,
+        "showPercentChange": false
+      },
+      "id": 2,
+      "gridPos": {
+        "x": 0,
+        "y": 1,
+        "w": 8,
+        "h": 5
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Role",
+      "description": "Primary or replica per node, from pg_replication_is_replica.",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "A",
+          "expr": "pg_replication_is_replica{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\"}",
+          "legendFormat": "{{DatastoreName}} {{ip}}",
+          "range": false,
+          "instant": true,
+          "format": "time_series"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": {
+                  "text": "Primary",
+                  "color": "blue",
+                  "index": 0
+                },
+                "1": {
+                  "text": "Replica",
+                  "color": "purple",
+                  "index": 1
+                }
+              }
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          },
+          "links": [
+            {
+              "title": "Node metrics for ${__field.labels.ip}",
+              "url": "/d/rYdddlPWk/node-exporter-full?var-datasource=${datasource}&var-job=${__field.labels.job}&var-node=${__field.labels.ip}:9100&${__url_time_range}",
+              "targetBlank": false
+            }
+          ]
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "auto",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "wideLayout": true,
+        "showPercentChange": false
+      },
+      "id": 3,
+      "gridPos": {
+        "x": 8,
+        "y": 1,
+        "w": 8,
+        "h": 5
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      }
+    },
+    {
+      "type": "gauge",
+      "title": "Connections used",
+      "description": "Client backends (sum of pg_stat_database_numbackends) as a share of max_connections, per node.",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "A",
+          "expr": "sum by (DatastoreName, ip, instance, job) (pg_stat_database_numbackends{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\"}) / on (instance) group_left () clamp_min(max by (instance) (pg_settings_max_connections{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\"}), 1)",
+          "legendFormat": "{{ip}}",
+          "range": false,
+          "instant": true,
+          "format": "time_series"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "min": 0,
+          "max": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 0.7
+              },
+              {
+                "color": "red",
+                "value": 0.9
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          },
+          "links": [
+            {
+              "title": "Node metrics for ${__field.labels.ip}",
+              "url": "/d/rYdddlPWk/node-exporter-full?var-datasource=${datasource}&var-job=${__field.labels.job}&var-node=${__field.labels.ip}:9100&${__url_time_range}",
+              "targetBlank": false
+            }
+          ]
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true
+      },
+      "id": 4,
+      "gridPos": {
+        "x": 16,
+        "y": 1,
+        "w": 8,
+        "h": 5
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      }
+    },
+    {
+      "type": "table",
+      "title": "Nodes",
+      "description": "One row per node with datastore, IP, PostgreSQL version (pg_static) and current role; PostgreSQL start time is not exported by this exporter configuration (no pg_postmaster collector).",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "A",
+          "expr": "max by (ClusterType, DatastoreName, ip, instance, job, short_version) (pg_replication_is_replica{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\"} * on (instance) group_left (short_version) pg_static{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\"})",
+          "legendFormat": "__auto",
+          "range": false,
+          "instant": true,
+          "format": "table"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            }
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Value"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background"
+                }
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "0": {
+                        "text": "Primary",
+                        "color": "blue",
+                        "index": 0
+                      },
+                      "1": {
+                        "text": "Replica",
+                        "color": "purple",
+                        "index": 1
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "unit",
+                "value": "short"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "ip"
+            },
+            "properties": [
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Node metrics for ${__data.fields.ip}",
+                    "url": "/d/rYdddlPWk/node-exporter-full?var-datasource=${datasource}&var-job=${__data.fields.job}&var-node=${__data.fields.ip}:9100&${__url_time_range}",
+                    "targetBlank": false
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        }
+      },
+      "transformations": [
+        {
+          "id": "filterFieldsByName",
+          "options": {
+            "include": {
+              "names": [
+                "DatastoreName",
+                "ClusterType",
+                "ip",
+                "instance",
+                "short_version",
+                "Value"
+              ]
+            }
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            },
+            "indexByName": {
+              "DatastoreName": 0,
+              "ClusterType": 1,
+              "ip": 2,
+              "instance": 3,
+              "short_version": 4,
+              "Value": 5
+            },
+            "renameByName": {
+              "DatastoreName": "Datastore",
+              "ClusterType": "Type",
+              "short_version": "Version",
+              "Value": "Role"
+            }
+          }
+        }
+      ],
+      "id": 5,
+      "gridPos": {
+        "x": 0,
+        "y": 6,
+        "w": 12,
+        "h": 7
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Connections vs max_connections",
+      "description": "Client backends per node against the configured max_connections limit.",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "A",
+          "expr": "sum by (DatastoreName, ip, instance, job) (pg_stat_database_numbackends{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\"})",
+          "legendFormat": "{{ip}} backends",
+          "range": true,
+          "instant": false,
+          "format": "time_series"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "B",
+          "expr": "max by (DatastoreName, ip, instance, job) (pg_settings_max_connections{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\"})",
+          "legendFormat": "{{ip}} max_connections",
+          "range": true,
+          "instant": false,
+          "format": "time_series"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            }
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "links": [
+            {
+              "title": "Node metrics for ${__field.labels.ip}",
+              "url": "/d/rYdddlPWk/node-exporter-full?var-datasource=${datasource}&var-job=${__field.labels.job}&var-node=${__field.labels.ip}:9100&${__url_time_range}",
+              "targetBlank": false
+            }
+          ],
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "id": 6,
+      "gridPos": {
+        "x": 12,
+        "y": 6,
+        "w": 12,
+        "h": 7
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      }
+    },
+    {
+      "type": "row",
+      "title": "Replication",
+      "collapsed": false,
+      "id": 7,
+      "gridPos": {
+        "x": 0,
+        "y": 13,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "type": "timeseries",
+      "title": "Replication lag (time)",
+      "description": "pg_replication_lag_seconds on replicas only: 0 when the replica has replayed everything it received, otherwise seconds since the last replayed transaction (primaries are hidden).",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "A",
+          "expr": "pg_replication_lag_seconds{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\"} and on (instance) pg_replication_is_replica{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\"} == 1",
+          "legendFormat": "{{DatastoreName}} {{ip}}",
+          "range": true,
+          "instant": false,
+          "format": "time_series"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            }
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "links": [
+            {
+              "title": "Node metrics for ${__field.labels.ip}",
+              "url": "/d/rYdddlPWk/node-exporter-full?var-datasource=${datasource}&var-job=${__field.labels.job}&var-node=${__field.labels.ip}:9100&${__url_time_range}",
+              "targetBlank": false
+            }
+          ],
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "id": 8,
+      "gridPos": {
+        "x": 0,
+        "y": 14,
+        "w": 8,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Replica WAL lag (bytes, from primary)",
+      "description": "pg_stat_replication_pg_wal_lsn_diff on the primary: bytes of WAL each standby has not yet replayed.",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "A",
+          "expr": "pg_stat_replication_pg_wal_lsn_diff{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\"}",
+          "legendFormat": "{{ip}} → {{client_addr}} ({{state}})",
+          "range": true,
+          "instant": false,
+          "format": "time_series"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            }
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "links": [],
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "id": 9,
+      "gridPos": {
+        "x": 8,
+        "y": 14,
+        "w": 8,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Replication slot retained WAL",
+      "description": "pg_replication_slots_pg_wal_lsn_diff: WAL bytes retained by each replication slot; a growing line means a slot consumer is behind or gone.",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "A",
+          "expr": "pg_replication_slots_pg_wal_lsn_diff{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\"}",
+          "legendFormat": "{{ip}} {{slot_name}}",
+          "range": true,
+          "instant": false,
+          "format": "time_series"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            }
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "links": [],
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "id": 10,
+      "gridPos": {
+        "x": 16,
+        "y": 14,
+        "w": 8,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      }
+    },
+    {
+      "type": "table",
+      "title": "Replication slots",
+      "description": "Each replication slot with its WAL status (pg_replication_slot_wal_status) and whether it is active (pg_replication_slot_slot_is_active).",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "A",
+          "expr": "max by (DatastoreName, ip, job, slot_name, slot_type, wal_status) (pg_replication_slot_wal_status{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\"} == 1) * on (ip, slot_name) group_left () max by (ip, slot_name) (pg_replication_slot_slot_is_active{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\"})",
+          "legendFormat": "__auto",
+          "range": false,
+          "instant": true,
+          "format": "table"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            }
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Value"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background"
+                }
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "0": {
+                        "text": "inactive",
+                        "color": "orange",
+                        "index": 0
+                      },
+                      "1": {
+                        "text": "active",
+                        "color": "green",
+                        "index": 1
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "unit",
+                "value": "short"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "ip"
+            },
+            "properties": [
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Node metrics for ${__data.fields.ip}",
+                    "url": "/d/rYdddlPWk/node-exporter-full?var-datasource=${datasource}&var-job=${__data.fields.job}&var-node=${__data.fields.ip}:9100&${__url_time_range}",
+                    "targetBlank": false
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        }
+      },
+      "transformations": [
+        {
+          "id": "filterFieldsByName",
+          "options": {
+            "include": {
+              "names": [
+                "DatastoreName",
+                "ip",
+                "slot_name",
+                "slot_type",
+                "wal_status",
+                "Value"
+              ]
+            }
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            },
+            "indexByName": {
+              "DatastoreName": 0,
+              "ip": 1,
+              "slot_name": 2,
+              "slot_type": 3,
+              "wal_status": 4,
+              "Value": 5
+            },
+            "renameByName": {
+              "DatastoreName": "Datastore",
+              "slot_name": "Slot",
+              "slot_type": "Type",
+              "wal_status": "WAL status",
+              "Value": "Active"
+            }
+          }
+        }
+      ],
+      "id": 11,
+      "gridPos": {
+        "x": 0,
+        "y": 22,
+        "w": 12,
+        "h": 7
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Slot safe WAL size",
+      "description": "pg_replication_slot_safe_wal_size_bytes: WAL that can still be written before the slot is in danger of losing required WAL (max_slot_wal_keep_size).",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "A",
+          "expr": "pg_replication_slot_safe_wal_size_bytes{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\"}",
+          "legendFormat": "{{ip}} {{slot_name}}",
+          "range": true,
+          "instant": false,
+          "format": "time_series"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            }
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "links": []
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "id": 12,
+      "gridPos": {
+        "x": 12,
+        "y": 22,
+        "w": 12,
+        "h": 7
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      }
+    },
+    {
+      "type": "row",
+      "title": "WAL",
+      "collapsed": false,
+      "id": 13,
+      "gridPos": {
+        "x": 0,
+        "y": 29,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "type": "timeseries",
+      "title": "WAL size",
+      "description": "pg_wal_size_bytes: total size of the pg_wal directory per node.",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "A",
+          "expr": "pg_wal_size_bytes{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\"}",
+          "legendFormat": "{{DatastoreName}} {{ip}}",
+          "range": true,
+          "instant": false,
+          "format": "time_series"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            }
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "links": [
+            {
+              "title": "Node metrics for ${__field.labels.ip}",
+              "url": "/d/rYdddlPWk/node-exporter-full?var-datasource=${datasource}&var-job=${__field.labels.job}&var-node=${__field.labels.ip}:9100&${__url_time_range}",
+              "targetBlank": false
+            }
+          ],
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "id": 14,
+      "gridPos": {
+        "x": 0,
+        "y": 30,
+        "w": 8,
+        "h": 7
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "WAL segments",
+      "description": "pg_wal_segments: number of WAL segment files in pg_wal per node.",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "A",
+          "expr": "pg_wal_segments{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\"}",
+          "legendFormat": "{{DatastoreName}} {{ip}}",
+          "range": true,
+          "instant": false,
+          "format": "time_series"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            }
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "links": [
+            {
+              "title": "Node metrics for ${__field.labels.ip}",
+              "url": "/d/rYdddlPWk/node-exporter-full?var-datasource=${datasource}&var-job=${__field.labels.job}&var-node=${__field.labels.ip}:9100&${__url_time_range}",
+              "targetBlank": false
+            }
+          ],
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "id": 15,
+      "gridPos": {
+        "x": 8,
+        "y": 30,
+        "w": 8,
+        "h": 7
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "WAL archiving",
+      "description": "Rate of WAL files archived and archive failures (pg_stat_archiver); failures should stay at zero.",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "A",
+          "expr": "sum by (DatastoreName, ip, instance, job) (rate(pg_stat_archiver_archived_count{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\"}[$__rate_interval]))",
+          "legendFormat": "{{ip}} archived",
+          "range": true,
+          "instant": false,
+          "format": "time_series"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "B",
+          "expr": "sum by (DatastoreName, ip, instance, job) (rate(pg_stat_archiver_failed_count{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\"}[$__rate_interval]))",
+          "legendFormat": "{{ip}} failed",
+          "range": true,
+          "instant": false,
+          "format": "time_series"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            }
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "links": [
+            {
+              "title": "Node metrics for ${__field.labels.ip}",
+              "url": "/d/rYdddlPWk/node-exporter-full?var-datasource=${datasource}&var-job=${__field.labels.job}&var-node=${__field.labels.ip}:9100&${__url_time_range}",
+              "targetBlank": false
+            }
+          ],
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "id": 16,
+      "gridPos": {
+        "x": 16,
+        "y": 30,
+        "w": 8,
+        "h": 7
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      }
+    },
+    {
+      "type": "row",
+      "title": "Throughput",
+      "collapsed": false,
+      "id": 17,
+      "gridPos": {
+        "x": 0,
+        "y": 37,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "type": "timeseries",
+      "title": "Transactions",
+      "description": "Committed and rolled-back transactions per second (rate of pg_stat_database_xact_*), selected databases.",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "A",
+          "expr": "sum by (DatastoreName, ip, instance, job) (rate(pg_stat_database_xact_commit{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\",datname=~\"$datname\"}[$__rate_interval]))",
+          "legendFormat": "{{ip}} commit",
+          "range": true,
+          "instant": false,
+          "format": "time_series"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "B",
+          "expr": "sum by (DatastoreName, ip, instance, job) (rate(pg_stat_database_xact_rollback{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\",datname=~\"$datname\"}[$__rate_interval]))",
+          "legendFormat": "{{ip}} rollback",
+          "range": true,
+          "instant": false,
+          "format": "time_series"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            }
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "links": [
+            {
+              "title": "Node metrics for ${__field.labels.ip}",
+              "url": "/d/rYdddlPWk/node-exporter-full?var-datasource=${datasource}&var-job=${__field.labels.job}&var-node=${__field.labels.ip}:9100&${__url_time_range}",
+              "targetBlank": false
+            }
+          ],
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "id": 18,
+      "gridPos": {
+        "x": 0,
+        "y": 38,
+        "w": 8,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Rows read",
+      "description": "Rows returned by scans and fetched by index lookups per second (rate of tup_returned / tup_fetched).",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "A",
+          "expr": "sum by (DatastoreName, ip, instance, job) (rate(pg_stat_database_tup_returned{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\",datname=~\"$datname\"}[$__rate_interval]))",
+          "legendFormat": "{{ip}} returned",
+          "range": true,
+          "instant": false,
+          "format": "time_series"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "B",
+          "expr": "sum by (DatastoreName, ip, instance, job) (rate(pg_stat_database_tup_fetched{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\",datname=~\"$datname\"}[$__rate_interval]))",
+          "legendFormat": "{{ip}} fetched",
+          "range": true,
+          "instant": false,
+          "format": "time_series"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            }
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "links": [
+            {
+              "title": "Node metrics for ${__field.labels.ip}",
+              "url": "/d/rYdddlPWk/node-exporter-full?var-datasource=${datasource}&var-job=${__field.labels.job}&var-node=${__field.labels.ip}:9100&${__url_time_range}",
+              "targetBlank": false
+            }
+          ],
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "id": 19,
+      "gridPos": {
+        "x": 8,
+        "y": 38,
+        "w": 8,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Rows written",
+      "description": "Rows inserted, updated and deleted per second (rate of tup_inserted / tup_updated / tup_deleted).",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "A",
+          "expr": "sum by (DatastoreName, ip, instance, job) (rate(pg_stat_database_tup_inserted{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\",datname=~\"$datname\"}[$__rate_interval]))",
+          "legendFormat": "{{ip}} inserted",
+          "range": true,
+          "instant": false,
+          "format": "time_series"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "B",
+          "expr": "sum by (DatastoreName, ip, instance, job) (rate(pg_stat_database_tup_updated{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\",datname=~\"$datname\"}[$__rate_interval]))",
+          "legendFormat": "{{ip}} updated",
+          "range": true,
+          "instant": false,
+          "format": "time_series"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "C",
+          "expr": "sum by (DatastoreName, ip, instance, job) (rate(pg_stat_database_tup_deleted{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\",datname=~\"$datname\"}[$__rate_interval]))",
+          "legendFormat": "{{ip}} deleted",
+          "range": true,
+          "instant": false,
+          "format": "time_series"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            }
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "links": [
+            {
+              "title": "Node metrics for ${__field.labels.ip}",
+              "url": "/d/rYdddlPWk/node-exporter-full?var-datasource=${datasource}&var-job=${__field.labels.job}&var-node=${__field.labels.ip}:9100&${__url_time_range}",
+              "targetBlank": false
+            }
+          ],
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "id": 20,
+      "gridPos": {
+        "x": 16,
+        "y": 38,
+        "w": 8,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      }
+    },
+    {
+      "type": "row",
+      "title": "Cache & I/O",
+      "collapsed": false,
+      "id": 21,
+      "gridPos": {
+        "x": 0,
+        "y": 46,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "type": "timeseries",
+      "title": "Buffer cache hit ratio",
+      "description": "Share of block reads served from shared buffers: rate(blks_hit) / (rate(blks_hit) + rate(blks_read)); gaps mean no reads in the interval.",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "A",
+          "expr": "sum by (DatastoreName, ip, instance, job) (rate(pg_stat_database_blks_hit{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\",datname=~\"$datname\"}[$__rate_interval])) / (sum by (DatastoreName, ip, instance, job) (rate(pg_stat_database_blks_hit{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\",datname=~\"$datname\"}[$__rate_interval])) + sum by (DatastoreName, ip, instance, job) (rate(pg_stat_database_blks_read{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\",datname=~\"$datname\"}[$__rate_interval])) > 0)",
+          "legendFormat": "{{ip}}",
+          "range": true,
+          "instant": false,
+          "format": "time_series"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            }
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "links": [
+            {
+              "title": "Node metrics for ${__field.labels.ip}",
+              "url": "/d/rYdddlPWk/node-exporter-full?var-datasource=${datasource}&var-job=${__field.labels.job}&var-node=${__field.labels.ip}:9100&${__url_time_range}",
+              "targetBlank": false
+            }
+          ],
+          "min": 0,
+          "max": 1
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "id": 22,
+      "gridPos": {
+        "x": 0,
+        "y": 47,
+        "w": 8,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Blocks read from disk vs cache",
+      "description": "Blocks per second found in shared buffers (hit) versus read from the OS/disk (read).",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "A",
+          "expr": "sum by (DatastoreName, ip, instance, job) (rate(pg_stat_database_blks_hit{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\",datname=~\"$datname\"}[$__rate_interval]))",
+          "legendFormat": "{{ip}} hit",
+          "range": true,
+          "instant": false,
+          "format": "time_series"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "B",
+          "expr": "sum by (DatastoreName, ip, instance, job) (rate(pg_stat_database_blks_read{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\",datname=~\"$datname\"}[$__rate_interval]))",
+          "legendFormat": "{{ip}} read",
+          "range": true,
+          "instant": false,
+          "format": "time_series"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            }
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "links": [
+            {
+              "title": "Node metrics for ${__field.labels.ip}",
+              "url": "/d/rYdddlPWk/node-exporter-full?var-datasource=${datasource}&var-job=${__field.labels.job}&var-node=${__field.labels.ip}:9100&${__url_time_range}",
+              "targetBlank": false
+            }
+          ],
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "id": 23,
+      "gridPos": {
+        "x": 8,
+        "y": 47,
+        "w": 8,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Temporary files",
+      "description": "Bytes per second written to temporary files by sorts/hashes that exceeded work_mem (rate of temp_bytes).",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "A",
+          "expr": "sum by (DatastoreName, ip, instance, job) (rate(pg_stat_database_temp_bytes{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\",datname=~\"$datname\"}[$__rate_interval]))",
+          "legendFormat": "{{ip}}",
+          "range": true,
+          "instant": false,
+          "format": "time_series"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "Bps",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            }
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "links": [
+            {
+              "title": "Node metrics for ${__field.labels.ip}",
+              "url": "/d/rYdddlPWk/node-exporter-full?var-datasource=${datasource}&var-job=${__field.labels.job}&var-node=${__field.labels.ip}:9100&${__url_time_range}",
+              "targetBlank": false
+            }
+          ],
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "id": 24,
+      "gridPos": {
+        "x": 16,
+        "y": 47,
+        "w": 8,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      }
+    },
+    {
+      "type": "row",
+      "title": "Locks & conflicts",
+      "collapsed": false,
+      "id": 25,
+      "gridPos": {
+        "x": 0,
+        "y": 55,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "type": "timeseries",
+      "title": "Locks by mode",
+      "description": "Currently held locks per lock mode (pg_locks_count), selected databases.",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "A",
+          "expr": "sum by (ip, mode) (pg_locks_count{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\",datname=~\"$datname\"}) > 0",
+          "legendFormat": "{{ip}} {{mode}}",
+          "range": true,
+          "instant": false,
+          "format": "time_series"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            }
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "links": [],
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "id": 26,
+      "gridPos": {
+        "x": 0,
+        "y": 56,
+        "w": 8,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Deadlocks",
+      "description": "Deadlocks detected per second (rate of pg_stat_database_deadlocks). Shows the 10 series with the highest peak in the selected time range.",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "A",
+          "expr": "topk_max(10, sum by (DatastoreName, ip, instance, job, datname) (rate(pg_stat_database_deadlocks{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\",datname=~\"$datname\"}[$__rate_interval])))",
+          "legendFormat": "{{ip}} {{datname}}",
+          "range": true,
+          "instant": false,
+          "format": "time_series"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            }
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "links": [
+            {
+              "title": "Node metrics for ${__field.labels.ip}",
+              "url": "/d/rYdddlPWk/node-exporter-full?var-datasource=${datasource}&var-job=${__field.labels.job}&var-node=${__field.labels.ip}:9100&${__url_time_range}",
+              "targetBlank": false
+            }
+          ],
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "id": 27,
+      "gridPos": {
+        "x": 8,
+        "y": 56,
+        "w": 8,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Recovery conflicts",
+      "description": "Queries cancelled on standbys due to recovery conflicts per second, by conflict type (pg_stat_database_conflicts_confl_*).",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "A",
+          "expr": "sum by (DatastoreName, ip, instance, job) (rate(pg_stat_database_conflicts_confl_lock{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\",datname=~\"$datname\"}[$__rate_interval]))",
+          "legendFormat": "{{ip}} lock",
+          "range": true,
+          "instant": false,
+          "format": "time_series"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "B",
+          "expr": "sum by (DatastoreName, ip, instance, job) (rate(pg_stat_database_conflicts_confl_snapshot{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\",datname=~\"$datname\"}[$__rate_interval]))",
+          "legendFormat": "{{ip}} snapshot",
+          "range": true,
+          "instant": false,
+          "format": "time_series"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "C",
+          "expr": "sum by (DatastoreName, ip, instance, job) (rate(pg_stat_database_conflicts_confl_bufferpin{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\",datname=~\"$datname\"}[$__rate_interval]))",
+          "legendFormat": "{{ip}} bufferpin",
+          "range": true,
+          "instant": false,
+          "format": "time_series"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "D",
+          "expr": "sum by (DatastoreName, ip, instance, job) (rate(pg_stat_database_conflicts_confl_deadlock{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\",datname=~\"$datname\"}[$__rate_interval]))",
+          "legendFormat": "{{ip}} deadlock",
+          "range": true,
+          "instant": false,
+          "format": "time_series"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "E",
+          "expr": "sum by (DatastoreName, ip, instance, job) (rate(pg_stat_database_conflicts_confl_tablespace{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\",datname=~\"$datname\"}[$__rate_interval]))",
+          "legendFormat": "{{ip}} tablespace",
+          "range": true,
+          "instant": false,
+          "format": "time_series"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            }
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "links": [
+            {
+              "title": "Node metrics for ${__field.labels.ip}",
+              "url": "/d/rYdddlPWk/node-exporter-full?var-datasource=${datasource}&var-job=${__field.labels.job}&var-node=${__field.labels.ip}:9100&${__url_time_range}",
+              "targetBlank": false
+            }
+          ],
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "id": 28,
+      "gridPos": {
+        "x": 16,
+        "y": 56,
+        "w": 8,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      }
+    },
+    {
+      "type": "row",
+      "title": "Activity",
+      "collapsed": false,
+      "id": 29,
+      "gridPos": {
+        "x": 0,
+        "y": 64,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "type": "timeseries",
+      "title": "Sessions by state",
+      "description": "Backends per state (active, idle, idle in transaction, ...) from pg_stat_activity_count.",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "A",
+          "expr": "sum by (ip, state) (pg_stat_activity_count{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\",datname=~\"$datname\"}) > 0",
+          "legendFormat": "{{ip}} {{state}}",
+          "range": true,
+          "instant": false,
+          "format": "time_series"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            }
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "links": [],
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "id": 30,
+      "gridPos": {
+        "x": 0,
+        "y": 65,
+        "w": 8,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Waiting sessions by wait event type",
+      "description": "Backends currently waiting, grouped by wait_event_type (Lock, IO, LWLock, Client, ...).",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "A",
+          "expr": "sum by (ip, wait_event_type) (pg_stat_activity_count{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\",datname=~\"$datname\",wait_event_type!=\"\"}) > 0",
+          "legendFormat": "{{ip}} {{wait_event_type}}",
+          "range": true,
+          "instant": false,
+          "format": "time_series"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            }
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "links": [],
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "id": 31,
+      "gridPos": {
+        "x": 8,
+        "y": 65,
+        "w": 8,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Longest running transaction",
+      "description": "Age of the oldest open transaction per node (pg_stat_activity_max_tx_duration); long values block vacuum and bloat tables.",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "A",
+          "expr": "max by (DatastoreName, ip, instance, job) (pg_stat_activity_max_tx_duration{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\",datname=~\"$datname\"})",
+          "legendFormat": "{{ip}}",
+          "range": true,
+          "instant": false,
+          "format": "time_series"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            }
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "links": [
+            {
+              "title": "Node metrics for ${__field.labels.ip}",
+              "url": "/d/rYdddlPWk/node-exporter-full?var-datasource=${datasource}&var-job=${__field.labels.job}&var-node=${__field.labels.ip}:9100&${__url_time_range}",
+              "targetBlank": false
+            }
+          ],
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "id": 32,
+      "gridPos": {
+        "x": 16,
+        "y": 65,
+        "w": 8,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      }
+    },
+    {
+      "type": "row",
+      "title": "Background writer",
+      "collapsed": false,
+      "id": 33,
+      "gridPos": {
+        "x": 0,
+        "y": 73,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "type": "timeseries",
+      "title": "Buffers allocated",
+      "description": "Shared buffers allocated per second (rate of pg_stat_bgwriter_buffers_alloc_total). Checkpoint statistics moved to pg_stat_checkpointer in PostgreSQL 17 and are not exported here (only the pg_stat_bgwriter_*_total counters exist).",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "A",
+          "expr": "rate(pg_stat_bgwriter_buffers_alloc_total{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\"}[$__rate_interval])",
+          "legendFormat": "{{ip}}",
+          "range": true,
+          "instant": false,
+          "format": "time_series"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            }
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "links": [
+            {
+              "title": "Node metrics for ${__field.labels.ip}",
+              "url": "/d/rYdddlPWk/node-exporter-full?var-datasource=${datasource}&var-job=${__field.labels.job}&var-node=${__field.labels.ip}:9100&${__url_time_range}",
+              "targetBlank": false
+            }
+          ],
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "id": 34,
+      "gridPos": {
+        "x": 0,
+        "y": 74,
+        "w": 8,
+        "h": 7
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Buffers written by bgwriter",
+      "description": "Dirty buffers written per second by the background writer (rate of pg_stat_bgwriter_buffers_clean_total). Checkpoint statistics moved to pg_stat_checkpointer in PostgreSQL 17 and are not exported here (only the pg_stat_bgwriter_*_total counters exist).",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "A",
+          "expr": "rate(pg_stat_bgwriter_buffers_clean_total{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\"}[$__rate_interval])",
+          "legendFormat": "{{ip}}",
+          "range": true,
+          "instant": false,
+          "format": "time_series"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            }
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "links": [
+            {
+              "title": "Node metrics for ${__field.labels.ip}",
+              "url": "/d/rYdddlPWk/node-exporter-full?var-datasource=${datasource}&var-job=${__field.labels.job}&var-node=${__field.labels.ip}:9100&${__url_time_range}",
+              "targetBlank": false
+            }
+          ],
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "id": 35,
+      "gridPos": {
+        "x": 8,
+        "y": 74,
+        "w": 8,
+        "h": 7
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "bgwriter stopped (maxwritten)",
+      "description": "Times per second the background writer stopped because it wrote bgwriter_lru_maxpages buffers (rate of maxwritten_clean_total). Checkpoint statistics moved to pg_stat_checkpointer in PostgreSQL 17 and are not exported here (only the pg_stat_bgwriter_*_total counters exist).",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "A",
+          "expr": "rate(pg_stat_bgwriter_maxwritten_clean_total{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\"}[$__rate_interval])",
+          "legendFormat": "{{ip}}",
+          "range": true,
+          "instant": false,
+          "format": "time_series"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            }
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "links": [
+            {
+              "title": "Node metrics for ${__field.labels.ip}",
+              "url": "/d/rYdddlPWk/node-exporter-full?var-datasource=${datasource}&var-job=${__field.labels.job}&var-node=${__field.labels.ip}:9100&${__url_time_range}",
+              "targetBlank": false
+            }
+          ],
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "id": 36,
+      "gridPos": {
+        "x": 16,
+        "y": 74,
+        "w": 8,
+        "h": 7
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      }
+    },
+    {
+      "type": "row",
+      "title": "Tables",
+      "collapsed": false,
+      "id": 37,
+      "gridPos": {
+        "x": 0,
+        "y": 81,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "type": "timeseries",
+      "title": "Sequential vs index scans",
+      "description": "Sequential and index scans per second on user tables (rate of pg_stat_user_tables_seq_scan / idx_scan).",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "A",
+          "expr": "sum by (DatastoreName, ip, instance, job) (rate(pg_stat_user_tables_seq_scan{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\",datname=~\"$datname\"}[$__rate_interval]))",
+          "legendFormat": "{{ip}} seq scan",
+          "range": true,
+          "instant": false,
+          "format": "time_series"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "B",
+          "expr": "sum by (DatastoreName, ip, instance, job) (rate(pg_stat_user_tables_idx_scan{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\",datname=~\"$datname\"}[$__rate_interval]))",
+          "legendFormat": "{{ip}} index scan",
+          "range": true,
+          "instant": false,
+          "format": "time_series"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            }
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "links": [
+            {
+              "title": "Node metrics for ${__field.labels.ip}",
+              "url": "/d/rYdddlPWk/node-exporter-full?var-datasource=${datasource}&var-job=${__field.labels.job}&var-node=${__field.labels.ip}:9100&${__url_time_range}",
+              "targetBlank": false
+            }
+          ],
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "id": 38,
+      "gridPos": {
+        "x": 0,
+        "y": 82,
+        "w": 8,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Autovacuum / autoanalyze runs",
+      "description": "Autovacuum and autoanalyze runs on user tables per interval (increase of the per-table counters).",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "A",
+          "expr": "sum by (DatastoreName, ip, instance, job) (increase(pg_stat_user_tables_autovacuum_count{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\",datname=~\"$datname\"}[$__rate_interval]))",
+          "legendFormat": "{{ip}} autovacuum",
+          "range": true,
+          "instant": false,
+          "format": "time_series"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "B",
+          "expr": "sum by (DatastoreName, ip, instance, job) (increase(pg_stat_user_tables_autoanalyze_count{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\",datname=~\"$datname\"}[$__rate_interval]))",
+          "legendFormat": "{{ip}} autoanalyze",
+          "range": true,
+          "instant": false,
+          "format": "time_series"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "bars",
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            }
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "links": [
+            {
+              "title": "Node metrics for ${__field.labels.ip}",
+              "url": "/d/rYdddlPWk/node-exporter-full?var-datasource=${datasource}&var-job=${__field.labels.job}&var-node=${__field.labels.ip}:9100&${__url_time_range}",
+              "targetBlank": false
+            }
+          ],
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "id": 39,
+      "gridPos": {
+        "x": 8,
+        "y": 82,
+        "w": 8,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      }
+    },
+    {
+      "type": "bargauge",
+      "title": "Top 10 tables by dead tuples",
+      "description": "User tables with the most dead tuples right now (pg_stat_user_tables_n_dead_tup); high values mean vacuum is behind.",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "A",
+          "expr": "topk(10, max by (ip, datname, schemaname, relname) (pg_stat_user_tables_n_dead_tup{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\",datname=~\"$datname\"}))",
+          "legendFormat": "{{ip}} {{datname}}.{{schemaname}}.{{relname}}",
+          "range": false,
+          "instant": true,
+          "format": "time_series"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 10000
+              },
+              {
+                "color": "red",
+                "value": 100000
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "orientation": "horizontal",
+        "displayMode": "gradient",
+        "showUnfilled": true,
+        "valueMode": "color",
+        "namePlacement": "auto",
+        "sizing": "auto"
+      },
+      "id": 40,
+      "gridPos": {
+        "x": 16,
+        "y": 82,
+        "w": 8,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      }
+    },
+    {
+      "type": "bargauge",
+      "title": "Top 10 tables by size",
+      "description": "Largest user tables (pg_stat_user_tables_table_size_bytes), excluding indexes.",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "A",
+          "expr": "topk(10, max by (ip, datname, schemaname, relname) (pg_stat_user_tables_table_size_bytes{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\",datname=~\"$datname\"}))",
+          "legendFormat": "{{ip}} {{datname}}.{{schemaname}}.{{relname}}",
+          "range": false,
+          "instant": true,
+          "format": "time_series"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "orientation": "horizontal",
+        "displayMode": "gradient",
+        "showUnfilled": true,
+        "valueMode": "color",
+        "namePlacement": "auto",
+        "sizing": "auto"
+      },
+      "id": 41,
+      "gridPos": {
+        "x": 0,
+        "y": 90,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      }
+    },
+    {
+      "type": "bargauge",
+      "title": "Top 10 tables by sequential rows read",
+      "description": "Rows read by sequential scans per second, per table (rate of seq_tup_read); candidates for missing indexes.",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "A",
+          "expr": "topk(10, sum by (ip, datname, schemaname, relname) (rate(pg_stat_user_tables_seq_tup_read{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\",datname=~\"$datname\"}[$__rate_interval])))",
+          "legendFormat": "{{ip}} {{datname}}.{{schemaname}}.{{relname}}",
+          "range": false,
+          "instant": true,
+          "format": "time_series"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "orientation": "horizontal",
+        "displayMode": "gradient",
+        "showUnfilled": true,
+        "valueMode": "color",
+        "namePlacement": "auto",
+        "sizing": "auto"
+      },
+      "id": 42,
+      "gridPos": {
+        "x": 12,
+        "y": 90,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      }
+    },
+    {
+      "type": "row",
+      "title": "Database size",
+      "collapsed": false,
+      "id": 43,
+      "gridPos": {
+        "x": 0,
+        "y": 98,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "type": "timeseries",
+      "title": "Database size",
+      "description": "On-disk size per database and node (pg_database_size_bytes). Shows the 10 series with the highest peak in the selected time range.",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "A",
+          "expr": "topk_max(10, pg_database_size_bytes{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\",datname=~\"$datname\"})",
+          "legendFormat": "{{ip}} {{datname}}",
+          "range": true,
+          "instant": false,
+          "format": "time_series"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            }
+          },
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "links": [
+            {
+              "title": "Node metrics for ${__field.labels.ip}",
+              "url": "/d/rYdddlPWk/node-exporter-full?var-datasource=${datasource}&var-job=${__field.labels.job}&var-node=${__field.labels.ip}:9100&${__url_time_range}",
+              "targetBlank": false
+            }
+          ],
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true,
+          "calcs": [
+            "mean",
+            "max",
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "id": 44,
+      "gridPos": {
+        "x": 0,
+        "y": 99,
+        "w": 16,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      }
+    },
+    {
+      "type": "bargauge",
+      "title": "Current database size",
+      "description": "Latest size per database (largest replica value), selected databases.",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "refId": "A",
+          "expr": "max by (DatastoreName, datname) (pg_database_size_bytes{job=~\"cmon-sd.*\",environment=~\"$environment\",ClusterName=~\"$datastore\",instance=~\"$instance\",datname=~\"$datname\"})",
+          "legendFormat": "{{DatastoreName}} {{datname}}",
+          "range": false,
+          "instant": true,
+          "format": "time_series"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "orientation": "horizontal",
+        "displayMode": "gradient",
+        "showUnfilled": true,
+        "valueMode": "color",
+        "namePlacement": "auto",
+        "sizing": "auto"
+      },
+      "id": 45,
+      "gridPos": {
+        "x": 16,
+        "y": 99,
+        "w": 8,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      }
+    }
+  ]
+}

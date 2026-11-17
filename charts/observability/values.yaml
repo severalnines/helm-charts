@@ -17,7 +17,10 @@ victoria-metrics-single:
   server:
     service:
       servicePort: 9090
-      clusterIP: null
+      # The subchart defaults to "None" (headless), which bypasses the 9090 -> 8428 port mapping, so
+      # cmon's "<release>-victoria-metrics-single-server.<ns>:9090" gets connection refused. null doesn't
+      # override a subchart default; an empty string does and gives a normal ClusterIP.
+      clusterIP: ""
     statefulSet:
       enabled: false
     podAnnotations:
@@ -121,15 +124,11 @@ victoria-metrics-single:
             bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
             kubernetes_sd_configs:
               - role: node
+            # Scraped directly from the kubelet (node InternalIP:10250, default metrics_path /metrics);
+            # the VM chart's RBAC no longer grants nodes/proxy, so the API-server proxy path returns 403.
             relabel_configs:
               - action: labelmap
                 regex: __meta_kubernetes_node_label_(.+)
-              - target_label: __address__
-                replacement: kubernetes.default.svc:443
-              - source_labels: [ __meta_kubernetes_node_name ]
-                regex: (.+)
-                target_label: __metrics_path__
-                replacement: /api/v1/nodes/$1/proxy/metrics
               - target_label: cluster
                 replacement: *cluster_name
             # -- Scrape rule using kubernetes service discovery for cadvisor
@@ -155,6 +154,9 @@ victoria-metrics-single:
             bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
             kubernetes_sd_configs:
               - role: node
+            # Scraped directly from the kubelet (node InternalIP:10250); the VM chart's RBAC no longer
+            # grants nodes/proxy, so the old API-server proxy path (/api/v1/nodes/<n>/proxy/...) returns 403.
+            metrics_path: /metrics/cadvisor
             # This configuration will work only on kubelet 1.7.3+
             # As the scrape endpoints for cAdvisor have changed
             # if you are using older version you need to change the replacement to
@@ -163,12 +165,6 @@ victoria-metrics-single:
             relabel_configs:
               - action: labelmap
                 regex: __meta_kubernetes_node_label_(.+)
-              - target_label: __address__
-                replacement: kubernetes.default.svc:443
-              - source_labels: [ __meta_kubernetes_node_name ]
-                regex: (.+)
-                target_label: __metrics_path__
-                replacement: /api/v1/nodes/$1/proxy/metrics/cadvisor
               - target_label: cluster
                 replacement: *cluster_name
             # -- Scrape rule using kubernetes service discovery for node exporter
@@ -400,6 +396,29 @@ victoria-metrics-single:
               replacement: true
 
         ### END CMON SERVICE DISCOVERY
+
+        ### CCX CONTROL-PLANE MYSQL (InnoDB Cluster from ccxdeps)
+        # Feeds the cmon-db-monitoring dashboard (externalToolsMonitoring: cmonDb), which selects
+        # job="mysql-innodb" and the namespace/pod labels set here.
+        - job_name: mysql-innodb
+          kubernetes_sd_configs:
+            - role: pod
+          relabel_configs:
+            - source_labels: [__meta_kubernetes_pod_label_mysql_oracle_com_cluster]
+              regex: .+
+              action: keep
+            - source_labels: [__meta_kubernetes_pod_container_port_name]
+              regex: metrics
+              action: keep
+            - source_labels: [__meta_kubernetes_pod_ip]
+              replacement: $1:9104
+              target_label: __address__
+            - source_labels: [__meta_kubernetes_namespace]
+              target_label: namespace
+            - source_labels: [__meta_kubernetes_pod_name]
+              target_label: pod
+            - source_labels: [__meta_kubernetes_pod_label_mysql_oracle_com_cluster]
+              target_label: cluster_name
 
 
 victoria-metrics-alert:
@@ -839,7 +858,7 @@ victoria-metrics-alert:
               summary: "MySQL on `{{ $labels.instance }}` has too many connections"
               description: "More than 80% of the configured max_connections limit is currently in use. If this keeps climbing, new connections will start being rejected. Check for connection leaks in the application, unclosed connections, or whether max_connections needs to be raised for current load."
               runbook_url: "https://severalnines.github.io/ccx-docs/docs/admin/Troubleshooting/#mysql-too-many-connections"
-              dashboard_url: "{{ $externalLabels.grafana_url }}/d/549c2bf8936f7767ea6ac47c47b00f2a/mysql-dashboard?orgId=1&var-datasource=PA58DA793C7250F1B&var-job=cmon-sd-elastx&var-instance={{ $labels.instance }}"
+              dashboard_url: "{{ $externalLabels.grafana_url }}{{ if $labels.environment }}/d/ccx-mysql/ccx-mysql-and-mariadb?orgId=1&var-environment={{ $labels.environment }}&var-datastore={{ $labels.ClusterName }}&var-instance={{ $labels.instance }}{{ else }}/d/mysql-innodb-ccx/cmon-db-monitoring?orgId=1&var-namespace={{ or $labels.namespace $labels.kubernetes_namespace }}&var-pod={{ or $labels.pod $labels.kubernetes_pod_name `$__all` }}{{ end }}"
           - alert: MysqlSlaveReplicationLag
             expr: mysql_slave_status_master_server_id > 0 and ON (instance) (mysql_slave_status_seconds_behind_master - mysql_slave_status_sql_delay) > 30
             for: 1m
@@ -849,7 +868,7 @@ victoria-metrics-alert:
               summary: "MySQL replica on `{{ $labels.instance }}` is lagging behind its source"
               description: "This replica is more than 30 seconds behind its source database. If this keeps growing, reads from this replica may return stale data, and failover to this replica would lose recent writes. Check replication status and whether the replica is under heavy load or has a slow query bottleneck."
               runbook_url: "https://severalnines.github.io/ccx-docs/docs/admin/Troubleshooting/#mysql-slave-replication-lag"
-              dashboard_url: "{{ $externalLabels.grafana_url }}/d/549c2bf8936f7767ea6ac47c47b00f2a/mysql-dashboard?orgId=1&var-datasource=PA58DA793C7250F1B&var-job=cmon-sd-elastx&var-instance={{ $labels.instance }}"
+              dashboard_url: "{{ $externalLabels.grafana_url }}{{ if $labels.environment }}/d/ccx-mysql/ccx-mysql-and-mariadb?orgId=1&var-environment={{ $labels.environment }}&var-datastore={{ $labels.ClusterName }}&var-instance={{ $labels.instance }}{{ else }}/d/mysql-innodb-ccx/cmon-db-monitoring?orgId=1&var-namespace={{ or $labels.namespace $labels.kubernetes_namespace }}&var-pod={{ or $labels.pod $labels.kubernetes_pod_name `$__all` }}{{ end }}"
           - alert: MysqlDown
             expr: mysql_up == 0
             for: 5m
@@ -859,7 +878,7 @@ victoria-metrics-alert:
               summary: "MySQL on `{{ $labels.instance }}` is down"
               description: "The mysqld_exporter can reach the host but MySQL itself is not responding. This is more severe than an exporter/scrape failure — the database process itself appears to be down."
               runbook_url: "https://severalnines.github.io/ccx-docs/docs/admin/Troubleshooting/#mysql-down"
-              dashboard_url: "{{ $externalLabels.grafana_url }}/d/549c2bf8936f7767ea6ac47c47b00f2a/mysql-dashboard?orgId=1&var-datasource=PA58DA793C7250F1B&var-job=cmon-sd-elastx&var-instance={{ $labels.instance }}"
+              dashboard_url: "{{ $externalLabels.grafana_url }}{{ if $labels.environment }}/d/ccx-mysql/ccx-mysql-and-mariadb?orgId=1&var-environment={{ $labels.environment }}&var-datastore={{ $labels.ClusterName }}&var-instance={{ $labels.instance }}{{ else }}/d/mysql-innodb-ccx/cmon-db-monitoring?orgId=1&var-namespace={{ or $labels.namespace $labels.kubernetes_namespace }}&var-pod={{ or $labels.pod $labels.kubernetes_pod_name `$__all` }}{{ end }}"
           - alert: MysqlSlaveReplicationStopped
             expr: mysql_slave_status_slave_sql_running == 0
             for: 5m
@@ -869,7 +888,7 @@ victoria-metrics-alert:
               summary: "MySQL replication is stopped on `{{ $labels.instance }}`"
               description: "The SQL replication thread is not running on this replica. Unlike replication lag, this means replication has fully halted — no new data is being applied at all. Check the replica's error log for the specific replication error."
               runbook_url: "https://severalnines.github.io/ccx-docs/docs/admin/Troubleshooting/#mysql-slave-replication-stopped"
-              dashboard_url: "{{ $externalLabels.grafana_url }}/d/549c2bf8936f7767ea6ac47c47b00f2a/mysql-dashboard?orgId=1&var-datasource=PA58DA793C7250F1B&var-job=cmon-sd-elastx&var-instance={{ $labels.instance }}"
+              dashboard_url: "{{ $externalLabels.grafana_url }}{{ if $labels.environment }}/d/ccx-mysql/ccx-mysql-and-mariadb?orgId=1&var-environment={{ $labels.environment }}&var-datastore={{ $labels.ClusterName }}&var-instance={{ $labels.instance }}{{ else }}/d/mysql-innodb-ccx/cmon-db-monitoring?orgId=1&var-namespace={{ or $labels.namespace $labels.kubernetes_namespace }}&var-pod={{ or $labels.pod $labels.kubernetes_pod_name `$__all` }}{{ end }}"
         - name: PostgreSQL Alerts
           rules:
           - alert: PostgresqlExporterError
@@ -881,7 +900,7 @@ victoria-metrics-alert:
               summary: "Postgres exporter on `{{ $labels.instance }}` failed its last scrape"
               description: "The postgres_exporter's last scrape attempt failed, meaning metrics for this instance may be stale or missing. Check the exporter's logs to see which query failed — often caused by a permissions issue, a schema change, or the database being temporarily unreachable."
               runbook_url: "https://severalnines.github.io/ccx-docs/docs/admin/Troubleshooting/#postgresql-exporter-error"
-              dashboard_url: "{{ $externalLabels.grafana_url }}/d/000000039/postgresql-database?var-interval=5m&orgId=1&var-datasource=PA58DA793C7250F1B&var-instance={{ $labels.instance }}&var-datname=$__all&var-mode=$__all&var-job=$__all"
+              dashboard_url: "{{ $externalLabels.grafana_url }}/d/ccx-postgresql/ccx-postgresql?orgId=1&var-environment={{ $labels.environment }}&var-datastore={{ $labels.ClusterName }}&var-instance={{ $labels.instance }}&var-datname=$__all"
           - alert: PostgresqlTooManyConnections
             expr: sum by (datname, instance) (pg_stat_activity_count{datname!~"template.*|postgres"}) > pg_settings_max_connections * 0.8
             for: 2m
@@ -891,7 +910,7 @@ victoria-metrics-alert:
               summary: "Postgres on `{{ $labels.instance }}` has too many connections to `{{ $labels.datname }}`"
               description: "More than 80% of the configured max_connections limit is currently in use on this database. If this keeps climbing, new connections will start being rejected. Check for connection leaks in the application, unclosed connections, or whether max_connections needs to be raised for current load."
               runbook_url: "https://severalnines.github.io/ccx-docs/docs/admin/Troubleshooting/#postgresql-too-many-connections"
-              dashboard_url: "{{ $externalLabels.grafana_url }}/d/000000039/postgresql-database?var-interval=5m&orgId=1&var-datasource=PA58DA793C7250F1B&var-instance={{ $labels.instance }}&var-datname={{ $labels.datname }}&var-mode=$__all&var-job=$__all"
+              dashboard_url: "{{ $externalLabels.grafana_url }}/d/ccx-postgresql/ccx-postgresql?orgId=1&var-environment={{ $labels.environment }}&var-datastore={{ $labels.ClusterName }}&var-instance={{ $labels.instance }}&var-datname={{ $labels.datname }}"
           - alert: PostgresqlDeadLocks
             expr: increase(pg_stat_database_deadlocks{datname!~"template.*|postgres"}[1m]) > 5
             for: 0m
@@ -901,7 +920,7 @@ victoria-metrics-alert:
               summary: "Postgres database `{{ $labels.datname }}` on `{{ $labels.instance }}` is hitting deadlocks"
               description: "{{ $value | humanize }} deadlocks detected in the last minute on this database. Deadlocks usually indicate two or more transactions are competing for the same rows in conflicting order — check application query patterns and transaction ordering, especially recent code changes or increased concurrent load."
               runbook_url: "https://severalnines.github.io/ccx-docs/docs/admin/Troubleshooting/#postgresql-dead-locks"
-              dashboard_url: "{{ $externalLabels.grafana_url }}/d/000000039/postgresql-database?var-interval=5m&orgId=1&var-datasource=PA58DA793C7250F1B&var-instance={{ $labels.instance }}&var-datname={{ $labels.datname }}&var-mode=$__all&var-job=$__all"
+              dashboard_url: "{{ $externalLabels.grafana_url }}/d/ccx-postgresql/ccx-postgresql?orgId=1&var-environment={{ $labels.environment }}&var-datastore={{ $labels.ClusterName }}&var-instance={{ $labels.instance }}&var-datname={{ $labels.datname }}"
           - alert: PostgresqlHighRollbackRate
             expr: rate(pg_stat_database_xact_rollback{datname!~"template.*"}[3m]) / rate(pg_stat_database_xact_commit{datname!~"template.*"}[3m]) > 0.02
             for: 0m
@@ -911,7 +930,7 @@ victoria-metrics-alert:
               summary: "Postgres database `{{ $labels.datname }}` on `{{ $labels.instance }}` has a high rollback rate"
               description: "More than 2% of transactions on this database are being rolled back rather than committed. This often points to application-level errors, failed constraint checks, or deadlocks/lock timeouts causing transactions to abort. Check application logs and recent query errors for the actual cause."
               runbook_url: "https://severalnines.github.io/ccx-docs/docs/admin/Troubleshooting/#postgresql-high-rollback-rate"
-              dashboard_url: "{{ $externalLabels.grafana_url }}/d/000000039/postgresql-database?var-interval=5m&orgId=1&var-datasource=PA58DA793C7250F1B&var-instance={{ $labels.instance }}&var-datname={{ $labels.datname }}&var-mode=$__all&var-job=$__all"
+              dashboard_url: "{{ $externalLabels.grafana_url }}/d/ccx-postgresql/ccx-postgresql?orgId=1&var-environment={{ $labels.environment }}&var-datastore={{ $labels.ClusterName }}&var-instance={{ $labels.instance }}&var-datname={{ $labels.datname }}"
           - alert: PostgresqlDown
             expr: pg_up == 0
             for: 5m
@@ -921,7 +940,7 @@ victoria-metrics-alert:
               summary: "Postgres on `{{ $labels.instance }}` is down"
               description: "The postgres_exporter can reach the host but Postgres itself is not responding. This is more severe than an exporter/scrape failure — the database process itself appears to be down."
               runbook_url: "https://severalnines.github.io/ccx-docs/docs/admin/Troubleshooting/#postgresql-down"
-              dashboard_url: "{{ $externalLabels.grafana_url }}/d/000000039/postgresql-database?var-interval=5m&orgId=1&var-datasource=PA58DA793C7250F1B&var-instance={{ $labels.instance }}&var-datname=$__all&var-mode=$__all&var-job=$__all"
+              dashboard_url: "{{ $externalLabels.grafana_url }}/d/ccx-postgresql/ccx-postgresql?orgId=1&var-environment={{ $labels.environment }}&var-datastore={{ $labels.ClusterName }}&var-instance={{ $labels.instance }}&var-datname=$__all"
           - alert: PostgresqlRestarted
             expr: time() - pg_postmaster_start_time_seconds < 60
             for: 0m
@@ -931,7 +950,7 @@ victoria-metrics-alert:
               summary: "Postgres on `{{ $labels.instance }}` restarted recently"
               description: "This Postgres instance's postmaster process started less than a minute ago. An unexpected restart can indicate a crash, OOM kill, or manual intervention — check the Postgres logs around the restart time to confirm the cause."
               runbook_url: "https://severalnines.github.io/ccx-docs/docs/admin/Troubleshooting/#postgresql-restarted"
-              dashboard_url: "{{ $externalLabels.grafana_url }}/d/000000039/postgresql-database?var-interval=5m&orgId=1&var-datasource=PA58DA793C7250F1B&var-instance={{ $labels.instance }}&var-datname=$__all&var-mode=$__all&var-job=$__all"
+              dashboard_url: "{{ $externalLabels.grafana_url }}/d/ccx-postgresql/ccx-postgresql?orgId=1&var-environment={{ $labels.environment }}&var-datastore={{ $labels.ClusterName }}&var-instance={{ $labels.instance }}&var-datname=$__all"
         - name: Redis Alerts
           rules:
           - alert: RedisDown
@@ -1474,6 +1493,29 @@ karma:
 
 loki:
   enabled: false
+  # The grafana-community loki chart (>= 17.x) defaults to Monolithic; keep SimpleScalable so existing
+  # write/read/backend StatefulSets and their PVCs are reused instead of replaced.
+  deploymentMode: SimpleScalable
+  # Built-in MinIO is deprecated upstream and its images are no longer pullable; RustFS (see rustfs below)
+  # replaces it. Only matters while an existing install still runs MinIO (loki.minio.enabled=true) during
+  # the migration to RustFS.
+  ignoreMinioDeprecation: true
+  # Credentials for the object store, exposed as AWS_ACCESS_KEY_ID/AWS_SECRET_ACCESS_KEY and expanded into
+  # the Loki config below (-config.expand-env). Optional so pods still start while Loki is on MinIO.
+  defaults:
+    extraEnvFrom:
+      - secretRef:
+          name: loki-rustfs-credentials
+          optional: true
+  # Service names changed from loki-<component> to <release>-loki-<component>, which changes the
+  # immutable StatefulSet spec.serviceName. These pre-upgrade Jobs delete the StatefulSets with
+  # --cascade=orphan so Helm can recreate them; pods and PVCs are kept.
+  write:
+    statefulSetRecreateJob:
+      enabled: true
+  backend:
+    statefulSetRecreateJob:
+      enabled: true
   loki:
     compactor:
       compaction_interval: 10m
@@ -1484,6 +1526,22 @@ loki:
       working_directory: /var/loki/compactor
     limits_config:
         retention_period: 720h
+    # Defaults to the bundled RustFS (rustfs.enabled=true). To use an external S3 store instead, override
+    # endpoint/bucketNames and point loki.defaults.extraEnvFrom at a Secret with AWS_ACCESS_KEY_ID and
+    # AWS_SECRET_ACCESS_KEY. Ignored by the loki chart while loki.minio.enabled=true.
+    storage:
+      type: s3
+      # Same bucket names the built-in MinIO used, so migrated objects keep their keys.
+      bucketNames:
+        chunks: chunks
+        ruler: ruler
+      s3:
+        endpoint: 'http://loki-rustfs-svc.{{ .Release.Namespace }}.svc:9000'
+        region: us-east-1
+        accessKeyId: ${AWS_ACCESS_KEY_ID}
+        secretAccessKey: ${AWS_SECRET_ACCESS_KEY}
+        s3ForcePathStyle: true
+        insecure: true
     schemaConfig:
       configs:
         - from: 2024-04-01
@@ -1494,7 +1552,20 @@ loki:
             prefix: loki_index_
             period: 24h
   minio:
-    enabled: true
+    # Deprecated. Set to true only on existing installs that still hold logs in MinIO, until they have
+    # been copied to RustFS.
+    enabled: false
+    # Pin the credentials of the previous loki chart (6.x) MinIO defaults; newer charts default to
+    # root-user/supersecretpassword, which would lock Loki out of the existing buckets.
+    rootUser: enterprise-logs
+    rootPassword: supersecret
+    users: []
+    image:
+      repository: docker.io/pgsty/minio
+      tag: RELEASE.2026-08-04T00-00-00Z
+    mcImage:
+      repository: docker.io/pgsty/mc
+      tag: RELEASE.2026-11-09T00-00-00Z
   gateway:
     ingress:
       enabled: true
@@ -1508,6 +1579,39 @@ loki:
         - secretName: loki-gateway-tls
           hosts:
             - loki.local
+
+rustfs:
+  enabled: false
+  fullnameOverride: loki-rustfs
+  mode:
+    standalone:
+      enabled: true
+    distributed:
+      enabled: false
+  secret:
+    existingSecret: loki-rustfs-credentials
+  credentials:
+    accessKey: ""
+    secretKey: ""
+  minioDataMigrated: false
+  buckets:
+    - chunks
+    - ruler
+  bucketsJob:
+    image: rclone/rclone:1.75.2
+  ingress:
+    enabled: false
+  storageclass:
+    name: ""
+    dataStorageSize: 50Gi
+    logStorageSize: 5Gi
+  resources:
+    requests:
+      cpu: 100m
+      memory: 512Mi
+    limits:
+      memory: 6Gi
+
 # In case you have loki installed somewhere manually or with ccxdeps helm chart, set the following variable to your hostname.
 # Make sure that X-Scope-OrgID header is set with value "ccx"
 # lokiHostname: 
@@ -1590,3 +1694,46 @@ promtail:
       - url: http://ccx-monitoring-loki-gateway.svc.cluster.local/loki/api/v1/push
         tenant_id: ccx
       
+# Log shipper replacing promtail (enable only one of them). Ships to the bundled Loki gateway when
+# loki.enabled=true, otherwise to lokiHostname. The DaemonSet tails every pod on every node and its
+# ClusterRole is cluster-scoped, so enable it in only one release per cluster.
+alloy:
+  enabled: false
+  crds:
+    create: false
+  controller:
+    type: daemonset
+    priorityClassName: system-node-critical
+    # Collect logs from every node, including tainted ones (control-plane, dedicated pools).
+    tolerations:
+      - operator: Exists
+    volumes:
+      extra:
+        - name: alloy-data
+          hostPath:
+            path: /var/lib/alloy
+            type: DirectoryOrCreate
+        - name: promtail-positions
+          hostPath:
+            path: /run/promtail
+            type: DirectoryOrCreate
+  alloy:
+    storagePath: /var/lib/alloy/data
+    resources:
+      requests:
+        cpu: 50m
+        memory: 128Mi
+      limits:
+        memory: 1Gi
+    mounts:
+      varlog: true
+      extra:
+        - name: alloy-data
+          mountPath: /var/lib/alloy
+        - name: promtail-positions
+          mountPath: /run/promtail
+          readOnly: true
+    configMap:
+      create: false
+      name: ccx-monitoring-alloy-config
+      key: config.alloy
