@@ -3,6 +3,7 @@ kind: Ingress
 metadata:
   name: ccx-ui-admin-ingress
   annotations:
+    {{- include "ccx.syncWave" (dict "root" . "wave" "3") | nindent 4 }}
     {{ if .Values.ccx.ingress.ssl.clusterIssuer }}
     kubernetes.io/tls-acme: "true"
     cert-manager.io/cluster-issuer: {{ .Values.ccx.ingress.ssl.clusterIssuer }}
@@ -40,6 +41,7 @@ kind: Ingress
 metadata:
   name: ccx-ui-admin-assets-ingress
   annotations:
+    {{- include "ccx.syncWave" (dict "root" . "wave" "3") | nindent 4 }}
     {{ if .Values.ccx.ingress.ssl.clusterIssuer }}
     kubernetes.io/tls-acme: "true"
     cert-manager.io/cluster-issuer: {{ .Values.ccx.ingress.ssl.clusterIssuer }}

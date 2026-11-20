@@ -3,6 +3,7 @@ kind: Job
 metadata:
   name: ccx-migrate
   annotations:
+    {{- include "ccx.syncWave" (dict "root" . "wave" "0") | nindent 4 }}
     "helm.sh/hook": pre-install,pre-upgrade
     "helm.sh/hook-weight": "555"
     "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
@@ -26,6 +27,7 @@ spec:
       imagePullSecrets:
         - name: {{ .Values.ccx.imagePullSecret }}
       {{- end }}
+      {{- include "ccx.backend.podSecurityContext" . | nindent 6 }}
       containers:
         - name: migrate
           image: {{ .Values.ccx.services.migrate.image | default .Values.ccx.backend.image |  required "migrate image is missing" }}
@@ -33,4 +35,5 @@ spec:
           envFrom:
             - secretRef:
                 name: db
+          {{- include "ccx.backend.containerSecurityContext" . | nindent 10 }}
       restartPolicy: Never

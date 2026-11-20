@@ -3,6 +3,10 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: ccx-configmap-fluentbit
+  {{- if .Values.argocd.enabled }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "-2"
+  {{- end }}
 data:
 {{ include "ccx.checkFluentBitConfig" . }}
   fluent-bit.conf: |

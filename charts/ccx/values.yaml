@@ -18,6 +18,15 @@ global:
   # NB. this does not apply to all units, e.g., some units will be run with a single replica always
   replicas: 1
 
+hpa:
+  enabled: false
+  minReplicas: 2
+  maxReplicas: 5
+  cpu:
+    averageValue: 750m
+  memory:
+    averageValue: 1Gi
+
 ## Autoscaling configuration for the ccx
 autoscaling:
   # datastore storage will be scaled up automatically by adding additional disk and extending logical volume
@@ -27,6 +36,12 @@ autoscaling:
     threshold: 75 # threshold in percentage, beyond which the storage will be autoscaled
     percentage: 20 # the percentage by which the storage will be increased
 
+
+## ArgoCD integration — enables sync-wave annotations on all resources.
+## Set to true when deploying via ArgoCD to control resource ordering.
+## Has no effect on plain Helm installs/upgrades.
+argocd:
+  enabled: false
 
 ## this section allows deploying a single default cmon instance in the k8s cluster
 cmon:
@@ -42,60 +57,57 @@ cmon:
     name: cmon
     user: cmon
     password: Super$3cr3t
-  image: severalnines/cmon:2.4.0-23957
+  vault:
+    enabled: false
+  image: severalnines/cmon:2.4.0-27420
   sshImage: severalnines/clustercontrol-ssh:2.5.0-1
+  secretStorageEngine: k8s # secret storage engine for cmon (e.g. k8s, vault)
   extra_args: [ ] # extra arguments for cmon binary
-  # Where cmon keeps its configs/secrets (cmon.cnf, cmon_<cid>.cnf, CA bundles,
-  # cmon.data, cloud_credentials.json). Same value/name as release/1.58's
-  # --secret-storage-engine=<file|k8s|vault> flag, so upgrading past 1.57
-  # doesn't require renaming this value.
-  #   k8s   -> cmon reads/writes them as com.severalnines.cmon.* secrets (no
-  #            PVCs). This is the default. (cmon always runs with --k8s
-  #            regardless of this setting - that flag is about pod mode, not
-  #            storage.)
-  #   file  -> cmon keeps them on the cmon-master-volume / cmon-var-lib-cmon
-  #            PVCs.
-  #   vault -> accepted but not yet wired up in this release.
-  secretStorageEngine: k8s
-  # The optional one-shot migrate* flags below run a migration init-container
-  # on the NEXT pod start and are no-ops once the target storage already
-  # holds data. Set the relevant one for a single upgrade, then remove it.
-  # migrateFromFile: false   # only valid with secretStorageEngine: k8s — push existing PVC files into secrets
-  # migrateFromK8s: false    # only valid with secretStorageEngine: file — restore PVC files from secrets
-  # cmon load grows with the number of managed clusters: measured at 4-9 cores
-  # and ~2.5Gi with 125 clusters. Size this per deployment - the default is a
-  # floor, not a recommendation. No cpu limit on purpose, throttling cmon shows
-  # up as a slow UI.
+  # Extra environment variables for the cmon container, as `NAME: value` pairs
+  env: {}
+  ## Run cmon and cmon-ssh with --pool and --k8s.
+  ## Also set ENABLE_CMON_POOL for the ccx backend. Both sides must agree,
+  ## so they are driven by this one value. Experimental.
+  pool: false
+  replicas: 1
+  # Grows with managed clusters (~175m/950Mi at 7, 4-9 cores/2.5Gi at 125).
+  # No cpu limit on purpose.
   resources:
     requests:
-      cpu: "1"
-      memory: 2Gi
+      cpu: 250m
+      memory: 1Gi
   exporter:
     resources:
       requests:
         cpu: 10m
         memory: 10Mi
-    image: severalnines/cmon_exporter-linux-amd64:29
+    image: severalnines/cmon_exporter-linux-amd64:30
   
   license: # REQUIRED put your CMON license key here, base64 encoded
   coreDumpEnable: false
-  # Extra cmon.cnf parameters appended to the rendered config. Keys become
-  # `key=value` lines at the end of /etc/cmon.cnf (and the mirrored
-  # com.severalnines.cmon.etc.cmon.cnf secret). Each value is emitted as-is
-  # after YAML parsing — YAML quoting itself is not preserved, so if CMON
-  # requires quotes around a value, include the quote characters in the
-  # value string itself (e.g. extraConfig: { foo: '"bar"' }). Useful for
-  # things like cmon_debug, log_*, tuning knobs that aren't first-class
-  # chart values.
+  # Extra cmon.cnf parameters appended as `key=value` lines to the rendered config.
   extraConfig: {}
+  # Extra read-only mounts into the cmon container, e.g. an apt pin next to the repo templates
+  extraVolumeMounts: []
+  # - name: cmon-repo-pins
+  #   mountPath: /usr/share/cmon/templates/repos/microsoft.pref
+  #   subPath: microsoft.pref
+  extraVolumes: []
+  # exactly one of 'secret' or 'configMap' per entry, naming an existing object
+  # - name: cmon-repo-pins
+  #   configMap: cmon-repo-pins
 ccv2:
-    image: europe-docker.pkg.dev/severalnines-public/clustercontrol/ccmgr:release-2.4.0-283
+    image: europe-docker.pkg.dev/severalnines-public/clustercontrol/ccmgr:release-2.4.0-556
     replicas: 1
 ## this section is for configuring specifics of the CCX system
 ccx:
   ## REQUIRED: list of k8s secrets containing cloud credentials
   cloudSecrets:
     - aws
+
+  ## Set to true when rendering without cluster access (e.g. ArgoCD, helm template).
+  ## The cloud secrets existence check uses lookup which requires a live cluster.
+  skipCloudSecretValidation: false
 
   ## affiliation allows enabling custom functionality for a customer, if applicable
   affiliation: ccx
@@ -121,13 +133,18 @@ ccx:
   migrateStores: false
 
   # configure automatic failure handling
+  # cannot be enabled together with reconcile.enabled - the reconciler replaces failed hosts itself
   autoRepair:
-    enabled: true
+    enabled: false
     delay: 300 # in seconds, auto-repair will be triggered for the nodes being "down" for this long
+
+  reconcile:
+    # enable reconciliation of datastore state; partially disables imperative actions
+    enabled: true
 
   ## default settings for all backend components
   backend:
-    image: europe-docker.pkg.dev/severalnines-public/ccx/ccx-backend:6435
+    image: europe-docker.pkg.dev/severalnines-public/ccx/ccx-backend:7243
 
   ## postgresql server used by all backend components
   db:
@@ -190,20 +207,20 @@ ccx:
       env:
       resources:
         requests:
-          cpu: 1m
-          memory: 5Mi
+          cpu: 10m
+          memory: 50Mi
     auth:
       env:
       resources:
         requests:
-          cpu: 1m
-          memory: 5Mi
+          cpu: 10m
+          memory: 50Mi
     backupstorage: # DEPRECATED
       env:
       resources:
         requests:
-          cpu: 1m
-          memory: 5Mi
+          cpu: 10m
+          memory: 50Mi
     billing:
       # note that this does not disable the billing service; it disables the billing UI
       enabled: false
@@ -213,16 +230,10 @@ ccx:
       env:
       resources:
         requests:
-          cpu: 1m
-          memory: 10Mi
+          cpu: 10m
+          memory: 50Mi
     billingupdater:
       env:
-    controllerstorage: # DEPRECATED
-      env:
-      resources:
-        requests:
-          cpu: 1m
-          memory: 5Mi
     datastorestorage:
       cleanUpK8sResources:
         disabled: false
@@ -230,8 +241,8 @@ ccx:
       env:
       resources:
         requests:
-          cpu: 1m
-          memory: 5Mi
+          cpu: 10m
+          memory: 50Mi
     deployer:
       ## Set deployer config to match your infrastructure,
       ## By default, aws_vendor is enabled and configured as shown in the commented example below
@@ -396,14 +407,14 @@ ccx:
       env:
       resources:
         requests:
-          cpu: 1m
-          memory: 5Mi
+          cpu: 10m
+          memory: 50Mi
     jobstorage:
       env:
       resources:
         requests:
-          cpu: 1m
-          memory: 5Mi
+          cpu: 10m
+          memory: 50Mi
     storesMigrate:
       env:
     migrate: { }
@@ -413,16 +424,16 @@ ccx:
         HOST_CHECK_PORT: "22"
       resources:
         requests:
-          cpu: 1m
-          memory: 5Mi
+          cpu: 10m
+          memory: 50Mi
     notification:
       env:
         ALARM_DELAY: "10m"
         DEVELOPMENT_RECEIVERS: "ccx-dev@severalnines.com"
       resources:
         requests:
-          cpu: 1m
-          memory: 5Mi
+          cpu: 10m
+          memory: 50Mi
     notify_worker:
       email_template: |
         <h2>{{ .AlertName }}</h2>
@@ -451,15 +462,15 @@ ccx:
         ENABLE_PAGERDUTY: "false"
       resources:
         requests:
-          cpu: 1m
-          memory: 5Mi
+          cpu: 10m
+          memory: 50Mi
     rest_service:
       env:
         HIDE_CIDRS: "35.205.236.175/32"
       resources:
         requests:
-          cpu: 1m
-          memory: 10Mi
+          cpu: 10m
+          memory: 50Mi
     runnernotifications:
       env:
         QUEUE: "notification"
@@ -469,28 +480,39 @@ ccx:
         DISABLE_USER_EMAILS: "false"
       resources:
         requests:
-          cpu: 1m
-          memory: 5Mi
+          cpu: 10m
+          memory: 50Mi
     runner:
       env:
         CMON_PROXY_ADDR: cmon-proxy-svc:19051
         CMON_PROXY_INSECURE: "true"
         BACKUP_FULL: "0 4 * * *"
         BACKUP_INCREMENTAL: "0 * * * *"
-        LOG_LEVEL: "debug"
         STORAGE_MULTIPLIER: "1"
       resources:
         requests:
-          cpu: 1m
-          memory: 8Mi
+          cpu: 10m
+          memory: 50Mi
+    store_internal_metrics_sd:
+      env:
+      resources:
+        requests:
+          cpu: 10m
+          memory: 50Mi
+    store_metrics_sd:
+      env:
+      resources:
+        requests:
+          cpu: 10m
+          memory: 50Mi
     stores_listener:
       # IMPORTANT stores_* should always have the same image
       ingress: false
       env:
       resources:
         requests:
-          cpu: 1m
-          memory: 5Mi
+          cpu: 10m
+          memory: 50Mi
     stores_migrate:
       env:
     stores_service:
@@ -502,8 +524,8 @@ ccx:
         ENABLE_K8S: "true"
       resources:
         requests:
-          cpu: 1m
-          memory: 5Mi
+          cpu: 10m
+          memory: 50Mi
       extraVolumeMounts:
       #The example below for volume mount
       # - name: conf-fluentbit
@@ -517,37 +539,30 @@ ccx:
       # - name: custom-config
       #   configMap: my-configmap          # name of an existing Kubernetes ConfigMap
     uiapp:
-      image: europe-docker.pkg.dev/severalnines-public/ccx/ccx-ui-app:1079
+      image: europe-docker.pkg.dev/severalnines-public/ccx/ccx-ui-app:1102
       resources:
         requests:
-          cpu: 1m
-          memory: 10Mi
+          cpu: 10m
+          memory: 50Mi
     uiauth:
       image: europe-docker.pkg.dev/severalnines-public/ccx/ccx-ui-auth:32
       resources:
         requests:
-          cpu: 1m
-          memory: 5Mi
+          cpu: 10m
+          memory: 50Mi
     uiadmin:
-      image: europe-docker.pkg.dev/severalnines-public/ccx/ccx-ui-admin:80
+      image: europe-docker.pkg.dev/severalnines-public/ccx/ccx-ui-admin:126
       env:
       resources:
         requests:
-          cpu: 1m
-          memory: 5Mi
+          cpu: 10m
+          memory: 50Mi
     user:
       env:
       resources:
         requests:
-          cpu: 1m
-          memory: 5Mi
-    cmonproxy:
-      enabled: false
-      image: severalnines/clustercontrol-manager:latest
-      resources:
-        requests:
-          cpu: 1m
-          memory: 5Mi
+          cpu: 10m
+          memory: 50Mi
 
   # REQUIRED primary config file for CCX
   config:
@@ -584,6 +599,8 @@ ccx:
     # | microsoft       |       2019  | mssql_ao_async
     # | microsoft       |       2022  | mssql_single
     # | microsoft       |       2022  | mssql_ao_async
+    # | microsoft       |       2025  | mssql_single
+    # | microsoft       |       2025  | mssql_ao_async
     # | postgresql      |       11    | postgres_streaming
     # | postgresql      |       14    | postgres_streaming
     # | postgresql      |       15    | postgres_streaming
@@ -594,6 +611,7 @@ ccx:
       - code: mariadb
         name: MariaDB
         versions:
+          - "10.6"
           - "10.11"
           - "11.4"
           - "11.8"
@@ -684,6 +702,7 @@ ccx:
         name: Microsoft SQL Server
         versions:
           - "2022"
+          - "2025"
         num_nodes:
           - 1
           - 2
@@ -968,7 +987,7 @@ ccx:
       #     - mariadb
       #     - percona
       - name: require_secure_transport
-        description: "The current time zone. This variable is used to initialize the time zone for each client that connects."
+        description: "When ON, the server rejects client connections that do not use a secure transport (TLS or a local Unix socket)."
         type: "text"
         default_value: "OFF"
         allowed_values:
@@ -985,7 +1004,7 @@ ccx:
           - "percona"
       # postgresql
       - name: statement_timeout
-        description: Sets the time to wait (in milliseconds) on a lock before checking for deadlock
+        description: Abort any statement that takes more than the specified amount of time (in milliseconds). 0 disables the timeout.
         type: number
         default_value: "0"
         validation_options: "min=0,max=10800"
@@ -1100,7 +1119,7 @@ ccx:
         vendors:
           - postgres
       - name: parallel_setup_cost
-        description: "Sets the number of concurrent disk I/O operations that PostgreSQL expects can be executed simultaneously.  The allowed range is 1 to 1000, or zero to disable issuance of asynchronous I/O requests."
+        description: "Sets the planner's estimate of the cost of launching parallel worker processes. The default is 1000."
         type: "number"
         default_value: "1000"
         validation_options: "min=0,max=1000000000000000000000"
@@ -1127,6 +1146,30 @@ ccx:
         start_hour: 0 # start hour, 0-23
         end_hour: 6 # end hour, 0-23. Must be greater than start_hour
         interval_minutes: 15 # randomize interval in minutes, 0-60
+
+    ## Pod-level securityContext applied to every ccx-backend workload
+    ## (Deployments, StatefulSets, Jobs, CronJobs that run the ccx-backend image).
+    ## uid/gid 65534 match the `nobody` user in the alpine base image used by
+    ## ccx-backend/Dockerfile.build.
+    ## Set to {} (empty map) to disable.
+    podSecurityContext:
+      runAsNonRoot: true
+      runAsUser: 65534
+      runAsGroup: 65534
+      fsGroup: 65534
+      seccompProfile:
+        type: RuntimeDefault
+
+    ## Container-level securityContext applied to ccx-backend containers
+    ## (and any init container that uses the ccx-backend image).
+    ## Set to {} (empty map) to disable.
+    containerSecurityContext:
+      allowPrivilegeEscalation: false
+      readOnlyRootFilesystem: true
+      capabilities:
+        drop:
+          - ALL
+
 fluentbit:
   enabled: true
   # Provide Ingress hostname of loki from ccxdeps. If not set, it will automatically preconfigure from ccxdeps.

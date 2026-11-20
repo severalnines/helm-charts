@@ -5,8 +5,14 @@ metadata:
   labels:
     app: ccx-rest-user-service
     run: ccx-rest-user-service
+  {{- if .Values.argocd.enabled }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+  {{- end }}
 spec:
+  {{- if not .Values.hpa.enabled }}
   replicas: {{ .Values.ccx.services.rest_service.replicas | default 1 }}
+  {{- end }}
   selector:
     matchLabels:
       app: ccx-rest-user-service
@@ -27,6 +33,7 @@ spec:
       imagePullSecrets:
         - name: {{ .Values.ccx.imagePullSecret }}
       {{- end }}
+      {{- include "ccx.backend.podSecurityContext" . | nindent 6 }}
       containers:
         - name: ccx-rest-user-service
           image: {{ .Values.ccx.services.rest_service.image | default .Values.ccx.backend.image | required "No image set for rest" }}
@@ -81,6 +88,8 @@ spec:
             - configMapRef:
                 name: ccx
             - secretRef:
+                name: cmon-credentials
+            - secretRef:
                 name: db
             {{ if .Values.ccx.services.billing.stripe }}
             - secretRef:
@@ -119,6 +128,7 @@ spec:
           {{ end }}
           resources:
             {{- toYaml .Values.ccx.services.rest_service.resources | nindent 12 }}
+          {{- include "ccx.backend.containerSecurityContext" . | nindent 10 }}
       volumes:
         - name: config
           configMap:
@@ -148,6 +158,10 @@ metadata:
   labels:
     app: ccx-rest-user-service
     run: ccx-rest-user-service
+  {{- if .Values.argocd.enabled }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+  {{- end }}
 spec:
   type: ClusterIP
   selector:

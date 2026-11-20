@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: ccx-state-worker-svc
+  labels:
+    app: ccx-state-worker
+    run: ccx-state-worker
+spec:
+  type: ClusterIP
+  selector:
+    app: ccx-state-worker
+  ports:
+    - protocol: TCP
+      port: 20002
+      targetPort: 20002

@@ -5,6 +5,10 @@ metadata:
   labels:
     app: ccx-ui-auth
     run: ccx-ui-auth
+  {{- if .Values.argocd.enabled }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+  {{- end }}
 spec:
   type: ClusterIP
   selector:

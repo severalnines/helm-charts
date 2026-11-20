@@ -1,0 +1,58 @@
+{{- if .Values.hpa.enabled }}
+{{- $hpa := .Values.hpa }}
+
+{{- $deployments := list
+  (dict "name" "ccx-auth-service"       "enabled" true)
+  (dict "name" "ccx-rest-admin-service" "enabled" true)
+  (dict "name" "ccx-billing-service"    "enabled" true)
+  (dict "name" "ccx-hook-service"       "enabled" true)
+  (dict "name" "ccx-monitor-service"    "enabled" true)
+  (dict "name" "ccx-notify-worker"      "enabled" true)
+  (dict "name" "ccx-rest-user-service"  "enabled" true)
+  (dict "name" "ccx-runner-service"     "enabled" true)
+  (dict "name" "ccx-stores-service"     "enabled" true)
+  (dict "name" "ccx-stores-listener"    "enabled" true)
+  (dict "name" "store-internal-metrics-sd" "enabled" true)
+  (dict "name" "store-metrics-sd"       "enabled" true)
+  (dict "name" "ccx-ui-app"             "enabled" true)
+  (dict "name" "ccx-ui-auth"            "enabled" true)
+  (dict "name" "ccx-ui-admin"           "enabled" true)
+  (dict "name" "ccx-user"               "enabled" true)
+}}
+
+{{- range $deployments }}
+{{- if .enabled }}
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ .name }}
+  labels:
+    app: {{ .name }}
+  {{- if $.Values.argocd.enabled }}
+  annotations:
+    {{- include "ccx.syncWave" (dict "root" $ "wave" "3") | nindent 4 }}
+  {{- end }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ .name }}
+  minReplicas: {{ $hpa.minReplicas }}
+  maxReplicas: {{ $hpa.maxReplicas }}
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: AverageValue
+        averageValue: {{ $hpa.cpu.averageValue }}
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: AverageValue
+        averageValue: {{ $hpa.memory.averageValue }}
+{{- end }}
+{{- end }}
+{{- end }}

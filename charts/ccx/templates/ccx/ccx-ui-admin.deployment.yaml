@@ -5,8 +5,14 @@ metadata:
   labels:
     run: ccx-ui-admin
     app: ccx-ui-admin
+  {{- if .Values.argocd.enabled }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+  {{- end }}
 spec:
+  {{- if not .Values.hpa.enabled }}
   replicas: {{ .Values.ccx.services.uiadmin.replicas | default 1 }}
+  {{- end }}
   selector:
     matchLabels:
       app: ccx-ui-admin

@@ -1,7 +1,3 @@
-{{- $isFile := eq .Values.cmon.secretStorageEngine "file" -}}
-{{- $isK8s := eq .Values.cmon.secretStorageEngine "k8s" -}}
-{{- $migrateFromK8s := and $isFile .Values.cmon.migrateFromK8s -}}
-{{- $migrateFromFile := and $isK8s .Values.cmon.migrateFromFile -}}
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
@@ -9,23 +5,25 @@ metadata:
   labels:
     app: cmon
     run: cmon
+  {{- if .Values.argocd.enabled }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+  {{- end }}
 spec:
   selector:
     matchLabels:
       app: cmon
       run: cmon
-  replicas: 1
+  {{- if and (gt (int .Values.cmon.replicas) 1) (not .Values.cmon.pool) }}
+  {{- fail "cmon.replicas > 1 requires cmon.pool: true" }}
+  {{- end }}
+  replicas: {{ .Values.cmon.replicas }}
   serviceName: cmon-pool
   template:
     metadata:
       annotations:
         prometheus.io/scrape: "true"
         prometheus.io/port: "9954"
-        # cmon runs as a single replica whose PVCs are pinned to one zone, so a
-        # scale-down cannot move it. Without this the autoscaler drains the node
-        # anyway - it sizes nodes by requests, and cmon's are far below what it
-        # actually uses.
-        cluster-autoscaler.kubernetes.io/safe-to-evict: "false"
         config: {{ include (print $.Template.BasePath "/cmon/secrets.yaml") . | sha256sum }}
       labels:
         app: cmon
@@ -36,12 +34,6 @@ spec:
         - name: {{ .Values.ccx.imagePullSecret }}
       {{- end }}
       initContainers:
-        {{- if $migrateFromFile }}
-        {{- include "cmon.initContainer.migrateToK8s" . | nindent 8 }}
-        {{- end }}
-        {{- if $migrateFromK8s }}
-        {{- include "cmon.initContainer.restoreFromK8s" . | nindent 8 }}
-        {{- end }}
         - name: init-cmon
           image: {{ .Values.cmon.image | required ".Values.cmon.image is missing" }}
           imagePullPolicy: Always
@@ -63,10 +55,6 @@ spec:
             - mountPath: /tmp/cmon.cnf
               subPath: cmon.cnf
               name: cmon-cnf-cfg
-          {{- if $isFile }}
-            - mountPath: /etc/cmon.d
-              name: cmon-master-pv
-          {{- end }}
       containers:
         - name: cmon
           image: {{ .Values.cmon.image | required ".Values.cmon.image is missing" }}
@@ -74,10 +62,10 @@ spec:
           args:
             - >-
               hostname $(POD_NAME).cmon-pool &&
-              {{- if .Values.cmon.coreDumpEnable }}
-              ulimit -c unlimited &&
-              {{- end }}
               exec /usr/sbin/cmon
+              {{- if .Values.cmon.pool }}
+              --pool
+              {{- end }}
               --k8s
               --secret-storage-engine={{ .Values.cmon.secretStorageEngine | default "k8s" }}
               --mysql-connect-retries 5
@@ -93,6 +81,10 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.name
+          {{- range $key, $val := .Values.cmon.env }}
+            - name: {{ $key }}
+              value: {{ $val | quote }}
+          {{- end }}
           securityContext:
             privileged: True
           ports:
@@ -109,13 +101,15 @@ spec:
             - mountPath: /root/.s9s/s9s.conf
               subPath: s9s.conf
               name: s9s-cnf-cfg
-          {{- if $isFile }}
-            - mountPath: /etc/cmon.d
-              name: cmon-master-pv
-            - mountPath: /var/lib/cmon
-              name: cmon-pv-var-lib-cmon
-          {{- end }}
-          {{- if .Values.cmon.license }}
+            {{- range .Values.cmon.extraVolumeMounts }}
+            - name: {{ .name }}
+              mountPath: {{ .mountPath }}
+              {{- with .subPath }}
+              subPath: {{ . }}
+              {{- end }}
+              readOnly: true
+            {{- end }}
+          {{ if .Values.cmon.license }}
             - mountPath: /root/.s9s/cmon-license
               name: cmon-license
           startupProbe:
@@ -124,7 +118,7 @@ spec:
             timeoutSeconds: 10
             failureThreshold: 10
             periodSeconds: 5
-          {{- end }}
+          {{ end }}
           livenessProbe:
             httpGet:
               path: /v2/controller?operation=ping
@@ -145,12 +139,12 @@ spec:
             {{- toYaml .Values.cmon.resources | nindent 12 }}
         - name: cmon-ssh
           image: {{ .Values.cmon.sshImage | default .Values.cmon.image | required ".Values.cmon.image is missing" }}
-          {{- /* cmon-ssh flags mirror the cmon container: --k8s only in k8s mode.
-                 --pool is intentionally omitted for now and will be re-enabled
-                 together with cmon --pool in a later release. */}}
           command:
             - /usr/sbin/cmon-ssh
-            {{- if $isK8s }}
+            {{- if .Values.cmon.pool }}
+            - --pool
+            {{- end }}
+            {{- if eq (.Values.cmon.secretStorageEngine | default "k8s") "k8s" }}
             - --k8s
             {{- end }}
           imagePullPolicy: {{ .Values.cmon.sshImagePullPolicy | default "IfNotPresent" }}
@@ -163,11 +157,6 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.namespace
-        {{- if $isFile }}
-          volumeMounts:
-            - mountPath: /etc/cmon.d
-              name: cmon-master-pv
-        {{- end }}
         - name: cmon-exporter
           image: {{ .Values.cmon.exporter.image | required ".Values.cmon.exporter.image is missing" }}
           ports:
@@ -187,11 +176,6 @@ spec:
                   name: cmon-credentials
                   key: cmon-password
                   optional: false
-        {{- if $isFile }}
-          volumeMounts:
-            - mountPath: /etc/cmon.d
-              name: cmon-master-pv
-        {{- end }}
           resources:
             {{- toYaml .Values.cmon.exporter.resources | nindent 12 }}
       volumes:
@@ -205,14 +189,19 @@ spec:
         - name: s9s-cnf-cfg
           secret:
             secretName: s9s-conf
-      {{- if or $isFile $migrateFromFile }}
-        - name: cmon-master-pv
-          persistentVolumeClaim:
-            claimName: cmon-master-volume
-        - name: cmon-pv-var-lib-cmon
-          persistentVolumeClaim:
-            claimName: cmon-var-lib-cmon
-      {{- end }}
+        {{- range .Values.cmon.extraVolumes }}
+        {{- if not .name }}{{ fail "cmon.extraVolumes: each entry must have a 'name'" }}{{- end }}
+        {{- if and .secret .configMap }}{{ fail (printf "cmon.extraVolumes entry '%s': specify exactly one of 'secret' or 'configMap', not both" .name) }}{{- end }}
+        {{- if not (or .secret .configMap) }}{{ fail (printf "cmon.extraVolumes entry '%s': must specify exactly one of 'secret' or 'configMap'" .name) }}{{- end }}
+        - name: {{ .name }}
+          {{- if .secret }}
+          secret:
+            secretName: {{ .secret }}
+          {{- else }}
+          configMap:
+            name: {{ .configMap }}
+          {{- end }}
+        {{- end }}
       {{ with .Values.cmon.affinity }}
       affinity:
         {{ toYaml . | nindent 8 }}
@@ -225,3 +214,4 @@ spec:
       tolerations:
         {{ toYaml . | nindent 8 }}
       {{ end }}
+

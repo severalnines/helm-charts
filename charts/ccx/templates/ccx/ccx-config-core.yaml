@@ -4,6 +4,10 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: ccx-config-core
+  {{- if .Values.argocd.enabled }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "-2"
+  {{- end }}
 data:
   ccx.yaml: |
     legacy:

@@ -3,10 +3,15 @@ apiVersion: batch/v1
 kind: Job
 metadata:
   name: ccx-stores-migrate
+  {{- if .Values.argocd.enabled }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "3"
+  {{- end }}
 spec:
   backoffLimit: 0
   template:
     spec:
+      {{- include "ccx.backend.podSecurityContext" . | nindent 6 }}
       initContainers:
         - name: ccx-stores-init
           image: {{ .Values.ccx.services.stores_service.image | default .Values.ccx.backend.image | required "No image set for stores" }}
@@ -14,6 +19,7 @@ spec:
           envFrom:
             - secretRef:
                 name: db
+          {{- include "ccx.backend.containerSecurityContext" . | nindent 10 }}
       containers:
         - name: stores-migrate
           image: {{ .Values.ccx.services.stores_service.image | default .Values.ccx.backend.image | required "No image set for stores" }}
@@ -45,6 +51,7 @@ spec:
           volumeMounts:
             - name: config
               mountPath: "/conf"
+          {{- include "ccx.backend.containerSecurityContext" . | nindent 10 }}
       volumes:
         - name: config
           configMap:

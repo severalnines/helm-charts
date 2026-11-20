@@ -5,8 +5,14 @@ metadata:
   labels:
     app: ccx-hook-service
     run: ccx-hook-service
+  {{- if .Values.argocd.enabled }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+  {{- end }}
 spec:
+  {{- if not .Values.hpa.enabled }}
   replicas: {{ .Values.ccx.services.hook.replicas | default .Values.global.replicas }}
+  {{- end }}
   selector:
     matchLabels:
       app: ccx-hook-service
@@ -27,6 +33,7 @@ spec:
       imagePullSecrets:
         - name: {{ .Values.ccx.imagePullSecret }}
       {{- end }}
+      {{- include "ccx.backend.podSecurityContext" . | nindent 6 }}
       containers:
         - name: ccx-hook-service
           image: {{ .Values.ccx.services.hook.image | default .Values.ccx.backend.image | required "No image set for hooks" }}
@@ -46,6 +53,8 @@ spec:
             - configMapRef:
                 name: ccx
             - secretRef:
+                name: cmon-credentials
+            - secretRef:
                 name: db
           ports:
             - name: service
@@ -59,6 +68,7 @@ spec:
               mountPath: "/conf"
           resources:
             {{- toYaml .Values.ccx.services.hook.resources | nindent 12 }}
+          {{- include "ccx.backend.containerSecurityContext" . | nindent 10 }}
       volumes:
         - name: config
           configMap:
