@@ -1,0 +1,22 @@
+{{- if .Values.grafana.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ccx-datastore-dashboards
+  annotations:
+    grafana_folder: "CCX"
+    meta.helm.sh/release-name: {{ .Release.Name }}
+    meta.helm.sh/release-namespace: {{ .Release.Namespace }}
+  labels:
+    grafana_dashboard: "1"
+    app.kubernetes.io/managed-by: "Helm"
+data:
+  ccx-mysql.json: |
+{{ (.Files.Get "dashboards/DB/ccx-mysql.json") | indent 4 }}
+  ccx-postgresql.json: |
+{{ (.Files.Get "dashboards/DB/ccx-postgresql.json") | indent 4 }}
+  ccx-redis.json: |
+{{ (.Files.Get "dashboards/DB/ccx-redis.json") | indent 4 }}
+  ccx-mssql.json: |
+{{ (.Files.Get "dashboards/DB/ccx-mssql.json") | indent 4 }}
+{{- end }}

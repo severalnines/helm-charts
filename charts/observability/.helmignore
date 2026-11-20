@@ -23,4 +23,5 @@
 *.tmproj
 .vscode/
 #json
-# *.json
+# *.json# Local agent state
+.claude-flow/

@@ -26,7 +26,6 @@
   "fiscalYearStartMonth": 0,
   "gnetId": 10229,
   "graphTooltip": 0,
-  "id": 10,
   "links": [
     {
       "icon": "doc",
@@ -1678,7 +1677,7 @@
       "collapsed": true,
       "datasource": {
         "type": "prometheus",
-        "uid": "P4169E866C3094E38"
+        "uid": "${ds}"
       },
       "gridPos": {
         "h": 1,
@@ -1996,7 +1995,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "P4169E866C3094E38"
+            "uid": "${ds}"
           },
           "refId": "A"
         }
@@ -4815,7 +4814,8 @@
   "style": "dark",
   "tags": [
     "victoriametrics",
-    "vmsingle"
+    "vmsingle",
+    "ccx"
   ],
   "templating": {
     "list": [

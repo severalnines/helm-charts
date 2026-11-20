@@ -6,10 +6,20 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 1,
-  "id": null,
-  "links": [],
+  "links": [
+    {
+      "type": "dashboards",
+      "tags": [
+        "ccx"
+      ],
+      "asDropdown": true,
+      "title": "CCX dashboards",
+      "includeVars": true,
+      "keepTime": true
+    }
+  ],
   "refresh": "30s",
-  "schemaVersion": 38,
+  "schemaVersion": 41,
   "tags": [
     "mysql",
     "innodb",
@@ -58,7 +68,6 @@
         "type": "constant"
       },
       {
-        "allValue": ".+",
         "current": {},
         "datasource": {
           "type": "prometheus",
@@ -66,9 +75,9 @@
         },
         "definition": "label_values(mysql_up{job=~\"$job\"}, namespace)",
         "hide": 0,
-        "includeAll": true,
+        "includeAll": false,
         "label": "Namespace",
-        "multi": true,
+        "multi": false,
         "name": "namespace",
         "options": [],
         "query": {
@@ -81,7 +90,7 @@
         "type": "query"
       },
       {
-        "allValue": ".+",
+        "allValue": "ccxdeps-.*",
         "current": {},
         "datasource": {
           "type": "prometheus",
@@ -195,7 +204,8 @@
         }
       ],
       "title": "MySQL Status",
-      "type": "stat"
+      "type": "stat",
+      "description": "1 when every selected cmon MySQL InnoDB cluster member is reachable by mysqld-exporter (min of mysql_up), 0 if any is down."
     },
     {
       "datasource": {
@@ -246,7 +256,8 @@
         }
       ],
       "title": "Uptime",
-      "type": "stat"
+      "type": "stat",
+      "description": "Shortest uptime among the selected MySQL members (a recent restart shows here)."
     },
     {
       "datasource": {
@@ -313,7 +324,8 @@
         }
       ],
       "title": "Active Connections",
-      "type": "stat"
+      "type": "stat",
+      "description": "Total client connections currently open across the selected members."
     },
     {
       "datasource": {
@@ -364,7 +376,8 @@
         }
       ],
       "title": "Queries / sec",
-      "type": "stat"
+      "type": "stat",
+      "description": "Statements executed per second (mysql_global_status_queries rate)."
     },
     {
       "datasource": {
@@ -426,14 +439,15 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "100 * sum(rate(mysql_global_status_innodb_buffer_pool_read_requests{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\"}[$__rate_interval])) / (sum(rate(mysql_global_status_innodb_buffer_pool_read_requests{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\"}[$__rate_interval])) + sum(rate(mysql_global_status_innodb_buffer_pool_reads{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\"}[$__rate_interval])))",
+          "expr": "100 * (1 - sum(rate(mysql_global_status_innodb_buffer_pool_reads{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\"}[$__rate_interval])) / (sum(rate(mysql_global_status_innodb_buffer_pool_read_requests{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\"}[$__rate_interval])) > 0))",
           "instant": true,
           "legendFormat": "Hit Rate",
           "refId": "A"
         }
       ],
       "title": "Buffer Pool Hit Rate",
-      "type": "stat"
+      "type": "stat",
+      "description": "Share of InnoDB logical page reads served from the buffer pool rather than disk (1 - Innodb_buffer_pool_reads / Innodb_buffer_pool_read_requests), over the selected members."
     },
     {
       "datasource": {
@@ -500,7 +514,8 @@
         }
       ],
       "title": "Threads Running",
-      "type": "stat"
+      "type": "stat",
+      "description": "Threads actively executing a statement right now across the selected members."
     },
     {
       "datasource": {
@@ -625,7 +640,8 @@
         }
       ],
       "title": "Connections",
-      "type": "timeseries"
+      "type": "timeseries",
+      "description": "Connected and running threads per member, with max_connections as the ceiling."
     },
     {
       "datasource": {
@@ -696,7 +712,8 @@
         }
       ],
       "title": "Queries / sec",
-      "type": "timeseries"
+      "type": "timeseries",
+      "description": "Statements executed per second (mysql_global_status_queries rate)."
     },
     {
       "collapsed": false,
@@ -770,15 +787,15 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "100 * (1 - sum(mysql_global_status_buffer_pool_pages{state=\"free\", job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\"}) / sum(mysql_global_status_buffer_pool_pages{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\"}))",
+          "expr": "100 * (1 - sum by (pod) (mysql_global_status_buffer_pool_pages{state=\"free\", job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\"}) / sum by (pod) (mysql_global_status_buffer_pool_pages{state=~\"data|free|misc\", job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\"}))",
           "instant": true,
-          "legendFormat": "Buffer Pool Used %",
+          "legendFormat": "{{pod}}",
           "refId": "A"
         }
       ],
       "title": "Buffer Pool Used %",
       "type": "gauge",
-      "description": "Uses mysql_global_status_buffer_pool_pages{state=...} (this exporter build has no separate \"dirty\" state, so this tracks used vs free, not dirty pages specifically)."
+      "description": "Share of buffer pool pages in use (data + misc) per member, from mysql_global_status_buffer_pool_pages{state=\"data|free|misc\"}. Dirty pages are a separate metric and not shown here."
     },
     {
       "datasource": {
@@ -864,7 +881,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "sum by (pod) (mysql_global_status_buffer_pool_pages{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\"})",
+          "expr": "sum by (pod) (mysql_global_status_buffer_pool_pages{state=~\"data|free|misc\", job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\"})",
           "legendFormat": "Total Pages - {{pod}}",
           "refId": "A"
         },
@@ -889,7 +906,7 @@
       ],
       "title": "Buffer Pool Pages",
       "type": "timeseries",
-      "description": "Uses mysql_global_status_buffer_pool_pages{state=\"data\"|\"free\"|\"misc\"} (this exporter build has no separate \"dirty\" state)."
+      "description": "Total, free and used (data + misc) buffer pool pages per member, from mysql_global_status_buffer_pool_pages{state=\"data|free|misc\"}."
     },
     {
       "datasource": {
@@ -964,13 +981,14 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "100 * rate(mysql_global_status_innodb_buffer_pool_read_requests{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\"}[$__rate_interval]) / (rate(mysql_global_status_innodb_buffer_pool_read_requests{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\"}[$__rate_interval]) + rate(mysql_global_status_innodb_buffer_pool_reads{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\"}[$__rate_interval]))",
+          "expr": "100 * (1 - rate(mysql_global_status_innodb_buffer_pool_reads{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\"}[$__rate_interval]) / (rate(mysql_global_status_innodb_buffer_pool_read_requests{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\"}[$__rate_interval]) > 0))",
           "legendFormat": "Hit Rate - {{pod}}",
           "refId": "A"
         }
       ],
       "title": "Buffer Pool Hit Rate %",
-      "type": "timeseries"
+      "type": "timeseries",
+      "description": "Per-member share of InnoDB logical page reads served from the buffer pool (1 - reads / read_requests); empty while a member has no read requests."
     },
     {
       "collapsed": false,
@@ -1039,8 +1057,8 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "sum(rate(mysql_global_status_innodb_row_ops_total{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\", operation=\"read\"}[$__rate_interval]))",
-          "legendFormat": "Rows Read/sec",
+          "expr": "sum by (pod) (rate(mysql_global_status_innodb_row_ops_total{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\", operation=\"read\"}[$__rate_interval]))",
+          "legendFormat": "Rows Read/sec - {{pod}}",
           "refId": "A"
         },
         {
@@ -1048,8 +1066,8 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "sum(rate(mysql_global_status_innodb_row_ops_total{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\", operation=\"inserted\"}[$__rate_interval]))",
-          "legendFormat": "Rows Inserted/sec",
+          "expr": "sum by (pod) (rate(mysql_global_status_innodb_row_ops_total{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\", operation=\"inserted\"}[$__rate_interval]))",
+          "legendFormat": "Rows Inserted/sec - {{pod}}",
           "refId": "B"
         },
         {
@@ -1057,8 +1075,8 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "sum(rate(mysql_global_status_innodb_row_ops_total{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\", operation=\"updated\"}[$__rate_interval]))",
-          "legendFormat": "Rows Updated/sec",
+          "expr": "sum by (pod) (rate(mysql_global_status_innodb_row_ops_total{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\", operation=\"updated\"}[$__rate_interval]))",
+          "legendFormat": "Rows Updated/sec - {{pod}}",
           "refId": "C"
         },
         {
@@ -1066,13 +1084,14 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "sum(rate(mysql_global_status_innodb_row_ops_total{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\", operation=\"deleted\"}[$__rate_interval]))",
-          "legendFormat": "Rows Deleted/sec",
+          "expr": "sum by (pod) (rate(mysql_global_status_innodb_row_ops_total{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\", operation=\"deleted\"}[$__rate_interval]))",
+          "legendFormat": "Rows Deleted/sec - {{pod}}",
           "refId": "D"
         }
       ],
       "title": "InnoDB Row Operations / sec",
-      "type": "timeseries"
+      "type": "timeseries",
+      "description": "Rows read, inserted, updated and deleted per second by InnoDB, per member. Not summed: in Group Replication every secondary re-applies the primary's row changes, so a sum would count each write once per member."
     },
     {
       "collapsed": false,
@@ -1151,7 +1170,8 @@
         }
       ],
       "title": "Current Lock Waits",
-      "type": "stat"
+      "type": "stat",
+      "description": "Row-lock waits in progress right now across the selected members."
     },
     {
       "datasource": {
@@ -1211,14 +1231,15 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "sum(rate(mysql_global_status_innodb_row_lock_time{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\"}[$__rate_interval])) / sum(rate(mysql_global_status_innodb_row_lock_waits{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\"}[$__rate_interval]))",
+          "expr": "(sum(rate(mysql_global_status_innodb_row_lock_time{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\"}[$__rate_interval])) / (sum(rate(mysql_global_status_innodb_row_lock_waits{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\"}[$__rate_interval])) > 0)) or vector(0)",
           "instant": true,
           "legendFormat": "Avg Wait",
           "refId": "A"
         }
       ],
       "title": "Avg Lock Wait Time",
-      "type": "stat"
+      "type": "stat",
+      "description": "Average time a row-lock wait took in the interval; 0 when there were no lock waits."
     },
     {
       "datasource": {
@@ -1276,7 +1297,8 @@
         }
       ],
       "title": "InnoDB Lock Waits / sec",
-      "type": "timeseries"
+      "type": "timeseries",
+      "description": "Row-lock waits per second per member."
     },
     {
       "datasource": {
@@ -1329,13 +1351,14 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "rate(mysql_global_status_innodb_row_lock_time{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\"}[$__rate_interval]) / rate(mysql_global_status_innodb_row_lock_waits{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\"}[$__rate_interval])",
+          "expr": "rate(mysql_global_status_innodb_row_lock_time{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\"}[$__rate_interval]) / (rate(mysql_global_status_innodb_row_lock_waits{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\"}[$__rate_interval]) > 0)",
           "legendFormat": "Avg Lock Time - {{pod}}",
           "refId": "A"
         }
       ],
       "title": "InnoDB Avg Lock Wait Time (ms)",
-      "type": "timeseries"
+      "type": "timeseries",
+      "description": "Average row-lock wait duration per member; empty for intervals with no lock waits (nothing to average)."
     },
     {
       "collapsed": false,
@@ -1423,7 +1446,8 @@
         }
       ],
       "title": "InnoDB I/O Operations / sec",
-      "type": "timeseries"
+      "type": "timeseries",
+      "description": "InnoDB data-file reads/writes and redo-log writes per second, summed over the selected members."
     },
     {
       "datasource": {
@@ -1491,7 +1515,8 @@
         }
       ],
       "title": "InnoDB I/O Throughput",
-      "type": "timeseries"
+      "type": "timeseries",
+      "description": "Bytes per second read from and written to InnoDB data files, summed over the selected members."
     },
     {
       "collapsed": false,
@@ -1570,7 +1595,8 @@
         }
       ],
       "title": "Network Traffic",
-      "type": "timeseries"
+      "type": "timeseries",
+      "description": "Bytes per second received from and sent to MySQL clients, summed over the selected members."
     },
     {
       "datasource": {
@@ -1590,7 +1616,7 @@
             "showPoints": "never",
             "spanNulls": false
           },
-          "unit": "short"
+          "unit": "ops"
         },
         "overrides": []
       },
@@ -1646,7 +1672,8 @@
         }
       ],
       "title": "Connection Errors",
-      "type": "timeseries"
+      "type": "timeseries",
+      "description": "Aborted connects/clients and connection errors per second, by error type."
     },
     {
       "collapsed": false,
@@ -1665,7 +1692,7 @@
         "type": "prometheus",
         "uid": "${datasource}"
       },
-      "description": "Top 20 tables by total size (data + index). Requires mysqld-exporter flag --collect.info_schema.tables.",
+      "description": "Top 20 tables by total size (data + index). Every member holds a full copy, so the largest member value is shown (not a sum). Requires mysqld-exporter flag --collect.info_schema.tables.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -1826,7 +1853,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "topk(50, mysql_info_schema_table_size{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\", component=\"data_length\"})",
+          "expr": "max by (schema, table) (mysql_info_schema_table_size{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\", component=\"data_length\"}) and on (schema, table) topk(20, max by (schema, table) (sum by (schema, table, pod) (mysql_info_schema_table_size{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\", component=~\"data_length|index_length\"})))",
           "format": "table",
           "instant": true,
           "legendFormat": "",
@@ -1837,7 +1864,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "topk(50, mysql_info_schema_table_size{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\", component=\"index_length\"})",
+          "expr": "max by (schema, table) (mysql_info_schema_table_size{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\", component=\"index_length\"}) and on (schema, table) topk(20, max by (schema, table) (sum by (schema, table, pod) (mysql_info_schema_table_size{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\", component=~\"data_length|index_length\"})))",
           "format": "table",
           "instant": true,
           "legendFormat": "",
@@ -1848,7 +1875,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "mysql_info_schema_table_rows{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\"}",
+          "expr": "max by (schema, table) (mysql_info_schema_table_rows{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\"}) and on (schema, table) topk(20, max by (schema, table) (sum by (schema, table, pod) (mysql_info_schema_table_size{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\", component=~\"data_length|index_length\"})))",
           "format": "table",
           "instant": true,
           "legendFormat": "",
@@ -1934,7 +1961,7 @@
         "type": "prometheus",
         "uid": "${datasource}"
       },
-      "description": "Total storage per schema. Requires --collect.info_schema.tables.",
+      "description": "Total storage (data + index) per schema on one member; every member holds a full copy, so members are not summed. Requires --collect.info_schema.tables.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -1982,7 +2009,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "sum by (schema) (mysql_info_schema_table_size{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\", component=~\"data_length|index_length\"})",
+          "expr": "max by (schema) (sum by (schema, pod) (mysql_info_schema_table_size{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\", component=~\"data_length|index_length\"}))",
           "format": "table",
           "instant": true,
           "refId": "A"
@@ -2009,7 +2036,7 @@
         "type": "prometheus",
         "uid": "${datasource}"
       },
-      "description": "Estimated row counts per schema. Requires --collect.info_schema.tables.",
+      "description": "Estimated row counts per schema on one member (members hold identical copies, so they are not summed). Requires --collect.info_schema.tables.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -2057,7 +2084,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "sum by (schema) (mysql_info_schema_table_rows{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\"})",
+          "expr": "max by (schema) (sum by (schema, pod) (mysql_info_schema_table_rows{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\"}))",
           "format": "table",
           "instant": true,
           "refId": "A"
@@ -2096,7 +2123,7 @@
         "type": "prometheus",
         "uid": "${datasource}"
       },
-      "description": "Top tables by I/O wait time. Requires --collect.perf_schema.tableiowaits and performance_schema=ON.",
+      "description": "Top 30 tables by total I/O wait time per second (all operations), summed over the selected members, with per-operation wait counts. Requires --collect.perf_schema.tableiowaits and performance_schema=ON.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -2215,7 +2242,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "topk(30, rate(mysql_perf_schema_table_io_waits_total{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\", operation=\"fetch\"}[$__rate_interval]))",
+          "expr": "sum by (schema, name) (rate(mysql_perf_schema_table_io_waits_total{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\", operation=\"fetch\"}[$__rate_interval])) and on (schema, name) topk(30, sum by (schema, name) (rate(mysql_perf_schema_table_io_waits_seconds_total{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\"}[$__rate_interval])))",
           "format": "table",
           "instant": true,
           "legendFormat": "",
@@ -2226,7 +2253,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "topk(30, rate(mysql_perf_schema_table_io_waits_total{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\", operation=\"insert\"}[$__rate_interval]))",
+          "expr": "sum by (schema, name) (rate(mysql_perf_schema_table_io_waits_total{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\", operation=\"insert\"}[$__rate_interval])) and on (schema, name) topk(30, sum by (schema, name) (rate(mysql_perf_schema_table_io_waits_seconds_total{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\"}[$__rate_interval])))",
           "format": "table",
           "instant": true,
           "legendFormat": "",
@@ -2237,7 +2264,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "topk(30, rate(mysql_perf_schema_table_io_waits_total{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\", operation=\"update\"}[$__rate_interval]))",
+          "expr": "sum by (schema, name) (rate(mysql_perf_schema_table_io_waits_total{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\", operation=\"update\"}[$__rate_interval])) and on (schema, name) topk(30, sum by (schema, name) (rate(mysql_perf_schema_table_io_waits_seconds_total{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\"}[$__rate_interval])))",
           "format": "table",
           "instant": true,
           "legendFormat": "",
@@ -2248,7 +2275,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "topk(30, rate(mysql_perf_schema_table_io_waits_total{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\", operation=\"delete\"}[$__rate_interval]))",
+          "expr": "sum by (schema, name) (rate(mysql_perf_schema_table_io_waits_total{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\", operation=\"delete\"}[$__rate_interval])) and on (schema, name) topk(30, sum by (schema, name) (rate(mysql_perf_schema_table_io_waits_seconds_total{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\"}[$__rate_interval])))",
           "format": "table",
           "instant": true,
           "legendFormat": "",
@@ -2259,7 +2286,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "topk(30, rate(mysql_perf_schema_table_io_waits_seconds_total{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\", operation=\"fetch\"}[$__rate_interval]))",
+          "expr": "sum by (schema, name) (rate(mysql_perf_schema_table_io_waits_seconds_total{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\", operation=\"fetch\"}[$__rate_interval])) and on (schema, name) topk(30, sum by (schema, name) (rate(mysql_perf_schema_table_io_waits_seconds_total{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\"}[$__rate_interval])))",
           "format": "table",
           "instant": true,
           "legendFormat": "",
@@ -2367,7 +2394,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "rate(mysql_info_schema_innodb_metrics_lock_lock_waits_total{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\"}[$__rate_interval])",
+          "expr": "rate(mysql_info_schema_innodb_metrics_lock_lock_row_lock_waits_total{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\"}[$__rate_interval])",
           "legendFormat": "Lock Waits - {{pod}}",
           "refId": "A"
         },
@@ -2391,7 +2418,8 @@
         }
       ],
       "title": "InnoDB Lock Events / sec (innodb_metrics)",
-      "type": "timeseries"
+      "type": "timeseries",
+      "description": "Row-lock waits, lock timeouts and deadlocks per second from information_schema.innodb_metrics."
     },
     {
       "datasource": {
@@ -2467,7 +2495,8 @@
         }
       ],
       "title": "InnoDB Transaction Activity (innodb_metrics)",
-      "type": "timeseries"
+      "type": "timeseries",
+      "description": "Active transactions plus commit and rollback rates from information_schema.innodb_metrics."
     },
     {
       "collapsed": false,
@@ -2486,7 +2515,7 @@
         "type": "prometheus",
         "uid": "${datasource}"
       },
-      "description": "Z-score of slow query rate vs 2h baseline. Z > 2 = unusual, Z > 3 = anomalous.",
+      "description": "Z-score (zscore_over_time) of slow query rate vs 2h baseline. Z > 2 = unusual, Z > 3 = anomalous.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -2543,9 +2572,9 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "zscore((rate(mysql_global_status_slow_queries{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\"}[5m]))[2h:1m]) default 0",
+          "expr": "zscore_over_time((rate(mysql_global_status_slow_queries{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\"}[5m]))[2h:1m]) default 0",
           "instant": true,
-          "legendFormat": "Z",
+          "legendFormat": "{{pod}}",
           "refId": "A"
         }
       ],
@@ -2557,7 +2586,7 @@
         "type": "prometheus",
         "uid": "${datasource}"
       },
-      "description": "Z-score of active connections. Spike may indicate connection leak or load surge.",
+      "description": "Z-score (zscore_over_time) of active connections. Spike may indicate connection leak or load surge.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -2614,9 +2643,9 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "zscore((mysql_global_status_threads_connected{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\"})[2h:1m]) default 0",
+          "expr": "zscore_over_time((mysql_global_status_threads_connected{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\"})[2h:1m]) default 0",
           "instant": true,
-          "legendFormat": "Z",
+          "legendFormat": "{{pod}}",
           "refId": "A"
         }
       ],
@@ -2628,7 +2657,7 @@
         "type": "prometheus",
         "uid": "${datasource}"
       },
-      "description": "Z-score of row lock wait rate. High Z = unusual lock contention.",
+      "description": "Z-score (zscore_over_time) of row lock wait rate. High Z = unusual lock contention.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -2685,9 +2714,9 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "zscore((rate(mysql_global_status_innodb_row_lock_waits{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\"}[5m]))[2h:1m]) default 0",
+          "expr": "zscore_over_time((rate(mysql_global_status_innodb_row_lock_waits{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\"}[5m]))[2h:1m]) default 0",
           "instant": true,
-          "legendFormat": "Z",
+          "legendFormat": "{{pod}}",
           "refId": "A"
         }
       ],
@@ -2699,7 +2728,7 @@
         "type": "prometheus",
         "uid": "${datasource}"
       },
-      "description": "Z-score of query throughput. High or very low Z may indicate workload anomaly.",
+      "description": "Z-score (zscore_over_time) of query throughput. High or very low Z may indicate workload anomaly.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -2756,9 +2785,9 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "zscore((rate(mysql_global_status_queries{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\"}[5m]))[2h:1m]) default 0",
+          "expr": "zscore_over_time((rate(mysql_global_status_queries{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\"}[5m]))[2h:1m]) default 0",
           "instant": true,
-          "legendFormat": "Z",
+          "legendFormat": "{{pod}}",
           "refId": "A"
         }
       ],
@@ -2770,7 +2799,7 @@
         "type": "prometheus",
         "uid": "${datasource}"
       },
-      "description": "Z-score of InnoDB data write rate.",
+      "description": "Z-score (zscore_over_time) of InnoDB data write rate.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -2827,9 +2856,9 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "zscore((rate(mysql_global_status_innodb_data_writes{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\"}[5m]))[2h:1m]) default 0",
+          "expr": "zscore_over_time((rate(mysql_global_status_innodb_data_writes{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\"}[5m]))[2h:1m]) default 0",
           "instant": true,
-          "legendFormat": "Z",
+          "legendFormat": "{{pod}}",
           "refId": "A"
         }
       ],
@@ -2841,7 +2870,7 @@
         "type": "prometheus",
         "uid": "${datasource}"
       },
-      "description": "Z-score of buffer pool hit rate. Negative Z (below -2) = hit rate is lower than usual = bad.",
+      "description": "Z-score (zscore_over_time) of buffer pool hit rate. Negative Z (below -2) = hit rate is lower than usual = bad.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -2898,9 +2927,9 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "zscore((100 * rate(mysql_global_status_innodb_buffer_pool_read_requests{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\"}[5m]) / (rate(mysql_global_status_innodb_buffer_pool_read_requests{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\"}[5m]) + rate(mysql_global_status_innodb_buffer_pool_reads{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\"}[5m])))[2h:1m]) default 0",
+          "expr": "zscore_over_time((100 * (1 - rate(mysql_global_status_innodb_buffer_pool_reads{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\"}[5m]) / (rate(mysql_global_status_innodb_buffer_pool_read_requests{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\"}[5m]) > 0)))[2h:1m]) default 0",
           "instant": true,
-          "legendFormat": "Z",
+          "legendFormat": "{{pod}}",
           "refId": "A"
         }
       ],
@@ -2912,7 +2941,7 @@
         "type": "prometheus",
         "uid": "${datasource}"
       },
-      "description": "Z-score over time. Threshold lines at Z=2 (yellow) and Z=3 (red). Uses 2h rolling baseline.",
+      "description": "Z-score (zscore_over_time) over time. Threshold lines at Z=2 (yellow) and Z=3 (red). Uses 2h rolling baseline.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -2979,7 +3008,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "zscore((rate(mysql_global_status_slow_queries{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\"}[5m]))[2h:1m]) default 0",
+          "expr": "zscore_over_time((rate(mysql_global_status_slow_queries{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\"}[5m]))[2h:1m]) default 0",
           "legendFormat": "Slow Queries - {{pod}}",
           "refId": "A"
         },
@@ -2988,7 +3017,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "zscore((rate(mysql_global_status_innodb_row_lock_waits{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\"}[5m]))[2h:1m]) default 0",
+          "expr": "zscore_over_time((rate(mysql_global_status_innodb_row_lock_waits{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\"}[5m]))[2h:1m]) default 0",
           "legendFormat": "Lock Waits - {{pod}}",
           "refId": "B"
         }
@@ -3001,7 +3030,7 @@
         "type": "prometheus",
         "uid": "${datasource}"
       },
-      "description": "Z-score over time. Threshold lines at Z=2 (yellow) and Z=3 (red). Uses 2h rolling baseline.",
+      "description": "Z-score (zscore_over_time) over time. Threshold lines at Z=2 (yellow) and Z=3 (red). Uses 2h rolling baseline.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -3068,7 +3097,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "zscore((mysql_global_status_threads_connected{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\"})[2h:1m]) default 0",
+          "expr": "zscore_over_time((mysql_global_status_threads_connected{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\"})[2h:1m]) default 0",
           "legendFormat": "Connections - {{pod}}",
           "refId": "A"
         },
@@ -3077,7 +3106,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "zscore((rate(mysql_global_status_queries{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\"}[5m]))[2h:1m]) default 0",
+          "expr": "zscore_over_time((rate(mysql_global_status_queries{job=~\"$job\", namespace=~\"$namespace\", pod=~\"$pod\"}[5m]))[2h:1m]) default 0",
           "legendFormat": "QPS - {{pod}}",
           "refId": "B"
         }

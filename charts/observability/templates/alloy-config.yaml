@@ -1,0 +1,18 @@
+{{- if .Values.alloy.enabled }}
+{{- if .Values.promtail.enabled }}
+{{- fail "alloy.enabled and promtail.enabled are both true: every log line would be shipped twice. Enable only one of them." }}
+{{- end }}
+{{- if not (or .Values.loki.enabled .Values.lokiHostname) }}
+{{- fail "alloy.enabled=true needs a Loki to ship to: set loki.enabled=true or lokiHostname." }}
+{{- end }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ccx-monitoring-alloy-config
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "monitoring.labels" . | indent 4 }}
+data:
+  config.alloy: |-
+    {{- tpl (.Files.Get "files/alloy/config.alloy") . | nindent 4 }}
+{{- end }}

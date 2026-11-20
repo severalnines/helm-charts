@@ -1,0 +1,90 @@
+{{- if .Values.loki.enabled }}
+{{- $endpoint := .Values.loki.loki.storage.s3.endpoint | default "" }}
+{{- if and (not .Values.loki.minio.enabled) (not .Values.rustfs.enabled) (contains "loki-rustfs-svc" $endpoint) }}
+{{- fail "Loki is configured to store logs in the bundled RustFS, but rustfs.enabled=false. Set rustfs.enabled=true, or point loki.loki.storage at an external S3 store." }}
+{{- end }}
+{{- $minioName := printf "%s-minio" .Release.Name }}
+{{- if and (not .Values.loki.minio.enabled) (not .Values.rustfs.minioDataMigrated) (lookup "apps/v1" "StatefulSet" .Release.Namespace $minioName) }}
+{{- fail (printf "MinIO StatefulSet %s/%s still exists, and loki.minio.enabled=false would delete it. Keep loki.minio.enabled=true until its buckets have been copied to RustFS, then set rustfs.minioDataMigrated=true." .Release.Namespace $minioName) }}
+{{- end }}
+{{- end }}
+
+{{- if .Values.rustfs.enabled }}
+{{- $secretName := .Values.rustfs.secret.existingSecret }}
+{{- $existing := (lookup "v1" "Secret" .Release.Namespace $secretName).data | default dict }}
+{{- $accessKey := .Values.rustfs.credentials.accessKey | default (get $existing "RUSTFS_ACCESS_KEY" | default "" | b64dec) | default (randAlphaNum 20) }}
+{{- $secretKey := .Values.rustfs.credentials.secretKey | default (get $existing "RUSTFS_SECRET_KEY" | default "" | b64dec) | default (randAlphaNum 40) }}
+{{- $endpoint := printf "http://%s-svc.%s.svc:9000" .Values.rustfs.fullnameOverride .Release.Namespace }}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ $secretName }}
+  labels:
+    {{- include "monitoring.labels" . | indent 4 }}
+type: Opaque
+data:
+  RUSTFS_ACCESS_KEY: {{ $accessKey | b64enc | quote }}
+  RUSTFS_SECRET_KEY: {{ $secretKey | b64enc | quote }}
+  AWS_ACCESS_KEY_ID: {{ $accessKey | b64enc | quote }}
+  AWS_SECRET_ACCESS_KEY: {{ $secretKey | b64enc | quote }}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ .Values.rustfs.fullnameOverride }}-buckets
+  labels:
+    {{- include "monitoring.labels" . | indent 4 }}
+  annotations:
+    helm.sh/hook: post-install,post-upgrade
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: 6
+  activeDeadlineSeconds: 600
+  template:
+    spec:
+      restartPolicy: OnFailure
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
+        runAsGroup: 65534
+      containers:
+        - name: create-buckets
+          image: {{ .Values.rustfs.bucketsJob.image }}
+          command:
+            - /bin/sh
+            - -ec
+            - |
+              until rclone lsd rustfs: >/dev/null 2>&1; do
+                echo "waiting for RustFS at {{ $endpoint }}"; sleep 5
+              done
+              {{- range .Values.rustfs.buckets }}
+              rclone mkdir rustfs:{{ . }} && echo "bucket {{ . }} ready"
+              {{- end }}
+          env:
+            - name: HOME
+              value: /tmp
+            - name: RCLONE_CONFIG_RUSTFS_TYPE
+              value: s3
+            - name: RCLONE_CONFIG_RUSTFS_PROVIDER
+              value: Other
+            - name: RCLONE_CONFIG_RUSTFS_ENDPOINT
+              value: {{ $endpoint }}
+            - name: RCLONE_CONFIG_RUSTFS_FORCE_PATH_STYLE
+              value: "true"
+            - name: RCLONE_CONFIG_RUSTFS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $secretName }}
+                  key: AWS_ACCESS_KEY_ID
+            - name: RCLONE_CONFIG_RUSTFS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $secretName }}
+                  key: AWS_SECRET_ACCESS_KEY
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+{{- end }}

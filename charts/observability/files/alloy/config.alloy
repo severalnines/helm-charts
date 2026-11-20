@@ -1,0 +1,97 @@
+// Pods on this node only (the chart sets HOSTNAME to the node name).
+discovery.kubernetes "pods" {
+  role = "pod"
+  selectors {
+    role  = "pod"
+    field = "spec.nodeName=" + coalesce(sys.env("HOSTNAME"), constants.hostname)
+  }
+}
+
+// Same rules, in the same order, as promtail's kubernetes-pods relabel_configs.
+discovery.relabel "pods" {
+  targets = discovery.kubernetes.pods.targets
+
+  rule {
+    source_labels = ["__meta_kubernetes_pod_controller_name"]
+    regex         = "([0-9a-z-.]+?)(-[0-9a-f]{8,10})?"
+    target_label  = "__tmp_controller_name"
+  }
+  rule {
+    source_labels = ["__meta_kubernetes_pod_label_app_kubernetes_io_name", "__meta_kubernetes_pod_label_app", "__tmp_controller_name", "__meta_kubernetes_pod_name"]
+    regex         = "^;*([^;]+)(;.*)?$"
+    target_label  = "app"
+  }
+  rule {
+    source_labels = ["__meta_kubernetes_pod_label_app_kubernetes_io_instance", "__meta_kubernetes_pod_label_instance"]
+    regex         = "^;*([^;]+)(;.*)?$"
+    target_label  = "instance"
+  }
+  rule {
+    source_labels = ["__meta_kubernetes_pod_label_app_kubernetes_io_component", "__meta_kubernetes_pod_label_component"]
+    regex         = "^;*([^;]+)(;.*)?$"
+    target_label  = "component"
+  }
+  rule {
+    source_labels = ["__meta_kubernetes_pod_node_name"]
+    target_label  = "node_name"
+  }
+  rule {
+    source_labels = ["__meta_kubernetes_namespace"]
+    target_label  = "namespace"
+  }
+  rule {
+    source_labels = ["namespace", "app"]
+    separator     = "/"
+    target_label  = "job"
+  }
+  rule {
+    source_labels = ["__meta_kubernetes_pod_name"]
+    target_label  = "pod"
+  }
+  rule {
+    source_labels = ["__meta_kubernetes_pod_container_name"]
+    target_label  = "container"
+  }
+  rule {
+    source_labels = ["__meta_kubernetes_pod_uid", "__meta_kubernetes_pod_container_name"]
+    separator     = "/"
+    replacement   = "/var/log/pods/*$1/*.log"
+    target_label  = "__path__"
+  }
+  // Static (mirror) pods: their log dir is named after the config hash, not the pod uid.
+  rule {
+    source_labels = ["__meta_kubernetes_pod_annotationpresent_kubernetes_io_config_hash", "__meta_kubernetes_pod_annotation_kubernetes_io_config_hash", "__meta_kubernetes_pod_container_name"]
+    separator     = "/"
+    regex         = "true/(.*)"
+    replacement   = "/var/log/pods/*$1/*.log"
+    target_label  = "__path__"
+  }
+}
+
+// Tails the files matching __path__ and adds the filename label.
+loki.source.file "pods" {
+  targets               = discovery.relabel.pods.output
+  forward_to            = [loki.process.pods.receiver]
+  legacy_positions_file = "/run/promtail/positions.yaml"
+  // Expands the __path__ globs (same as `alloy convert` produces for promtail configs).
+  file_match {
+    enabled = true
+  }
+}
+
+// Parses the CRI log format and adds the stream label (stdout/stderr), like promtail's cri: {}.
+loki.process "pods" {
+  stage.cri {}
+  forward_to = [loki.write.default.receiver]
+}
+
+loki.write "default" {
+  endpoint {
+    {{- if .Values.loki.enabled }}
+    url       = "http://{{ .Release.Name }}-loki-gateway.{{ .Release.Namespace }}.svc.cluster.local/loki/api/v1/push"
+    {{- else }}
+    url       = "http://{{ .Values.lokiHostname }}:3100/loki/api/v1/push"
+    {{- end }}
+    tenant_id = "ccx"
+  }
+}
