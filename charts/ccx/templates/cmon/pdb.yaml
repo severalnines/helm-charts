@@ -4,6 +4,10 @@ metadata:
   name: cmon-pdb
   labels:
     app: cmon
+  {{- if .Values.argocd.enabled }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+  {{- end }}
 spec:
   maxUnavailable: 1
   selector:

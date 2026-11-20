@@ -1,3 +1,4 @@
+{{- include "ccx.checkAutoRepairReconcile" . }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -5,6 +6,10 @@ metadata:
   labels:
     app: ccx-state-worker
     run: ccx-state-worker
+  {{- if .Values.argocd.enabled }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+  {{- end }}
 spec:
   replicas: 1
   strategy:
@@ -29,6 +34,7 @@ spec:
       imagePullSecrets:
         - name: {{ .Values.ccx.imagePullSecret }}
       {{- end }}
+      {{- include "ccx.backend.podSecurityContext" . | nindent 6 }}
       containers:
         - name: state-worker
           image: {{ .Values.ccx.services.stores_service.image | default .Values.ccx.backend.image | required "No image set for stores" }}
@@ -40,6 +46,8 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.name
+            - name: ADDR
+              value: "0.0.0.0:20002"
             - name: POD_NAMESPACE
               valueFrom:
                 fieldRef:
@@ -96,6 +104,10 @@ spec:
             - name: AUTO_REPAIR_AFTER
               value : {{ .Values.ccx.autoRepair.delay | quote }}
           {{- end }}
+          {{- if .Values.ccx.reconcile.enabled }}
+            - name: RECONCILE_ENABLED
+              value : "true"
+          {{- end }}
           envFrom:
             - configMapRef:
                 name: ccx
@@ -108,6 +120,9 @@ spec:
                 name: {{ $name }}
           {{- end }}
           ports:
+            - name: service
+              containerPort: 20002
+              protocol: TCP
             - name: metrics
               containerPort: 9090
               protocol: TCP
@@ -117,6 +132,7 @@ spec:
               subPath: "ccx.yaml"
           resources:
             {{- toYaml .Values.ccx.services.datastorestorage.resources | nindent 12 }}
+          {{- include "ccx.backend.containerSecurityContext" . | nindent 10 }}
       volumes:
         - name: conf-core
           configMap:

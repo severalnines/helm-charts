@@ -2,6 +2,10 @@ apiVersion: batch/v1
 kind: CronJob
 metadata:
   name: ccx-billing-updater
+  {{- if .Values.argocd.enabled }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "4"
+  {{- end }}
 spec:
   suspend: false
   schedule: "*/10 * * * *"
@@ -25,6 +29,7 @@ spec:
             {{- toYaml . | nindent 12 }}
         {{- end }}
           restartPolicy: Never
+          {{- include "ccx.backend.podSecurityContext" . | nindent 10 }}
           containers:
             - name: ccx-billing-updater
               image: {{ .Values.ccx.services.billingupdater.image | default .Values.ccx.backend.image | required "No image set for billing-updater" }}
@@ -66,6 +71,7 @@ spec:
                 - name: conf-core
                   mountPath: "/conf/ccx.yaml"
                   subPath: "ccx.yaml"
+              {{- include "ccx.backend.containerSecurityContext" . | nindent 14 }}
           volumes:
             {{- if .Values.ccx.services.billing.stripe }}
             - name: prices-volume

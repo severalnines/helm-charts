@@ -1,4 +1,16 @@
 {{/*
+Emit an ArgoCD sync-wave annotation when argocd.enabled is true.
+Usage: {{- include "ccx.syncWave" (dict "root" . "wave" "-2") | nindent 4 }}
+       inside an existing annotations: block, or use .Values.argocd.enabled
+       directly to create a new annotations: block.
+*/}}
+{{- define "ccx.syncWave" -}}
+{{- if .root.Values.argocd.enabled -}}
+argocd.argoproj.io/sync-wave: {{ .wave | quote }}
+{{- end -}}
+{{- end -}}
+
+{{/*
 Expand the name of the chart.
 */}}
 {{- define "ccx.name" -}}
@@ -63,6 +75,13 @@ Create the name of the service account to use
 {{- $secretObj := (lookup "v1" "Secret" .Release.Namespace "cmon-credentials") | default dict }}
 {{- $secretData := (get $secretObj "data") | default dict }}
 {{- or (get $secretData "cmon-user" | b64dec) .Values.cmon.user | default "cmon-user" }}
+{{- end }}
+
+{{- /* Returns "true" when Helm is running against a live cluster (helm install/upgrade).
+     Returns "" when running without cluster access (ArgoCD helm template, helm template CLI). */}}
+{{- define "ccx.hasClusterAccess" -}}
+{{- $sa := (lookup "v1" "ServiceAccount" .Release.Namespace "default") }}
+{{- if $sa }}{{- "true" }}{{- end }}
 {{- end }}
 
 {{- define "ccx.db.username" -}}
@@ -229,145 +248,52 @@ Create the name of the service account to use
 {{ toJson $cidrList }}
 {{- end }}
 
+{{/*
+Pod-level securityContext for ccx-backend workloads.
+Renders nothing if .Values.ccx.backend.podSecurityContext is empty/null.
+*/}}
+{{- define "ccx.backend.podSecurityContext" -}}
+{{- with .Values.ccx.backend.podSecurityContext -}}
+securityContext:
+  {{- toYaml . | nindent 2 }}
+{{- end -}}
+{{- end -}}
+
+{{/*
+Container-level securityContext for ccx-backend containers.
+Renders nothing if .Values.ccx.backend.containerSecurityContext is empty/null.
+*/}}
+{{- define "ccx.backend.containerSecurityContext" -}}
+{{- with .Values.ccx.backend.containerSecurityContext -}}
+securityContext:
+  {{- toYaml . | nindent 2 }}
+{{- end -}}
+{{- end -}}
+
 {{- define "ccx.checkSecrets" -}}
 {{- $cloudSecrets := .Values.ccx.cloudSecrets -}}
+{{- $skip := .Values.ccx.skipCloudSecretValidation | default false -}}
 {{- $allSecretsExist := true -}}
 {{- if $cloudSecrets }}
-  {{- range $secret := $cloudSecrets }}
-    {{- $lookupResult := lookup "v1" "Secret" $.Release.Namespace $secret -}}
-    {{- if not $lookupResult }}
-      {{- $allSecretsExist = false -}}
-      {{- fail (printf "Missing secret defined in .Values.ccx.cloudSecrets - %s" $secret ) }}
+  {{- if not $skip }}
+    {{- range $secret := $cloudSecrets }}
+      {{- $lookupResult := lookup "v1" "Secret" $.Release.Namespace $secret -}}
+      {{- if not $lookupResult }}
+        {{- $allSecretsExist = false -}}
+        {{- fail (printf "Missing secret defined in .Values.ccx.cloudSecrets - %s" $secret ) }}
+      {{- end }}
     {{- end }}
   {{- end }}
 {{- else }}
-  {{- fail "No secrets defined in .Values.ccx.cloudSecrets" }}
+  {{- if not $skip }}
+    {{- fail "No secrets defined in .Values.ccx.cloudSecrets" }}
+  {{- end }}
 {{- end }}
 {{- $allSecretsExist -}}
 {{- end }}
 
-# CMON helpers
-
-{{- define "cmon.initContainer.migrateToK8s" -}}
-- name: migrate-file-to-k8s-secrets
-  image: {{ .Values.cmon.image | required ".Values.cmon.image is missing" }}
-  {{- if .Values.cmon.coreDumpEnable }}
-  securityContext:
-    privileged: true
-  {{- end }}
-  command: [ "/bin/sh", "-c" ]
-  args:
-    - cp /tmp/cmon.cnf /etc/cmon.cnf;
-      /usr/bin/check-cmon.sh;
-      echo "Starting configuration upgrade";
-      /usr/sbin/cmon --k8s --migrate-secrets --debug --nodaemon;
-      echo "Finishing configuration upgrade";
-  {{- if .Values.cmon.coreDumpEnable }}
-      sysctl -w kernel.core_pattern=/etc/cmon.d/core.%h.%e.%p.%t;
-  {{- end }}
-  volumeMounts:
-    - mountPath: /tmp/cmon.cnf
-      subPath: cmon.cnf
-      name: cmon-cnf-cfg
-    - mountPath: /etc/cmon.d/
-      name: cmon-master-pv
-    - mountPath: /var/lib/cmon
-      name: cmon-pv-var-lib-cmon
+{{- define "ccx.checkAutoRepairReconcile" -}}
+{{- if and .Values.ccx.autoRepair.enabled .Values.ccx.reconcile.enabled }}
+  {{- fail "ccx.autoRepair.enabled and ccx.reconcile.enabled cannot both be true: the reconciler replaces failed hosts itself. Disable ccx.autoRepair.enabled." }}
 {{- end }}
-
-{{- define "cmon.initContainer.restoreFromK8s" -}}
-- name: restore-file-from-k8s-secrets
-  image: {{ .Values.cmon.restoreImage | default "alpine/k8s:1.30.0" }}
-  volumeMounts:
-    - mountPath: /etc/cmon.d
-      name: cmon-master-pv
-    - mountPath: /var/lib/cmon
-      name: cmon-pv-var-lib-cmon
-  command:
-    - bash
-    - -c
-    - |
-      set -euo pipefail
-      log() { echo "[$(date '+%H:%M:%S')] $*"; }
-
-      has_data=$(ls /etc/cmon.d/cmon_*.cnf 2>/dev/null | head -1 || true)
-      if [ -n "$has_data" ]; then
-          log "PVCs already populated — skipping restore"
-          exit 0
-      fi
-
-      SECRET_PREFIX="com.severalnines.cmon."
-      DATA_KEY="content"
-      SKIP_SECRETS=("com.severalnines.cmon.etc.cmon.cnf")
-
-      secret_to_path() {
-          local secret="$1"
-          local rest="${secret#${SECRET_PREFIX}}"
-          [[ "$rest" == "$secret" ]] && return 0
-          case "$rest" in
-              etc.cmon.cnf) echo "/etc/cmon.cnf" ;;
-              var.lib.cmon.cloud-credentials.json) echo "/var/lib/cmon/cloud_credentials.json" ;;
-              var.lib.cmon.cmon.data) echo "/var/lib/cmon/cmon.data" ;;
-              var.lib.cmon.ca.cmon.rpc-tls.crt) echo "/var/lib/cmon/ca/cmon/rpc_tls.crt" ;;
-              var.lib.cmon.ca.cmon.rpc-tls.key) echo "/var/lib/cmon/ca/cmon/rpc_tls.key" ;;
-              etc.cmon.d.cmon-*.cnf)
-                  local cid="${rest#etc.cmon.d.cmon-}"; cid="${cid%.cnf}"
-                  [[ "$cid" =~ ^[0-9]+$ ]] && echo "/etc/cmon.d/cmon_${cid}.cnf" ;;
-              var.lib.cmon.ca.*.cluster-*)
-                  local tail="${rest#var.lib.cmon.ca.}"
-                  local type_part="${tail%%.cluster-*}"
-                  local after="${tail#${type_part}.cluster-}"
-                  local cid="${after%%.*}"
-                  local fname="${after#${cid}.}"
-                  if [[ "$cid" =~ ^[0-9]+$ && -n "$type_part" && -n "$fname" && "$fname" != "$after" ]]; then
-                      type_part="${type_part//-/_}"
-                      fname="${fname//-/_}"
-                      echo "/var/lib/cmon/ca/${type_part}/cluster_${cid}/${fname}"
-                  fi ;;
-          esac
-      }
-
-      mode_for_path() {
-          case "$1" in
-              *.key|*/cmon.data|*/cloud_credentials.json|/etc/cmon.cnf|/etc/cmon.d/*.cnf) echo "600" ;;
-              *) echo "644" ;;
-          esac
-      }
-
-      mapfile -t SECRETS < <(
-          kubectl get secrets -o custom-columns=NAME:.metadata.name --no-headers \
-              | grep "^com\.severalnines\.cmon\." \
-              | grep -v '\.backup$' \
-              | grep -v '^removed\.' \
-              || true
-      )
-      log "Found ${#SECRETS[@]} candidate secret(s)"
-
-      restored=0; failures=0
-      for secret in "${SECRETS[@]}"; do
-          [[ -z "$secret" ]] && continue
-          skip=0
-          for s in "${SKIP_SECRETS[@]}"; do
-              [[ "$secret" == "$s" ]] && { skip=1; break; }
-          done
-          [[ "$skip" == "1" ]] && continue
-
-          path=$(secret_to_path "$secret") || true
-          [[ -z "$path" ]] && continue
-
-          b64=$(kubectl get secret "$secret" -o "jsonpath={.data.${DATA_KEY}}" 2>/dev/null || true)
-          if [[ -z "$b64" ]]; then
-              log "WARN: no data in $secret"
-              failures=$((failures+1)); continue
-          fi
-
-          mkdir -p "$(dirname "$path")"
-          printf '%s' "$b64" | base64 -d > "$path"
-          chmod "$(mode_for_path "$path")" "$path"
-          log "restored: $secret -> $path"
-          restored=$((restored+1))
-      done
-
-      log "Done. Restored: $restored, failures: $failures"
-      exit $(( failures > 0 ? 1 : 0 ))
 {{- end }}

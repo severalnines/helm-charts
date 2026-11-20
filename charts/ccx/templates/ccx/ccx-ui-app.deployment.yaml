@@ -5,8 +5,14 @@ metadata:
   labels:
     app: ccx-ui-app
     run: ccx-ui-app
+  {{- if .Values.argocd.enabled }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+  {{- end }}
 spec:
+  {{- if not .Values.hpa.enabled }}
   replicas: {{ .Values.ccx.services.uiapp.replicas | default .Values.global.replicas }}
+  {{- end }}
   selector:
     matchLabels:
       app: ccx-ui-app
@@ -27,6 +33,10 @@ spec:
           env:
           {{- if not .Values.ccx.services.billing.enabled }}
             - name: FE_BILLING_DISABLED
+              value: "true"
+          {{- end }}
+          {{- if .Values.ccx.reconcile.enabled }}
+            - name: FE_RECONCILE_ENABLED
               value: "true"
           {{- end }}
           {{- range $key, $val := .Values.ccx.services.uiapp.env }}

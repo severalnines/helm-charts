@@ -5,8 +5,14 @@ metadata:
   labels:
     app: ccx-user
     run: ccx-user
+  {{- if .Values.argocd.enabled }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+  {{- end }}
 spec:
+  {{- if not .Values.hpa.enabled }}
   replicas: {{ .Values.ccx.services.user.replicas | default .Values.global.replicas }}
+  {{- end }}
   selector:
     matchLabels:
       app: ccx-user
@@ -26,6 +32,7 @@ spec:
       imagePullSecrets:
         - name: {{ .Values.ccx.imagePullSecret }}
       {{- end }}
+      {{- include "ccx.backend.podSecurityContext" . | nindent 6 }}
       containers:
         - name: ccx-user
           image: {{ .Values.ccx.services.user.image | default .Values.ccx.backend.image | required "No image set for users" }}
@@ -68,6 +75,7 @@ spec:
               protocol: TCP
           resources:
             {{- toYaml .Values.ccx.services.user.resources | nindent 12 }}
+          {{- include "ccx.backend.containerSecurityContext" . | nindent 10 }}
       {{ with .Values.ccx.services.user.affinity }}
       affinity:
         {{ toYaml . | nindent 8 }}

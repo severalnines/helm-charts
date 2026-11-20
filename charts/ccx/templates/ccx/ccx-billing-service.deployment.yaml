@@ -5,8 +5,14 @@ metadata:
   labels:
     app: ccx-billing-service
     run: ccx-billing-service
+  {{- if .Values.argocd.enabled }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+  {{- end }}
 spec:
+  {{- if not .Values.hpa.enabled }}
   replicas: {{ .Values.ccx.services.billing.replicas | default .Values.global.replicas }}
+  {{- end }}
   selector:
     matchLabels:
       app: ccx-billing-service
@@ -27,6 +33,7 @@ spec:
       imagePullSecrets:
         - name: {{ .Values.ccx.imagePullSecret }}
       {{- end }}
+      {{- include "ccx.backend.podSecurityContext" . | nindent 6 }}
       containers:
         - name: ccx-billing-service
           image: {{ .Values.ccx.services.billing.image | default .Values.ccx.backend.image | required "No image set for billing" }}
@@ -77,6 +84,7 @@ spec:
               protocol: TCP
           resources:
             {{- toYaml .Values.ccx.services.billing.resources | nindent 12 }}
+          {{- include "ccx.backend.containerSecurityContext" . | nindent 10 }}
       volumes:
         - name: conf-core
           configMap:

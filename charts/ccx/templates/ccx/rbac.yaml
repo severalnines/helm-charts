@@ -4,6 +4,7 @@ kind: Role
 metadata:
   name: admin
   annotations:
+    {{- include "ccx.syncWave" (dict "root" . "wave" "-3") | nindent 4 }}
     "helm.sh/hook": pre-install, pre-upgrade
     "helm.sh/hook-weight": "1"
 rules:
@@ -16,6 +17,7 @@ kind: RoleBinding
 metadata:
   name: admin-binding
   annotations:
+    {{- include "ccx.syncWave" (dict "root" . "wave" "-3") | nindent 4 }}
     "helm.sh/hook": pre-install, pre-upgrade
     "helm.sh/hook-weight": "1"
 subjects:

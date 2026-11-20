@@ -4,6 +4,10 @@ metadata:
   name: ccx-clean-up-k8s
   labels:
     app: ccx-clean-up-k8s
+  {{- if .Values.argocd.enabled }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "4"
+  {{- end }}
 spec:
   suspend: {{ or .Values.ccx.env.DISABLE_ROLLBACK .Values.ccx.services.datastorestorage.cleanUpK8sResources.disabled | default "false" }}
   schedule: "0 0 * * *"
@@ -37,6 +41,7 @@ spec:
           imagePullSecrets:
             - name: {{ .Values.ccx.imagePullSecret }}
           {{- end }}
+          {{- include "ccx.backend.podSecurityContext" . | nindent 10 }}
           containers:
             - name: ccx-clean-up-k8s
               image: {{ .Values.ccx.services.stores_service.image | default .Values.ccx.backend.image | required "No image set for stores" }}
@@ -56,3 +61,4 @@ spec:
                 limits:
                   cpu: 100m
                   memory: 128Mi
+              {{- include "ccx.backend.containerSecurityContext" . | nindent 14 }}

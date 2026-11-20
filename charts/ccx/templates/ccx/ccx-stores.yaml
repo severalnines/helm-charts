@@ -6,8 +6,14 @@ metadata:
   labels:
     app: ccx-stores-service
     run: ccx-stores-service
+  {{- if .Values.argocd.enabled }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+  {{- end }}
 spec:
+  {{- if not .Values.hpa.enabled }}
   replicas: {{ .Values.ccx.services.stores_service.replicas | default 1 }}
+  {{- end }}
   selector:
     matchLabels:
       app: ccx-stores-service
@@ -28,6 +34,7 @@ spec:
       imagePullSecrets:
         - name: {{ .Values.ccx.imagePullSecret }}
       {{- end }}
+      {{- include "ccx.backend.podSecurityContext" . | nindent 6 }}
       initContainers:
         - name: ccx-stores-init
           image: {{ .Values.ccx.services.stores_service.image | default .Values.ccx.backend.image | required "No image set for stores" }}
@@ -35,6 +42,7 @@ spec:
           envFrom:
             - secretRef:
                 name: db
+          {{- include "ccx.backend.containerSecurityContext" . | nindent 10 }}
       containers:
         - name: ccx-stores-service
           image: {{ .Values.ccx.services.stores_service.image | default .Values.ccx.backend.image | required "No image set for stores" }}
@@ -67,6 +75,10 @@ spec:
                 secretKeyRef:
                   name: db-vpc
                   key: DB_DSN
+          {{- if .Values.ccx.reconcile.enabled }}
+            - name: RECONCILE_ENABLED
+              value : "true"
+          {{- end }}
             - name: INGRESS_ANNOTATIONS
               value: |
                 {{- $annotations := dict }}
@@ -152,6 +164,7 @@ spec:
             {{- end }}
           resources:
             {{- toYaml .Values.ccx.services.stores_service.resources | nindent 12 }}
+          {{- include "ccx.backend.containerSecurityContext" . | nindent 10 }}
       volumes:
         - name: conf-core
           configMap:
@@ -197,6 +210,7 @@ metadata:
     app: ccx-stores-service
     run: ccx-stores-service
   annotations:
+    {{- include "ccx.syncWave" (dict "root" . "wave" "-1") | nindent 4 }}
     {{- range $key, $val := .Values.ccx.services.stores_service.serviceAnnotations }}
     {{ $key }}: {{ $val | quote }}
     {{- end }}
@@ -217,8 +231,14 @@ metadata:
   labels:
     app: ccx-stores-listener
     run: ccx-stores-listener
+  {{- if .Values.argocd.enabled }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+  {{- end }}
 spec:
+  {{- if not .Values.hpa.enabled }}
   replicas: {{ .Values.ccx.services.stores_listener.replicas | default 1 }}
+  {{- end }}
   selector:
     matchLabels:
       app: ccx-stores-listener
@@ -232,6 +252,7 @@ spec:
         prometheus.io/port: "9090"
         checksum/config: {{ include (print $.Template.BasePath "/ccx/config.yaml") . | sha256sum }}
     spec:
+      {{- include "ccx.backend.podSecurityContext" . | nindent 6 }}
       containers:
         - name: ccx-stores-listener
           image: {{ .Values.ccx.services.stores_listener.image | default .Values.ccx.backend.image | required "No image set for stores" }}
@@ -287,6 +308,7 @@ spec:
             failureThreshold: 3
           resources:
             {{- toYaml .Values.ccx.services.stores_listener.resources | nindent 12 }}
+          {{- include "ccx.backend.containerSecurityContext" . | nindent 10 }}
       {{ with .Values.ccx.services.stores_listener.affinity }}
       affinity:
         {{ toYaml . | nindent 8 }}
@@ -308,6 +330,10 @@ metadata:
   labels:
     app: ccx-stores-listener
     run: ccx-stores-listener
+  {{- if .Values.argocd.enabled }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+  {{- end }}
 spec:
   type: ClusterIP
   selector:
@@ -324,6 +350,7 @@ kind: Ingress
 metadata:
   name: s9s-stores-listener-ingress
   annotations:
+    {{- include "ccx.syncWave" (dict "root" . "wave" "3") | nindent 4 }}
     kubernetes.io/ingress.class: nginx
     kubernetes.io/tls-acme: "true"
     {{ if .Values.ccx.ingress.ssl.clusterIssuer }}

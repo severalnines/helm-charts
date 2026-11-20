@@ -5,6 +5,10 @@ metadata:
   labels:
     app: ccv2-mcc
     run: ccv2-mcc
+  {{- if .Values.argocd.enabled }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+  {{- end }}
 spec:
   ports:
     - port: 19051
@@ -27,6 +31,10 @@ metadata:
   labels:
     app: cmon
     run: cmon
+  {{- if .Values.argocd.enabled }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+  {{- end }}
 spec:
   ports:
     - port: 9501
@@ -58,6 +66,10 @@ metadata:
   labels:
     app: cmon
     run: cmon
+  {{- if .Values.argocd.enabled }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+  {{- end }}
 spec:
   selector:
     app: cmon

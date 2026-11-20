@@ -5,8 +5,14 @@ metadata:
   labels:
     app: store-metrics-sd
     run: store-metrics-sd
+  {{- if .Values.argocd.enabled }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+  {{- end }}
 spec:
+  {{- if not .Values.hpa.enabled }}
   replicas: {{ .Values.global.replicas | default 1 }}
+  {{- end }}
   selector:
     matchLabels:
       app: store-metrics-sd
@@ -21,6 +27,7 @@ spec:
       imagePullSecrets:
         - name: {{ .Values.ccx.imagePullSecret }}
       {{- end }}
+      {{- include "ccx.backend.podSecurityContext" . | nindent 6 }}
       containers:
         - name: store-metrics-sd
           image: {{ .Values.ccx.backend.image | required "No image set for backend" }}
@@ -39,3 +46,6 @@ spec:
             - name: service
               containerPort: 8080
               protocol: TCP
+          resources:
+            {{- toYaml .Values.ccx.services.store_metrics_sd.resources | nindent 12 }}
+          {{- include "ccx.backend.containerSecurityContext" . | nindent 10 }}

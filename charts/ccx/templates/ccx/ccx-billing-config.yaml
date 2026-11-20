@@ -3,6 +3,10 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: prices
+  {{- if .Values.argocd.enabled }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "-2"
+  {{- end }}
 data:
   {{- with .Values.ccx.services.billing.prices }}
   prices.yaml: |

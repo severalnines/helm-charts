@@ -3,6 +3,7 @@ kind: Job
 metadata:
   name: ccx-check-certificate-authority
   annotations:
+    {{- include "ccx.syncWave" (dict "root" . "wave" "0") | nindent 4 }}
     "helm.sh/hook": pre-install, pre-upgrade
     "helm.sh/hook-weight": "555"
     "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
@@ -16,6 +17,7 @@ spec:
         - name: {{ .Values.ccx.imagePullSecret }}
       {{- end }}
       restartPolicy: Never
+      {{- include "ccx.backend.podSecurityContext" . | nindent 6 }}
       containers:
         - name: check-certificate-authority
           image: {{ .Values.ccx.services.stores_service.image | default .Values.ccx.backend.image | required "No image set for stores" }}
@@ -25,6 +27,15 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.namespace
+            {{- range $key, $val := .Values.ccx.env }}
+            - name: {{ $key }}
+              value: {{ $val | quote }}
+            {{- end }}
+          envFrom:
+            - configMapRef:
+                name: ccx
+                optional: true
+          {{- include "ccx.backend.containerSecurityContext" . | nindent 10 }}
       {{- with .Values.ccx.services.stores_service.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

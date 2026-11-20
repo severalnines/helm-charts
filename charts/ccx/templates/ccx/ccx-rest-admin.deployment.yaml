@@ -5,8 +5,14 @@ metadata:
   labels:
     app: ccx-rest-admin-service
     run: ccx-rest-admin-service
+  {{- if .Values.argocd.enabled }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+  {{- end }}
 spec:
+  {{- if not .Values.hpa.enabled }}
   replicas: {{ .Values.ccx.services.admin.replicas | default .Values.global.replicas }}
+  {{- end }}
   selector:
     matchLabels:
       app: ccx-rest-admin-service
@@ -27,6 +33,7 @@ spec:
       imagePullSecrets:
         - name: {{ .Values.ccx.imagePullSecret }}
       {{- end }}
+      {{- include "ccx.backend.podSecurityContext" . | nindent 6 }}
       containers:
         - name: ccx-rest-admin-service
           image: {{ .Values.ccx.services.admin.image | default .Values.ccx.backend.image | required "No image set for admin" }}
@@ -81,6 +88,7 @@ spec:
               mountPath: "/conf"
           resources:
             {{- toYaml .Values.ccx.services.admin.resources | nindent 12 }}
+          {{- include "ccx.backend.containerSecurityContext" . | nindent 10 }}
       volumes:
         - name: config
           configMap:
