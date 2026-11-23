@@ -23,7 +23,11 @@ ingress-nginx:
       X-XSS-Protection: 1; mode=block
     config:
       allow-backend-server-header: "true"
-      # allow-snippet-annotations: "true"
+      # nginx2root (CVE-2026-123634): block user-supplied *-snippet annotations
+      allow-snippet-annotations: "false"
+      # nginx2root (CVE-2026-123007, CVE-2026-123633): ingress-nginx is archived and
+      # ships nginx 1.27.x with no fix; disabling HTTP/2 blocks the RCE vectors
+      use-http2: "false"
       use-forwarded-headers: "true"
       hide-headers: "Server,X-Powered-By"
     kind: DaemonSet
@@ -177,7 +181,7 @@ ccx-monitoring:
       fullnameOverride: victoria-metrics
       service:
         servicePort: 9090
-        clusterIP: null
+        clusterIP: ""
       mode: deployment
       podAnnotations:
         prometheus.io/scrape: 'true'
