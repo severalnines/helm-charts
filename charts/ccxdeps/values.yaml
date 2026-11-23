@@ -177,7 +177,7 @@ ccx-monitoring:
       fullnameOverride: victoria-metrics
       service:
         servicePort: 9090
-        clusterIP: null
+        clusterIP: ""
       mode: deployment
       podAnnotations:
         prometheus.io/scrape: 'true'
